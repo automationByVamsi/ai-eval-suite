@@ -1,0 +1,11 @@
+{
+  "test_case_id": "TC_001",
+  "description": "Validate guidance for supporting someone struggling with gambling",
+  "agent_name": "knowledge_agent_local",
+  "input": { "question": "How do I support someone gambling?" },
+  "expected": {
+    "answer": "Encourage them to seek professional help, listen without judgment, and share support resources.",
+    "keywords": ["gambling", "support"]
+  },
+  "metrics": []
+}

@@ -1,0 +1,20 @@
+# Global/base metrics for knowledge_agent - run by default on any test case
+# that doesn't declare its own `metrics:` list (see src.main + TestCase).
+base_metrics:
+  - name: relevance
+    type: relevance
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+
+  - name: faithfulness
+    type: faithfulness
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: keyword_match
+    type: keyword_match
+    threshold: 1.0
+    keywords_source: keywords

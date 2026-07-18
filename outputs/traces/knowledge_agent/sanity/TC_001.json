@@ -1,0 +1,46 @@
+{
+  "test_case": {
+    "test_case_id": "TC_001",
+    "description": "Validate guidance for supporting someone struggling with gambling",
+    "agent_name": "knowledge_agent_local",
+    "input": { "question": "How do I support someone gambling?" },
+    "expected": {
+      "answer": "Encourage them to seek professional help, listen without judgment, and share support resources.",
+      "keywords": ["gambling", "support"]
+    },
+    "metrics": []
+  },
+  "raw_output": {
+    "agentOutput": "If someone you know is struggling with gambling, encourage them to seek professional support such as a counselor or a gambling helpline, listen without judgment, and share resources like the National Council on Problem Gambling helpline.",
+    "context": [
+      "Problem gambling support resources include national helplines, licensed counselors, and peer support groups such as Gamblers Anonymous."
+    ],
+    "sessionId": "sess-tc001",
+    "latency_ms": 812,
+    "raw_events": [
+      {
+        "author": "knowledge_agent_workflow",
+        "actions": { "stateDelta": { "query": "How do I support someone gambling?" } },
+        "nodeInfo": { "path": "knowledge_agent_workflow@1/init_context_node@1" }
+      },
+      {
+        "author": "query_rewrite_agent",
+        "content": {
+          "parts": [{ "text": "{\n  \"rewritten_query\": \"What are effective ways to support a friend or family member who has a gambling addiction?\"\n}" }],
+          "role": "model"
+        },
+        "actions": { "stateDelta": {} },
+        "nodeInfo": { "path": "knowledge_agent_workflow@1/search_engine_workflow@1/query_rewrite_agent@1" }
+      },
+      {
+        "author": "search_engine_workflow",
+        "actions": {
+          "stateDelta": {
+            "rewritten_query": "What are effective ways to support a friend or family member who has a gambling addiction?"
+          }
+        },
+        "nodeInfo": { "path": "knowledge_agent_workflow@1/search_engine_workflow@1/validate_query_rewrite_node@1" }
+      }
+    ]
+  }
+}

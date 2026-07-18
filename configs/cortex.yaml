@@ -1,0 +1,16 @@
+# CORTEX is the internal LLM gateway used as the judge model for every
+# DeepEval metric and the Synthesizer. No OpenAI key is ever needed - see
+# src/clients/cortex_client.py and src/clients/cortex_deepeval.py.
+cortex:
+  base_url: https://cortex.internal.example.com
+  path: /v1/generate
+  model: vertex-gemini-2.5-pro   # TODO: set to your real CORTEX model id
+  temperature: 0.0
+  timeout_s: 30
+  verify_tls: true
+  retries: 2
+  # Static-header auth: the client id is passed as a plain header - no OAuth,
+  # no secret. Values here are env VAR NAMES, never the secret/id itself.
+  headers_from_env:
+    x-origin-client-id: CORTEX_CLIENT_ID   # TODO: set to your real gateway's header name
+  extra_headers: {}

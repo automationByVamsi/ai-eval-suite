@@ -1,0 +1,25 @@
+# Every agent the framework can evaluate. `type` must match a name registered
+# in src/agents (see @AGENT_REGISTRY.register(...)). `metrics_profile` points
+# at configs/metrics/<profile>.yaml for that agent's default metric set.
+#
+# Adding a new agent = add an entry here + implement BaseAgent. No code here changes.
+agents:
+  knowledge_agent_replay:
+    type: replay
+    metrics_profile: knowledge_agent
+    config:
+      trace_dir: outputs/traces/knowledge_agent/sanity
+
+  knowledge_agent_live:
+    type: adk
+    metrics_profile: knowledge_agent
+    config:
+      base_url: https://internal-adk-host.example.com
+      base_path: ""   # TODO: set if your ADK server is mounted under a path prefix
+      app_name: knowledge_agent
+      user_id: eval_user
+      message_field: question
+      timeout_s: 30
+      verify_tls: true
+      max_retries: 2
+      headers: {}
