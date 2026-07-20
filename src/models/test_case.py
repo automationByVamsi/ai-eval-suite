@@ -1,18 +1,14 @@
 """
-TestCase is the normalised shape of one row of test input, no matter which
-agent or stage it targets. See testdata/knowledge_agent/sanity/*.json for
-real examples on disk.
+TestCase is the normalised shape of one row of test input for any agent.
+See testdata/<agent>/<tag>/*.json for examples on disk.
 """
 
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.models.schemas import MetricMode
-
-
 class MetricConfig(BaseModel):
-    """One entry of a test case's (or a stage's) `metrics:` list."""
+    """One entry of a test case's `metrics:` list."""
 
     name: str
     threshold: Optional[float] = None
@@ -29,7 +25,6 @@ class TestCase(BaseModel):
     input: dict[str, Any]
     expected: dict[str, Any] = Field(default_factory=dict)
     metrics: list[MetricConfig] = Field(default_factory=list)
-    metric_mode: Optional[MetricMode] = None
 
     @classmethod
     def from_json_file(cls, path: str) -> "TestCase":

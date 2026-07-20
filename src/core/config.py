@@ -46,7 +46,11 @@ def load_metrics_config(agent_profile: str, base_dir: str | Path = "configs/metr
     return data.get("base_metrics", [])
 
 
-def load_stage_config(agent_profile: str, stage: str, base_dir: str | Path = "configs/evaluations") -> dict[str, Any]:
-    """Returns the full stage config: {mode, judge_metrics: [...]}."""
-    path = Path(base_dir) / agent_profile / f"{stage}.yaml"
+def load_eval_config(agent_profile: str, eval_name: str, base_dir: str | Path = "configs/evaluations") -> dict[str, Any]:
+    """Load configs/evaluations/<agent>/<eval_name>.yaml (e.g. a KA stage suite)."""
+    path = Path(base_dir) / agent_profile / f"{eval_name}.yaml"
     return load_yaml(path)
+
+
+# Backward-compatible alias (knowledge_agent stages use this name historically)
+load_stage_config = load_eval_config

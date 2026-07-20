@@ -1,12 +1,16 @@
 """
-Streamlit dashboard for stage-evaluation results: one card per test case,
-split into a "Deterministic Checks" (Layer 1) card and a "Non-Deterministic
-Checks" (Layer 2 LLM-judge) card, each with the underlying detail inside.
+Streamlit dashboard for evaluation results.
 
-Reads whatever *.json StageEvaluationResult files scripts/run_stage.py or
-scripts/run_stage1.py wrote under --output (default outputs/dashboard). No
-agent or stage is hardcoded here - point this at a folder with results from
-five different agents and it renders all five, filterable in the sidebar.
+Two views (sidebar toggle) — neither replaces the other:
+  - By stage: one card per stage × case (existing stage-wise debugging)
+  - By test case (e2e): one card per case with stages nested inside
+
+Reads timestamped JSON under outputs/dashboard/runs/<stamp>/ (LATEST pointer).
+Defaults to the newest run; pick older runs from the sidebar.
+
+Files per run:
+  - <agent>/<eval>__<id>.json  → CaseEvaluationResult
+  - <agent>/e2e__<id>.json     → E2ECaseResult (kind=e2e)
 
     streamlit run scripts/dashboard_app.py
 """
@@ -23,7 +27,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 
-from src.models.evaluation_result import StageEvaluationResult
+from src.models.evaluation_result import CaseEvaluationResult, E2ECaseResult
+from src.reporting.persist import DEFAULT_DASHBOARD_ROOT, list_runs, resolve_latest_run
 
 st.set_page_config(page_title="Agent Evaluation Dashboard", page_icon="🧪", layout="wide")
 
@@ -95,6 +100,12 @@ html, body, [class*="css"] { font-family: system-ui, -apple-system, "Segoe UI", 
 .meter-fill.critical { background:var(--critical); }
 .meter-threshold { position:absolute; top:-2px; width:2px; height:10px; background:var(--ink-muted); border-radius:1px; }
 
+.stage-summary { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 4px 0; }
+.stage-chip { font-size:12px; padding:4px 10px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--ink-2); }
+.stage-chip.good { border-color: var(--good); color: var(--good); background: var(--good-wash); }
+.stage-chip.critical { border-color: var(--critical); color: var(--critical); background: var(--critical-wash); }
+
 .empty-card { font-size:12px; color:var(--ink-muted); padding:8px 0; }
 .empty-state { text-align:center; padding:70px 20px; color:var(--ink-muted); }
 .empty-state code { background:var(--surface-2); padding:2px 6px; border-radius:6px; }
@@ -108,17 +119,28 @@ def _esc(value) -> str:
     return html.escape(str(value)) if value is not None else ""
 
 
-def _load_results(output_dir: str) -> list[StageEvaluationResult]:
+def _load_all(output_dir: str) -> tuple[list[CaseEvaluationResult], list[E2ECaseResult]]:
     root = Path(output_dir)
     if not root.exists():
-        return []
-    results = []
+        return [], []
+    stage_results: list[CaseEvaluationResult] = []
+    e2e_results: list[E2ECaseResult] = []
     for path in sorted(root.rglob("*.json")):
         try:
-            results.append(StageEvaluationResult.model_validate(json.loads(path.read_text())))
+            data = json.loads(path.read_text())
         except Exception:
             continue
-    return results
+        if isinstance(data, dict) and data.get("kind") == "e2e":
+            try:
+                e2e_results.append(E2ECaseResult.model_validate(data))
+            except Exception:
+                continue
+        else:
+            try:
+                stage_results.append(CaseEvaluationResult.model_validate(data))
+            except Exception:
+                continue
+    return stage_results, e2e_results
 
 
 def _pct(numerator: int, denominator: int) -> str:
@@ -170,78 +192,19 @@ def _check_card_html(title: str, passed_n: int, total_n: int, empty_label: str, 
     )
 
 
-with st.sidebar:
-    st.header("Filters")
-    output_dir = st.text_input("Results folder", value="outputs/dashboard")
-    all_results = _load_results(output_dir)
+def _stat_tiles(tiles: list[tuple[str, str, str]]) -> None:
+    tiles_html = ['<div class="stat-row">']
+    for label, value, cls in tiles:
+        tiles_html.append(
+            f'<div class="stat-tile"><div class="label">{_esc(label)}</div>'
+            f'<div class="value {cls}">{_esc(value)}</div></div>'
+        )
+    tiles_html.append("</div>")
+    st.markdown("".join(tiles_html), unsafe_allow_html=True)
 
-    agents = sorted({r.agent_name for r in all_results if r.agent_name})
-    stages = sorted({r.stage_name for r in all_results})
-    selected_agents = st.multiselect("Agent", agents, default=agents)
-    # Stages are a knowledge_agent-specific validation concept, not every
-    # agent has more than one - only bother with the filter when it's
-    # actually meaningful (more than one distinct stage present).
-    selected_stages = st.multiselect("Stage", stages, default=stages) if len(stages) > 1 else stages
-    status_filter = st.radio("Status", ["All", "Passed only", "Failed only"], index=0)
-    search = st.text_input("Search test case ID").strip().lower()
 
-st.title("Agent Evaluation Dashboard")
-st.caption("Layer 1 deterministic checks + Layer 2 LLM-judge checks, per test case.")
-
-if not all_results:
-    st.markdown(
-        f"""
-        <div class="empty-state">
-          <p>No results found under <code>{_esc(output_dir)}</code>.</p>
-          <p>Run <code>python -m scripts.run_stage1</code> (or <code>run_stage.py</code>) first -
-          it writes one JSON file per test case there.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.stop()
-
-filtered = [
-    r
-    for r in all_results
-    if (not selected_agents or r.agent_name in selected_agents)
-    and (not selected_stages or r.stage_name in selected_stages)
-    and (search in r.test_case_id.lower() if search else True)
-    and (status_filter == "All" or (status_filter == "Passed only") == r.passed)
-]
-
-if not filtered:
-    st.info("No test cases match the current filters.")
-    st.stop()
-
-total = len(filtered)
-passed = sum(r.passed for r in filtered)
-det_total = sum(len(r.deterministic_results) for r in filtered)
-det_passed = sum(sum(c.passed for c in r.deterministic_results) for r in filtered)
-judge_total = sum(len(r.metric_results) for r in filtered)
-judge_passed = sum(sum(m.passed for m in r.metric_results) for r in filtered)
-latencies = [r.latency_ms for r in filtered if r.latency_ms]
-avg_latency_s = (sum(latencies) / len(latencies) / 1000) if latencies else None
-
-tiles = [
-    ("Test cases", str(total), ""),
-    ("Overall pass rate", _pct(passed, total), "good" if passed == total else "critical"),
-    ("Deterministic checks", _pct(det_passed, det_total), "good" if det_passed == det_total else "critical"),
-    ("Judge checks", _pct(judge_passed, judge_total), "good" if judge_total and judge_passed == judge_total else ("" if not judge_total else "critical")),
-    ("Avg latency", f"{avg_latency_s:.1f}s" if avg_latency_s is not None else "–", ""),
-]
-tiles_html = ['<div class="stat-row">']
-for label, value, cls in tiles:
-    tiles_html.append(
-        f'<div class="stat-tile"><div class="label">{_esc(label)}</div>'
-        f'<div class="value {cls}">{_esc(value)}</div></div>'
-    )
-tiles_html.append("</div>")
-st.markdown("".join(tiles_html), unsafe_allow_html=True)
-
-show_stage = len(stages) > 1
-
-for r in sorted(filtered, key=lambda r: (r.test_case_id, r.stage_name)):
+def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
+    """Shared det/judge panels + answer/context/trace expanders."""
     det_rows = "".join(_det_row_html(c) for c in r.deterministic_results)
     judge_rows = "".join(_judge_row_html(m) for m in r.metric_results)
     det_passed_n = sum(c.passed for c in r.deterministic_results)
@@ -249,42 +212,279 @@ for r in sorted(filtered, key=lambda r: (r.test_case_id, r.stage_name)):
     latency_html = f'<span class="case-latency">{r.latency_ms / 1000:.1f}s</span>' if r.latency_ms else ""
     question_html = f'<div class="case-question">{_esc(r.question)}</div>' if r.question else ""
 
-    status_icon = "✅" if r.passed else "❌"
-    label_bits = [f"**{r.test_case_id}**", r.agent_name or "unknown agent"]
-    if show_stage:
-        label_bits.append(r.stage_name)
-    if r.latency_ms:
-        label_bits.append(f"{r.latency_ms / 1000:.1f}s")
-    label = f"{status_icon}  " + "  ·  ".join(label_bits)
+    card_html = f"""
+    <div class="case-card">
+      <div class="case-head">
+        <span class="case-id">{_esc(r.test_case_id)}</span>
+        <span class="pill agent">{_esc(r.agent_name or "unknown agent")}</span>
+        <span class="pill stage">{_esc(r.eval_name)}</span>
+        {_status_pill(r.passed)}
+        {latency_html}
+      </div>
+      {question_html}
+      <div class="case-body-grid">
+        {_check_card_html("Deterministic Checks", det_passed_n, len(r.deterministic_results), "No deterministic checks", det_rows)}
+        {_check_card_html("Non-Deterministic Checks", judge_passed_n, len(r.metric_results), "No judge metrics ran", judge_rows)}
+      </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
 
-    with st.expander(label, expanded=False):
-        card_html = f"""
-        <div class="case-card">
-          <div class="case-head">
-            <span class="case-id">{_esc(r.test_case_id)}</span>
-            <span class="pill agent">{_esc(r.agent_name or "unknown agent")}</span>
-            <span class="pill stage">{_esc(r.stage_name)}</span>
-            {_status_pill(r.passed)}
-            {latency_html}
-          </div>
-          {question_html}
-          <div class="case-body-grid">
-            {_check_card_html("Deterministic Checks", det_passed_n, len(r.deterministic_results), "No deterministic checks for this stage", det_rows)}
-            {_check_card_html("Non-Deterministic Checks", judge_passed_n, len(r.metric_results), "No judge metrics ran for this stage", judge_rows)}
-          </div>
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
+    with st.expander("Agent answer"):
+        st.markdown(r.answer or "_(empty)_")
 
-        with st.expander("Agent answer"):
-            st.markdown(r.answer or "_(empty)_")
+    with st.expander("Retrieved context"):
+        if r.context:
+            for i, ctx in enumerate(r.context, start=1):
+                st.text_area(
+                    f"Context {i}",
+                    ctx,
+                    height=120,
+                    disabled=True,
+                    label_visibility="collapsed",
+                    key=f"{key_prefix}_ctx_{r.agent_name}_{r.eval_name}_{r.test_case_id}_{i}",
+                )
+        else:
+            st.caption("No retrieved context recorded.")
 
-        with st.expander("Retrieved context"):
-            if r.context:
-                for i, ctx in enumerate(r.context, start=1):
-                    st.text_area(f"Context {i}", ctx, height=120, disabled=True, label_visibility="collapsed")
-            else:
-                st.caption("No retrieved context recorded for this stage.")
+    with st.expander("Agent trace"):
+        st.json(r.model_dump())
 
-        with st.expander("Agent trace"):
-            st.json(r.model_dump())
+
+def _render_stage_view(filtered: list[CaseEvaluationResult], show_eval: bool) -> None:
+    total = len(filtered)
+    passed = sum(r.passed for r in filtered)
+    det_total = sum(len(r.deterministic_results) for r in filtered)
+    det_passed = sum(sum(c.passed for c in r.deterministic_results) for r in filtered)
+    judge_total = sum(len(r.metric_results) for r in filtered)
+    judge_passed = sum(sum(m.passed for m in r.metric_results) for r in filtered)
+    latencies = [r.latency_ms for r in filtered if r.latency_ms]
+    avg_latency_s = (sum(latencies) / len(latencies) / 1000) if latencies else None
+
+    _stat_tiles([
+        ("Test cases", str(total), ""),
+        ("Overall pass rate", _pct(passed, total), "good" if passed == total else "critical"),
+        ("Deterministic checks", _pct(det_passed, det_total), "good" if det_passed == det_total else "critical"),
+        ("Judge checks", _pct(judge_passed, judge_total), "good" if judge_total and judge_passed == judge_total else ("" if not judge_total else "critical")),
+        ("Avg latency", f"{avg_latency_s:.1f}s" if avg_latency_s is not None else "–", ""),
+    ])
+
+    for r in sorted(filtered, key=lambda r: (r.test_case_id, r.eval_name)):
+        status_icon = "✅" if r.passed else "❌"
+        label_bits = [f"**{r.test_case_id}**", r.agent_name or "unknown agent"]
+        if show_eval:
+            label_bits.append(r.eval_name)
+        if r.latency_ms:
+            label_bits.append(f"{r.latency_ms / 1000:.1f}s")
+        label = f"{status_icon}  " + "  ·  ".join(label_bits)
+
+        with st.expander(label, expanded=False):
+            _render_stage_body(r, key_prefix="stage")
+
+
+def _render_e2e_view(filtered: list[E2ECaseResult]) -> None:
+    total = len(filtered)
+    passed = sum(r.passed for r in filtered)
+    stage_rows = [s for r in filtered for s in r.stages]
+    det_total = sum(len(s.deterministic_results) for s in stage_rows)
+    det_passed = sum(sum(c.passed for c in s.deterministic_results) for s in stage_rows)
+    judge_total = sum(len(s.metric_results) for s in stage_rows)
+    judge_passed = sum(sum(m.passed for m in s.metric_results) for s in stage_rows)
+    latencies = [r.latency_ms for r in filtered if r.latency_ms]
+    avg_latency_s = (sum(latencies) / len(latencies) / 1000) if latencies else None
+
+    _stat_tiles([
+        ("Test cases", str(total), ""),
+        ("E2E pass rate", _pct(passed, total), "good" if passed == total else "critical"),
+        ("Deterministic checks", _pct(det_passed, det_total), "good" if det_passed == det_total else "critical"),
+        ("Judge checks", _pct(judge_passed, judge_total), "good" if judge_total and judge_passed == judge_total else ("" if not judge_total else "critical")),
+        ("Avg latency", f"{avg_latency_s:.1f}s" if avg_latency_s is not None else "–", ""),
+    ])
+
+    for r in sorted(filtered, key=lambda r: r.test_case_id):
+        status_icon = "✅" if r.passed else "❌"
+        n_stages = len(r.stages)
+        stages_ok = sum(1 for s in r.stages if s.deterministic_passed)
+        label_bits = [
+            f"**{r.test_case_id}**",
+            r.agent_name or "unknown agent",
+            f"{stages_ok}/{n_stages} stages",
+        ]
+        if r.latency_ms:
+            label_bits.append(f"{r.latency_ms / 1000:.1f}s")
+        label = f"{status_icon}  " + "  ·  ".join(label_bits)
+
+        with st.expander(label, expanded=False):
+            latency_html = (
+                f'<span class="case-latency">{r.latency_ms / 1000:.1f}s</span>' if r.latency_ms else ""
+            )
+            question_html = f'<div class="case-question">{_esc(r.question)}</div>' if r.question else ""
+            chips = []
+            for s in r.stages:
+                cls = "good" if s.deterministic_passed else "critical"
+                det_ok = sum(c.passed for c in s.deterministic_results)
+                det_n = len(s.deterministic_results)
+                chips.append(
+                    f'<span class="stage-chip {cls}">{_esc(s.eval_name)} · det {det_ok}/{det_n}</span>'
+                )
+            chips_html = f'<div class="stage-summary">{"".join(chips)}</div>' if chips else ""
+
+            header = f"""
+            <div class="case-card" style="margin-bottom:12px;">
+              <div class="case-head">
+                <span class="case-id">{_esc(r.test_case_id)}</span>
+                <span class="pill agent">{_esc(r.agent_name or "unknown agent")}</span>
+                <span class="pill stage">e2e · {n_stages} stages</span>
+                {_status_pill(r.passed)}
+                {latency_html}
+              </div>
+              {question_html}
+              {chips_html}
+            </div>
+            """
+            st.markdown(header, unsafe_allow_html=True)
+
+            for s in r.stages:
+                stage_icon = "✅" if s.deterministic_passed else "❌"
+                with st.expander(f"{stage_icon}  {s.eval_name}", expanded=False):
+                    _render_stage_body(s, key_prefix=f"e2e_{r.test_case_id}")
+
+
+# ---------------------------------------------------------------------------
+# Sidebar + routing
+# ---------------------------------------------------------------------------
+
+def _format_run_label(run_dir: Path, latest: Path | None) -> str:
+    name = run_dir.name
+    # 20260720_175812 → 2026-07-20 17:58:12
+    if len(name) == 15 and name[8] == "_":
+        pretty = f"{name[0:4]}-{name[4:6]}-{name[6:8]} {name[9:11]}:{name[11:13]}:{name[13:15]}"
+    else:
+        pretty = name
+    if latest is not None and run_dir.resolve() == latest.resolve():
+        return f"{pretty}  (latest)"
+    return pretty
+
+
+with st.sidebar:
+    st.header("Filters")
+    results_root = st.text_input("Results root", value=DEFAULT_DASHBOARD_ROOT)
+    root_path = Path(results_root)
+    runs = list_runs(root_path)
+    latest = resolve_latest_run(root_path)
+
+    if runs:
+        run_names = [r.name for r in runs]
+        labels_by_name = {r.name: _format_run_label(r, latest) for r in runs}
+        newest = run_names[0]
+        # Jump to newest when a newer run appears (or on first load).
+        if st.session_state.get("_known_latest_run") != newest:
+            st.session_state["_known_latest_run"] = newest
+            st.session_state["dashboard_run"] = newest
+        elif "dashboard_run" not in st.session_state or st.session_state["dashboard_run"] not in run_names:
+            st.session_state["dashboard_run"] = newest
+
+        st.selectbox(
+            "Run",
+            run_names,
+            format_func=lambda n: labels_by_name.get(n, n),
+            key="dashboard_run",
+            help="Each pytest/make eval run gets its own timestamped folder. Defaults to latest.",
+        )
+        output_dir = str(root_path / "runs" / st.session_state["dashboard_run"])
+        st.caption(f"Loading `{st.session_state['dashboard_run']}`")
+    elif latest is not None:
+        # Legacy flat layout (pre-timestamp) or LATEST-only
+        output_dir = str(latest)
+        st.info("No timestamped runs yet — loading legacy folder. New evals write under `runs/<timestamp>/`.")
+    else:
+        output_dir = results_root
+        st.caption("No runs found yet.")
+
+    stage_results, e2e_results = _load_all(output_dir)
+
+    view_options = ["By stage"]
+    if e2e_results:
+        view_options.append("By test case (e2e)")
+    # Prefer e2e when rollups exist (demo path); stage view always available.
+    default_view = 1 if e2e_results else 0
+    view_mode = st.radio("View", view_options, index=default_view)
+
+    if view_mode.startswith("By test case"):
+        agents = sorted({r.agent_name for r in e2e_results if r.agent_name})
+        selected_agents = st.multiselect("Agent", agents, default=agents)
+        status_filter = st.radio("Status", ["All", "Passed only", "Failed only"], index=0)
+        search = st.text_input("Search test case ID").strip().lower()
+        selected_evals: list[str] = []
+        show_eval = False
+    else:
+        agents = sorted({r.agent_name for r in stage_results if r.agent_name})
+        eval_names = sorted({r.eval_name for r in stage_results})
+        selected_agents = st.multiselect("Agent", agents, default=agents)
+        selected_evals = (
+            st.multiselect("Eval suite", eval_names, default=eval_names) if len(eval_names) > 1 else eval_names
+        )
+        status_filter = st.radio("Status", ["All", "Passed only", "Failed only"], index=0)
+        search = st.text_input("Search test case ID").strip().lower()
+        show_eval = len(eval_names) > 1
+
+st.title("Agent Evaluation Dashboard")
+run_label = Path(output_dir).name
+if view_mode.startswith("By test case"):
+    st.caption(f"E2E view · run `{run_label}` — one card per test case, stages nested.")
+else:
+    st.caption(f"Stage view · run `{run_label}` — one card per stage × case.")
+
+if view_mode.startswith("By test case"):
+    if not e2e_results:
+        st.markdown(
+            f"""
+            <div class="empty-state">
+              <p>No e2e rollups under <code>{_esc(output_dir)}</code>.</p>
+              <p>Run <code>make demo-e2e</code> (writes <code>e2e__&lt;id&gt;.json</code>),
+              or switch View to <strong>By stage</strong>.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.stop()
+
+    filtered_e2e = [
+        r
+        for r in e2e_results
+        if (not selected_agents or r.agent_name in selected_agents)
+        and (search in r.test_case_id.lower() if search else True)
+        and (status_filter == "All" or (status_filter == "Passed only") == r.passed)
+    ]
+    if not filtered_e2e:
+        st.info("No test cases match the current filters.")
+        st.stop()
+    _render_e2e_view(filtered_e2e)
+
+else:
+    if not stage_results:
+        st.markdown(
+            f"""
+            <div class="empty-state">
+              <p>No results found under <code>{_esc(output_dir)}</code>.</p>
+              <p>Run your agent pytest suite first (e.g.
+              <code>pytest tests/knowledge_agent/test_stage1.py -v -s</code>) —
+              it writes one JSON file per stage × case there.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.stop()
+
+    filtered = [
+        r
+        for r in stage_results
+        if (not selected_agents or r.agent_name in selected_agents)
+        and (not selected_evals or r.eval_name in selected_evals)
+        and (search in r.test_case_id.lower() if search else True)
+        and (status_filter == "All" or (status_filter == "Passed only") == r.passed)
+    ]
+    if not filtered:
+        st.info("No test cases match the current filters.")
+        st.stop()
+    _render_stage_view(filtered, show_eval=show_eval)

@@ -1,0 +1,20 @@
+# Stage 2 = Anchor Node Identification.
+# Rubrics: configs/criteria/knowledge_agent/
+mode: stage_only
+
+judge_metrics:
+  - name: anchor_relevance
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/anchor_relevance.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: anchor_page_content
+
+  - name: anchor_grounding_quality
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/anchor_grounding_quality.md
+    evaluation_params: [input, actual_output]
+    input_source: rewritten_query
+    actual_source: anchor_page_content

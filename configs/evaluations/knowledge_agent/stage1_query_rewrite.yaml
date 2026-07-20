@@ -1,13 +1,36 @@
-# Stage 1 = query rewrite. `mode` controls which metrics run in addition to
-# Layer 1 deterministic checks (see StageMetricRunner):
-#   stage_only | global_only | stage_plus_global
-mode: stage_plus_global
+# Stage 1 = Query Rewrite & Search Execution.
+# Rubrics: configs/criteria/knowledge_agent/
+mode: stage_only
 
 judge_metrics:
   - name: intent_preservation
     type: geval
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/intent_preservation.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  - name: semantic_preservation
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/semantic_preservation.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  - name: domain_appropriateness
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/domain_appropriateness.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  - name: query_optimization
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/query_optimization.md
     evaluation_params: [input, actual_output]
     input_source: question
     actual_source: rewritten_query

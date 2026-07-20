@@ -5,7 +5,9 @@
   "input": { "question": "How do I support someone gambling?" },
   "expected": {
     "answer": "Encourage them to seek professional help, listen without judgment, and share support resources.",
-    "keywords": ["gambling", "support"]
+    "keywords": ["gambling", "support"],
+    "expected_anchor_page_id": "9001",
+    "anchor_selection_method": "baseline"
   },
   "metrics": []
 }

@@ -3,7 +3,7 @@ Unit tests for the generic ADK trace primitives in adk_parser.py, run
 directly against a real captured trace (sample-agent-response.json) so each
 helper's behavior is pinned to an actual ADK event shape, not a hand-wavy
 mock. These are the "fetching" primitives every stage-specific parser
-(e.g. src/parsers/knowledge_agent/parser.py) is built on top of.
+(e.g. src/parsers/knowledge_agent/stage1.py) is built on top of.
 """
 
 import json

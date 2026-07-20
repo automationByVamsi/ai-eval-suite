@@ -6,25 +6,34 @@
     "input": { "question": "How do I support someone gambling?" },
     "expected": {
       "answer": "Encourage them to seek professional help, listen without judgment, and share support resources.",
-      "keywords": ["gambling", "support"]
+      "keywords": ["gambling", "support"],
+      "expected_anchor_page_id": "9001",
+      "anchor_selection_method": "baseline"
     },
     "metrics": []
   },
   "raw_output": {
     "agentOutput": "If someone you know is struggling with gambling, encourage them to seek professional support such as a counselor or a gambling helpline, listen without judgment, and share resources like the National Council on Problem Gambling helpline.",
     "context": [
-      "Problem gambling support resources include national helplines, licensed counselors, and peer support groups such as Gamblers Anonymous."
+      "page_id: 9001\ntitle: Supporting Someone with Gambling Problems\ncontent:\nProblem gambling support resources include national helplines, licensed counselors, and peer support groups such as Gamblers Anonymous."
     ],
     "sessionId": "sess-tc001",
     "latency_ms": 812,
     "raw_events": [
       {
         "author": "knowledge_agent_workflow",
-        "actions": { "stateDelta": { "query": "How do I support someone gambling?" } },
+        "actions": {
+          "stateDelta": {
+            "query": "How do I support someone gambling?",
+            "business_area": "/Support_Hub/",
+            "artifact_id": "artifact-tc001-init"
+          }
+        },
         "nodeInfo": { "path": "knowledge_agent_workflow@1/init_context_node@1" }
       },
       {
         "author": "query_rewrite_agent",
+        "finishReason": "STOP",
         "content": {
           "parts": [{ "text": "{\n  \"rewritten_query\": \"What are effective ways to support a friend or family member who has a gambling addiction?\"\n}" }],
           "role": "model"
@@ -36,10 +45,46 @@
         "author": "search_engine_workflow",
         "actions": {
           "stateDelta": {
-            "rewritten_query": "What are effective ways to support a friend or family member who has a gambling addiction?"
+            "rewritten_query": "What are effective ways to support a friend or family member who has a gambling addiction?",
+            "query": "How do I support someone gambling?",
+            "business_area": "/Support_Hub/",
+            "artifact_id": "artifact-tc001-init"
           }
         },
         "nodeInfo": { "path": "knowledge_agent_workflow@1/search_engine_workflow@1/validate_query_rewrite_node@1" }
+      },
+      {
+        "author": "search_engine_workflow",
+        "content": {
+          "parts": [{
+            "text": "Search retrieved successfully. artifact_id=artifact-tc001-search business_area=/Support_Hub/ result_count=3 deduplicated_page_ids=2"
+          }],
+          "role": "user"
+        },
+        "actions": {
+          "stateDelta": { "artifact_id": "artifact-tc001-search" }
+        },
+        "nodeInfo": { "path": "knowledge_agent_workflow@1/search_engine_workflow@1/search_node@1" }
+      },
+      {
+        "author": "anchor_node_workflow",
+        "content": {
+          "parts": [{
+            "text": "Anchor page selected using baseline method.anchor_page_id=9001"
+          }],
+          "role": "user"
+        },
+        "actions": {
+          "stateDelta": {
+            "query": "How do I support someone gambling?",
+            "rewritten_query": "What are effective ways to support a friend or family member who has a gambling addiction?",
+            "artifact_id": "artifact-tc001-search",
+            "anchor_page_id": "9001"
+          }
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/anchor_node_workflow@1/anchor_baseline@1"
+        }
       }
     ]
   }

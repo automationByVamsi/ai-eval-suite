@@ -1,8 +1,7 @@
 """
-Invokes a LIVE agent (or replay, for local demos) for every test case under a
-tag and saves the raw trace to outputs/traces/<agent-dir>/<tag>/<id>.json.
-Does NOT evaluate anything - that's what src.main / run_stage*.py are for.
-This is the "capture" half of capture-then-evaluate offline replay.
+Invokes a LIVE agent (or replay) for every test case under a tag and saves
+the raw trace to outputs/traces/<agent-dir>/<tag>/<id>.json.
+Does NOT evaluate — run the agent's pytest suite for that.
 
     python -m scripts.capture_traces --agent-dir knowledge_agent --tag sanity
 """

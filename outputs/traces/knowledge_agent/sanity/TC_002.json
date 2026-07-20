@@ -6,7 +6,10 @@
     "input": {
       "question": "How do I request VPN access for remote work?"
     },
-    "expected": {},
+    "expected": {
+      "expected_anchor_page_id": "8194",
+      "anchor_selection_method": "baseline"
+    },
     "metrics": []
   },
   "raw_output": {

@@ -1,4 +1,4 @@
-"""Generic "load a captured trace JSON file off disk" helper, shared by every stage evaluator."""
+"""Load a captured trace JSON file from disk."""
 
 import json
 from pathlib import Path
