@@ -2,6 +2,9 @@
 # in src/agents (see @AGENT_REGISTRY.register(...)). `metrics_profile` points
 # at configs/metrics/<profile>.yaml for that agent's default metric set.
 #
+# Values support ${VAR} and ${VAR:-default}. Secrets/host overrides live in
+# gitignored `.env` (see `.env.example`).
+#
 # Adding a new agent = add an entry here + implement BaseAgent. No code here changes.
 agents:
   knowledge_agent_replay:
@@ -10,14 +13,29 @@ agents:
     config:
       trace_dir: outputs/traces/knowledge_agent/sanity
 
+  # Local Google-ADK (e.g. `adk api_server` on :8080). Testdata uses this name.
+  knowledge_agent_local:
+    type: adk
+    metrics_profile: knowledge_agent
+    config:
+      base_url: ${KNOWLEDGE_BASE_URL_LOCAL:-http://localhost:8080}
+      base_path: ${KNOWLEDGE_BASE_PATH_LOCAL:-}
+      app_name: ${KNOWLEDGE_APP_NAME_LOCAL:-knowledge_agent}
+      user_id: ${KNOWLEDGE_USER_ID_LOCAL:-eval_user}
+      message_field: question
+      timeout_s: 180
+      verify_tls: false
+      max_retries: 2
+      headers: {}
+
   knowledge_agent_live:
     type: adk
     metrics_profile: knowledge_agent
     config:
-      base_url: https://internal-adk-host.example.com
-      base_path: ""   # TODO: set if your ADK server is mounted under a path prefix
-      app_name: knowledge_agent
-      user_id: eval_user
+      base_url: ${ADK_BASE_URL:-https://internal-adk-host.example.com}
+      base_path: ${ADK_BASE_PATH:-}
+      app_name: ${ADK_APP_NAME:-knowledge_agent}
+      user_id: ${ADK_USER_ID:-eval_user}
       message_field: question
       timeout_s: 30
       verify_tls: true
@@ -36,10 +54,10 @@ agents:
     type: adk
     metrics_profile: fact_find_workflow
     config:
-      base_url: https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent
-      base_path: ""
-      app_name: fact_find_workflow
-      user_id: bdduser
+      base_url: ${FACTFIND_ADK_BASE_URL:-https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent}
+      base_path: ${FACTFIND_ADK_BASE_PATH:-}
+      app_name: ${FACTFIND_ADK_APP_NAME:-fact_find_workflow}
+      user_id: ${FACTFIND_ADK_USER_ID:-bdduser}
       message_field: complaint_ref
       timeout_s: 420
       verify_tls: true

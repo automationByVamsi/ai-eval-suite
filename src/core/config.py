@@ -1,6 +1,8 @@
 """
 Thin helpers for reading YAML config files. No caching, no magic - a junior
 engineer should be able to read this file top to bottom in a minute.
+
+Loads `.env` (if present) and expands `${VAR}` / `${VAR:-default}` in values.
 """
 
 from pathlib import Path
@@ -8,10 +10,12 @@ from typing import Any
 
 import yaml
 
+from src.core.env import expand_env, load_dotenv
 from src.core.exceptions import ConfigError
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
+    load_dotenv()
     path = Path(path)
     if not path.exists():
         raise ConfigError(f"Config file not found: {path}")
@@ -19,7 +23,7 @@ def load_yaml(path: str | Path) -> dict[str, Any]:
         data = yaml.safe_load(f) or {}
     if not isinstance(data, dict):
         raise ConfigError(f"Expected a YAML mapping at the top level of {path}")
-    return data
+    return expand_env(data)
 
 
 def load_agents_config(path: str | Path = "configs/agents.yaml") -> dict[str, Any]:
