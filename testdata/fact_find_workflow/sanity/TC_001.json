@@ -1,0 +1,22 @@
+{
+  "test_case_id": "TC_001",
+  "description": "Successful Fact Find summary for NC10010556 grounded in aggregated payload",
+  "agent_name": "fact_find_workflow_replay",
+  "input": {
+    "complaint_ref": "NC10010556"
+  },
+  "expected": {
+    "path": "success",
+    "aggregated_payload_path": "data/fact_find_workflow/aggregated_payloads/NC10010556.json",
+    "party_id": "68905187",
+    "keywords": ["NC10010556", "68905187", "Monica", "Geller", "77110361403060"],
+    "expected_tools": [
+      "get_ica_case_details",
+      "get_account_details",
+      "get_customer_holding",
+      "get_contact_notes",
+      "get_trusted_parties"
+    ]
+  },
+  "metrics": []
+}

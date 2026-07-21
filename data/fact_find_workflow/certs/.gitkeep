@@ -1,0 +1,4 @@
+# Placeholder — put APIC client cert/key here (gitignored).
+# Expected filenames (override via FACTFIND_APIC_*_PATH):
+#   apic.pem
+#   apic.key

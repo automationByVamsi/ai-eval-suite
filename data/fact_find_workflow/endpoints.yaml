@@ -1,0 +1,61 @@
+# Fact Find backend APIs used to build aggregated payloads (ground truth).
+# Mirrors cce2ec-qe-playwright-e2e factfind/config/endpoints.ts.
+# Call order for a successful run:
+#   1. ICA case details (complaintRef)
+#   2. Account details (accountNumberFull from ICA items[0], when present)
+#   3. Customer holdings (resolved party IDs)
+#   4. Contact notes + trusted parties (parallel, per customer-flow party ID)
+#   5. Account details for eligible holding account numbers
+
+counter_api_version: v3  # env: COUNTER_API_VERSION
+
+endpoints:
+  ica_case_details:
+    method: GET
+    url_template: >-
+      https://nucleuscomplaintsproxy-test2.ia.lloydsbanking.cloud/MMXAPI2/api2/v3/{complaintRef}/ICA-case-details
+    headers: nucleus  # NUCLEUS_IMPERSONATE_USER_ID
+
+  account_details:
+    method: POST
+    url_template: >-
+      https://apic-v10-ent.test.lloydsbanking.cloud/lbg-sit/sit01/customer-profile/{counterApiVersion}/account-details
+    headers: counter  # COUNTER_V3_* (or COUNTER_V1_* when version=v1)
+
+  customer_holding:
+    method: POST
+    url_template: >-
+      https://apic-v10-ent.test.lloydsbanking.cloud/lbg-sit/sit01/customer-profile/{counterApiVersion}/customer-holding-summary
+    headers: counter
+    body:
+      partyId: "{partyId}"
+      criterion: ALL
+
+  contact_notes:
+    method: GET
+    url_template: >-
+      https://apic-v10-ent.test.lloydsbanking.cloud/lbg-sit/lbg01/v2/parties/{partyId}/contact-notes
+    headers: ocis
+
+  trusted_parties:
+    method: GET
+    url_template: >-
+      https://apic-v10-ent.test.lloydsbanking.cloud/lbg-sit/lbg01/v2/parties/{partyId}/trusted-parties
+    headers: ocis
+
+eligible_product_types:
+  - CURRENT_ACCOUNT
+  - SAVINGS
+  - DEPOSIT_SAVINGS
+  - DEPOSIT_AND_SAVINGS
+
+aggregated_payload_schema:
+  top_level: [complaintRef, generatedAt, counterApiVersion, derived, sources]
+  sources:
+    - ica
+    - accountDetails
+    - customerHolding
+    - contactNotes
+    - contactNotesByParty
+    - trustedParties
+    - trustedPartiesByParty

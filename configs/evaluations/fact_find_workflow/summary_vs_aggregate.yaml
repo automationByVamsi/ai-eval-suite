@@ -1,0 +1,115 @@
+# Summary vs aggregate = Customer FactFind Summary quality vs aggregated payload.
+#
+# Prefer DeepEval built-ins where they fit; keep domain GEval for Fact Find risks
+# (support needs, missing-data honesty, complaint-account association).
+mode: stage_only
+
+judge_metrics:
+  # --- Built-in DeepEval ---
+  - name: faithfulness
+    type: faithfulness
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: relevance
+    type: relevance
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+
+  - name: summarization
+    type: summarization
+    threshold: 0.7
+    input_source: source_document
+    actual_source: answer
+
+  - name: hallucination
+    type: hallucination
+    threshold: 0.5
+    # HallucinationMetric: lower score is worse; threshold is max acceptable hallucination rate.
+    # deepeval: passed when score <= threshold in some versions — adapter uses >= threshold;
+    # we treat high "alignment" by configuring threshold carefully. Prefer faithfulness as primary.
+    input_source: complaint_ref
+    actual_source: answer
+    ground_truth_context_source: ground_truth_context
+
+  - name: tool_correctness
+    type: tool_correctness
+    threshold: 0.7
+    tools_called_source: tools_called
+    expected_tools_source: expected_tools
+    should_consider_ordering: false
+    should_exact_match: false
+
+  # MCP-specific built-ins (need live tool/MCP events; auto-skipped on replay fixtures)
+  - name: mcp_use
+    type: mcp_use
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    mcp_servers_source: mcp_servers
+    mcp_tools_called_source: mcp_tools_called
+    tools_called_source: tools_called
+
+  - name: mcp_task_completion
+    type: mcp_task_completion
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    mcp_servers_source: mcp_servers
+    mcp_tools_called_source: mcp_tools_called
+    tools_called_source: tools_called
+
+  # Single-turn task completion (no MCP events required)
+  - name: task_completion
+    type: task_completion
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+
+  # Optional RAG-style check on whether aggregate context is on-topic for the ref
+  - name: contextual_relevancy
+    type: contextual_relevancy
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  # --- Domain-specific GEval (keep) ---
+  - name: support_needs_fidelity
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/support_needs_fidelity.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: profile_accuracy
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/profile_accuracy.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: missing_data_honesty
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/missing_data_honesty.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: complaint_account_association
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/complaint_account_association.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context

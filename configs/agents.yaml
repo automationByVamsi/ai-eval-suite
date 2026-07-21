@@ -23,3 +23,25 @@ agents:
       verify_tls: true
       max_retries: 2
       headers: {}
+
+  # Fact Find Workflow — complaint ref in → multi-system MCP gather → UI summary.
+  # Live host/timeouts mirror the other-repo .env.factfind.api (no secrets here).
+  fact_find_workflow_replay:
+    type: replay
+    metrics_profile: fact_find_workflow
+    config:
+      trace_dir: outputs/traces/fact_find_workflow/sanity
+
+  fact_find_workflow_live:
+    type: adk
+    metrics_profile: fact_find_workflow
+    config:
+      base_url: https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent
+      base_path: ""
+      app_name: fact_find_workflow
+      user_id: bdduser
+      message_field: complaint_ref
+      timeout_s: 420
+      verify_tls: true
+      max_retries: 1
+      headers: {}

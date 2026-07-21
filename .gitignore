@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .venv/
 .env
+.env.factfind.api
 .pytest_cache/
 uv.lock.bak
 .claude/
@@ -13,3 +14,7 @@ outputs/dashboard/
 # synth.py's cache of source docs materialized as .txt for DeepEval's Synthesizer
 data/**/_generated_txt/
 .deepeval/
+
+# Fact Find APIC mTLS material (keep .gitkeep only)
+data/fact_find_workflow/certs/*
+!data/fact_find_workflow/certs/.gitkeep

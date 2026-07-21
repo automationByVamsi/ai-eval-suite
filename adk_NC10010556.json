@@ -1,0 +1,60 @@
+{
+    "complaintRef": "NC10010556",
+    "sessionId": "cb2e9168-f4e5-4749-88c8-f119caadda89",
+    "capturedAt": "2026-07-21T01:12:34.965013Z",
+    "agentOutput": "InvalidComplaintId: Please enter only a single complaint reference.\nA valid complaint reference must begin with the prefix 'NC' followed by 8 digits (e.g. NC12345678), with no additional text before or after.\nInputs that include extra words or an incorrectly formatted reference are not accepted.",
+    "raw_events": [
+      {
+        "invocationId": "e-854f2df6-c7f7-42ce-87fa-fe7404a8e1d5",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "initialized": true,
+            "interaction_count": 1,
+            "successful_run": false
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "770c0d26-06da-4f64-8579-5cd359ac0bef",
+        "timestamp": 1784596354.6730347
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "InvalidComplaintId: Please enter only a single complaint reference.\nA valid complaint reference must begin with the prefix 'NC' followed by 8 digits (e.g. NC12345678), with no additional text before or after.\nInputs that include extra words or an incorrectly formatted reference are not accepted."
+            }
+          ],
+          "role": "model"
+        },
+        "invocationId": "e-854f2df6-c7f7-42ce-87fa-fe7404a8e1d5",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "complaint_validation_failed": true
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "8dd65a52-18e0-4c2b-9d3b-96bf84fd10ba",
+        "timestamp": 1784596354.7633483
+      },
+      {
+        "invocationId": "e-854f2df6-c7f7-42ce-87fa-fe7404a8e1d5",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "successful_run": true
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "f2f65b14-0686-43c3-898a-2c48e30f2d0b",
+        "timestamp": 1784596354.8136551
+      }
+    ]
+  }

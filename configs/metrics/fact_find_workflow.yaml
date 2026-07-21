@@ -1,0 +1,28 @@
+# Default base metrics for fact_find_workflow (src.main when a case omits metrics:).
+base_metrics:
+  - name: faithfulness
+    type: faithfulness
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  - name: relevance
+    type: relevance
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+
+  - name: keyword_match
+    type: keyword_match
+    threshold: 1.0
+    keywords_source: keywords
+
+  - name: support_needs_fidelity
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/support_needs_fidelity.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
