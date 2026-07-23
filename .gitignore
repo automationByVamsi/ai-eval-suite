@@ -10,6 +10,7 @@ uv.lock.bak
 # outputs/traces/.../sanity/ are the exception, committed as fixtures
 outputs/*.json
 outputs/dashboard/
+outputs/verdict/
 
 # synth.py's cache of source docs materialized as .txt for DeepEval's Synthesizer
 data/**/_generated_txt/
