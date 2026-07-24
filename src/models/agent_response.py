@@ -1,7 +1,6 @@
 """
-AgentResponse is the normalised shape every BaseAgent.invoke() (and every
-stage parser) must produce, regardless of what the underlying agent looks
-like internally.
+AgentResponse is the normalised shape AdkClient (and stage parsers) produce
+from a full ADK JSON trace / live /run response.
 """
 
 from typing import Any, Optional

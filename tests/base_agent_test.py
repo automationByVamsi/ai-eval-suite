@@ -26,7 +26,6 @@ from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
 from src.parsers.trace_parser import load_raw_trace
 from src.reporting.persist import ensure_run_dir, save_e2e_result, save_eval_result
-from src.runners.factories import AgentFactory
 from src.runners.trace_capture import ensure_traces
 
 
@@ -54,8 +53,7 @@ class BaseAgentTest:
     def ensure_traces(self, cases: list[TestCase]) -> None:
         mode = os.environ.get("DEMO_MODE", "cache")
         trace_dir = Path("outputs/traces") / self.profile / self.tag
-        factory = AgentFactory(self.agents_config)
-        ensure_traces(cases, trace_dir, mode, factory)
+        ensure_traces(cases, trace_dir, mode, agents_path=self.agents_config)
 
     def load_trace(self, test_case_id: str) -> dict[str, Any]:
         path = Path("outputs/traces") / self.profile / self.tag / f"{test_case_id}.json"

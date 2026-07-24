@@ -1,43 +1,17 @@
 """
-AgentFactory and MetricFactory are the ONLY code in this framework that
-touches AGENT_REGISTRY / METRIC_REGISTRY directly. They read YAML config and
-turn it into configured, cached objects. Nothing else should ever import an
-agent or metric class by name - go through these factories instead.
+MetricFactory turns metric YAML configs into metric instances.
+
+Agent invoke is not a factory — use src.clients.adk_client.AdkClient /
+invoke_agent() instead (one ADK client for the whole lab).
 """
 
 import json
 
-import src.agents  # noqa: F401 - import registers every built-in agent adapter
 import src.metrics  # noqa: F401 - import registers every built-in metric
-from src.agents.base_agent import BaseAgent
 from src.clients.cortex_client import CortexClient
-from src.core.config import load_agents_config, load_cortex_config, load_metrics_config
-from src.core.exceptions import AgentNotFoundError
-from src.core.registry import AGENT_REGISTRY, METRIC_REGISTRY
+from src.core.config import load_cortex_config, load_metrics_config
+from src.core.registry import METRIC_REGISTRY
 from src.metrics.base_metric import BaseMetric
-
-
-class AgentFactory:
-    def __init__(self, agents_config_path: str = "configs/agents.yaml"):
-        self._agents_config = load_agents_config(agents_config_path)
-        self._cache: dict[str, BaseAgent] = {}
-
-    def create(self, agent_name: str) -> BaseAgent:
-        if agent_name in self._cache:
-            return self._cache[agent_name]
-        if agent_name not in self._agents_config:
-            raise AgentNotFoundError(f"'{agent_name}' is not defined in agents.yaml")
-
-        entry = self._agents_config[agent_name]
-        agent_cls = AGENT_REGISTRY.get(entry["type"])
-        agent = agent_cls(config=entry.get("config", {}))
-        self._cache[agent_name] = agent
-        return agent
-
-    def metrics_profile(self, agent_name: str) -> str:
-        """Which configs/metrics/<profile>.yaml file backs this agent's default metrics."""
-        entry = self._agents_config.get(agent_name, {})
-        return entry.get("metrics_profile", agent_name)
 
 
 class MetricFactory:

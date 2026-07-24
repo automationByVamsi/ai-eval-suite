@@ -1,0 +1,75 @@
+# Knowledge Agent — metric definitions (once).
+# Suites under configs/evaluations/knowledge_agent/ only *select* names from here.
+#
+# default_suite: used by src.main / EvaluationRunner when a case has no suite/metrics.
+default_suite: e2e
+
+metrics:
+  # --- Stage 1 (query rewrite) ---
+  intent_preservation:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/intent_preservation.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  semantic_preservation:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/semantic_preservation.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  domain_appropriateness:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/domain_appropriateness.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  query_optimization:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/query_optimization.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: rewritten_query
+
+  # --- Stage 2 (anchor) ---
+  anchor_relevance:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/anchor_relevance.md
+    evaluation_params: [input, actual_output]
+    input_source: question
+    actual_source: anchor_page_content
+
+  anchor_grounding_quality:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/knowledge_agent/anchor_grounding_quality.md
+    evaluation_params: [input, actual_output]
+    input_source: rewritten_query
+    actual_source: anchor_page_content
+
+  # --- Final-answer / e2e ---
+  relevance:
+    type: relevance
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+
+  faithfulness:
+    type: faithfulness
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+    context_source: retrieval_context
+
+  keyword_match:
+    type: keyword_match
+    threshold: 1.0
+    keywords_source: keywords

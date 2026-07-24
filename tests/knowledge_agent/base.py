@@ -2,14 +2,15 @@
 KnowledgeAgentTest — knowledge_agent specific helpers.
 
 Stage parsers live in src/parsers/knowledge_agent/stageN.py.
-This base only wires them into tests + stage judge YAML.
+Judge *definitions* → configs/metrics/knowledge_agent/catalog.yaml
+Judge *selection*   → configs/evaluations/knowledge_agent/<suite>.yaml
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from src.core.config import load_eval_config
+from src.core.config import resolve_suite_metrics
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
@@ -20,7 +21,7 @@ from tests.base_agent_test import BaseAgentTest
 
 
 class KnowledgeAgentTest(BaseAgentTest):
-    """Parse KA traces + run stage judge metrics from configs/evaluations/knowledge_agent/."""
+    """Parse KA traces + run suite judges resolved from the metric catalog."""
 
     profile: str = "knowledge_agent"
 
@@ -70,9 +71,13 @@ class KnowledgeAgentTest(BaseAgentTest):
         metric_names: list[str],
         stage: str,
     ) -> list[MetricResult]:
+        """Resolve `stage` suite → catalog defs, then evaluate the named judges."""
         factory = MetricFactory(self.cortex_config)
-        stage_config = load_eval_config(self.profile, stage)
-        by_name = {m["name"]: m for m in stage_config.get("judge_metrics", [])}
+        suite_metrics = resolve_suite_metrics(self.profile, stage)
+        by_name = {m["name"]: m for m in suite_metrics}
         missing = [n for n in metric_names if n not in by_name]
-        assert not missing, f"Unknown metrics: {missing}. Available: {sorted(by_name)}"
+        assert not missing, (
+            f"Unknown metrics for suite '{stage}': {missing}. "
+            f"Suite has: {sorted(by_name)}"
+        )
         return [factory.create(by_name[n]).evaluate(test_case, response) for n in metric_names]

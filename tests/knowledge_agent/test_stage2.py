@@ -3,7 +3,8 @@ Stage 2 — Anchor Node Identification (knowledge_agent only)
 
 Contract → tests/knowledge_agent/stage2_contract.py
 Parse    → src/parsers/knowledge_agent/stage2.py
-Judges   → configs/evaluations/knowledge_agent/stage2_anchor_node.yaml
+Judge defs → configs/metrics/knowledge_agent/catalog.yaml
+Judge suite → configs/evaluations/knowledge_agent/stage2_anchor_node.yaml
 
 Run:   pytest tests/knowledge_agent/test_stage2.py -v -s
 View:  streamlit run scripts/dashboard_app.py

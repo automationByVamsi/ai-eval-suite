@@ -1,22 +1,20 @@
 """
-Generic name -> class registry, used for both agents and metrics.
+Metric name → class map.
 
-Concrete adapters/metrics self-register at import time with a decorator:
+Each metric self-registers at import time:
 
-    @AGENT_REGISTRY.register("replay")
-    class ReplayAgentAdapter(BaseAgent):
+    @METRIC_REGISTRY.register("faithfulness")
+    class FaithfulnessMetricAdapter(...):
         ...
 
-The core framework never imports concrete adapters/metrics directly - it only
-ever calls `registry.get(name)`. This is what makes adding a new agent or
-metric a "no core change" operation.
+MetricFactory then does METRIC_REGISTRY.get(yaml_type) when building scorers.
 """
 
-from src.core.exceptions import AgentNotFoundError, MetricNotFoundError
+from src.core.exceptions import MetricNotFoundError
 
 
 class Registry:
-    """A simple name -> class map with a `.register()` decorator."""
+    """Simple name → class map with a `.register()` decorator."""
 
     def __init__(self, kind: str, not_found_error: type[Exception] = KeyError):
         self._kind = kind
@@ -26,7 +24,9 @@ class Registry:
     def register(self, name: str):
         def decorator(cls: type) -> type:
             if name in self._classes and self._classes[name] is not cls:
-                raise ValueError(f"{self._kind} '{name}' is already registered to {self._classes[name]}")
+                raise ValueError(
+                    f"{self._kind} '{name}' is already registered to {self._classes[name]}"
+                )
             self._classes[name] = cls
             return cls
 
@@ -44,6 +44,4 @@ class Registry:
         return name in self._classes
 
 
-# Two global registries used across the whole framework.
-AGENT_REGISTRY = Registry("agent type", AgentNotFoundError)
 METRIC_REGISTRY = Registry("metric type", MetricNotFoundError)

@@ -8,7 +8,7 @@ DeepEval metric class to build.
 Source mapping: a `<field>_source` config value is a name that gets resolved
 against, in order: test_case.input, test_case.expected, response.metadata,
 then a couple of well-known AgentResponse attributes (answer, context). This
-is what lets configs/evaluations/.../*.yaml wire "input_source: question" or
+is what lets configs/metrics/.../catalog.yaml wire "input_source: question" or
 "actual_source: rewritten_query" without any Python.
 """
 

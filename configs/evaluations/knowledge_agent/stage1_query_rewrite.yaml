@@ -1,36 +1,20 @@
-# Stage 1 = Query Rewrite & Search Execution.
-# Rubrics: configs/criteria/knowledge_agent/
-mode: stage_only
+# Suite: Stage 1 — Query Rewrite & Search.
+# Metric *definitions* live in configs/metrics/knowledge_agent/catalog.yaml.
+# Deterministic runners still live in tests/knowledge_agent/stage1_contract.py;
+# names here document which Layer-1 checks belong to this suite.
+suite: stage1_query_rewrite
 
-judge_metrics:
-  - name: intent_preservation
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/intent_preservation.md
-    evaluation_params: [input, actual_output]
-    input_source: question
-    actual_source: rewritten_query
+deterministic:
+  - input_query_present
+  - rewrite_executed
+  - rewrite_output_valid
+  - state_propagation_intact
+  - search_executed
+  - result_count_positive
+  - downstream_state_available
 
-  - name: semantic_preservation
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/semantic_preservation.md
-    evaluation_params: [input, actual_output]
-    input_source: question
-    actual_source: rewritten_query
-
-  - name: domain_appropriateness
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/domain_appropriateness.md
-    evaluation_params: [input, actual_output]
-    input_source: question
-    actual_source: rewritten_query
-
-  - name: query_optimization
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/query_optimization.md
-    evaluation_params: [input, actual_output]
-    input_source: question
-    actual_source: rewritten_query
+judges:
+  - intent_preservation
+  - semantic_preservation
+  - domain_appropriateness
+  - query_optimization

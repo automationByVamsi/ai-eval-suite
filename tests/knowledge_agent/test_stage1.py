@@ -3,7 +3,8 @@ Stage 1 — Query Rewrite (knowledge_agent only)
 
 Contract (what to validate) → tests/knowledge_agent/stage1_contract.py
 Parse                       → src/parsers/knowledge_agent/stage1.py
-Judge how                   → configs/evaluations/... + configs/criteria/...
+Judge defs                  → configs/metrics/knowledge_agent/catalog.yaml
+Judge suite                 → configs/evaluations/knowledge_agent/stage1_query_rewrite.yaml
 
 Run:   pytest tests/knowledge_agent/test_stage1.py -v -s
 View:  streamlit run scripts/dashboard_app.py

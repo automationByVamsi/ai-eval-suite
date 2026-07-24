@@ -1,20 +1,16 @@
-# Stage 2 = Anchor Node Identification.
-# Rubrics: configs/criteria/knowledge_agent/
-mode: stage_only
+# Suite: Stage 2 — Anchor Node Identification.
+# Metric *definitions* live in configs/metrics/knowledge_agent/catalog.yaml.
+suite: stage2_anchor_node
 
-judge_metrics:
-  - name: anchor_relevance
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/anchor_relevance.md
-    evaluation_params: [input, actual_output]
-    input_source: question
-    actual_source: anchor_page_content
+deterministic:
+  - anchor_selected
+  - anchor_id_valid
+  - anchor_belongs_to_candidates
+  - workflow_completed
+  - selection_path_correct
+  # optional golden (when expected.expected_anchor_page_id is set):
+  - anchor_accuracy
 
-  - name: anchor_grounding_quality
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/knowledge_agent/anchor_grounding_quality.md
-    evaluation_params: [input, actual_output]
-    input_source: rewritten_query
-    actual_source: anchor_page_content
+judges:
+  - anchor_relevance
+  - anchor_grounding_quality

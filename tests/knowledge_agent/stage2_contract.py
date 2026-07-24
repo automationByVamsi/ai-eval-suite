@@ -118,6 +118,8 @@ def run_deterministic(
     return results
 
 
+# Layer 2 — judge names (suite + catalog hold definitions)
+# Suite: configs/evaluations/knowledge_agent/stage2_anchor_node.yaml
 JUDGE_METRICS = [
     "anchor_relevance",
     "anchor_grounding_quality",

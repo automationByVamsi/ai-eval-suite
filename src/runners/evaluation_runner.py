@@ -1,27 +1,47 @@
 """
 Core end-to-end flow behind `python -m src.main`: load test cases, invoke
-each one's configured agent, score with metrics, write per-case results plus
-a summary.json.
+each one's ADK agent (or replay a captured trace), score with metrics, write
+per-case results plus a summary.json.
 """
 
+from __future__ import annotations
+
 import json
+import os
 from pathlib import Path
 
+from src.clients.adk_client import invoke_agent
+from src.core.config import agent_metrics_profile, has_metric_catalog, load_metric_catalog, resolve_suite_metrics
 from src.models.evaluation_result import EvaluationResult
 from src.models.test_case import TestCase
-from src.runners.factories import AgentFactory, MetricFactory
+from src.runners.factories import MetricFactory
 
 
 class EvaluationRunner:
-    def __init__(self, agent_factory: AgentFactory, metric_factory: MetricFactory):
-        self.agent_factory = agent_factory
+    def __init__(
+        self,
+        metric_factory: MetricFactory,
+        *,
+        agents_path: str = "configs/agents.yaml",
+        invoke_mode: str | None = None,
+        trace_dir: Path | None = None,
+    ):
         self.metric_factory = metric_factory
+        self.agents_path = agents_path
+        # live | replay — default from DEMO_MODE (cache → replay)
+        self.invoke_mode = invoke_mode or _default_invoke_mode()
+        self.trace_dir = trace_dir
 
     def run_test_case(self, test_case: TestCase) -> EvaluationResult:
         try:
-            agent = self.agent_factory.create(test_case.agent_name)
             payload = {**test_case.input, "_test_case_id": test_case.test_case_id}
-            response = agent.invoke(payload)
+            response = invoke_agent(
+                test_case.agent_name,
+                payload,
+                mode=self.invoke_mode,
+                trace_dir=self.trace_dir,
+                agents_path=self.agents_path,
+            )
         except Exception as exc:  # noqa: BLE001 - one bad test case shouldn't crash the whole run
             return EvaluationResult(
                 test_case_id=test_case.test_case_id,
@@ -31,7 +51,9 @@ class EvaluationRunner:
             )
 
         metric_configs = self._resolve_metric_configs(test_case)
-        metric_results = [self.metric_factory.create(cfg).evaluate(test_case, response) for cfg in metric_configs]
+        metric_results = [
+            self.metric_factory.create(cfg).evaluate(test_case, response) for cfg in metric_configs
+        ]
 
         return EvaluationResult(
             test_case_id=test_case.test_case_id,
@@ -41,19 +63,35 @@ class EvaluationRunner:
         )
 
     def _resolve_metric_configs(self, test_case: TestCase) -> list[dict]:
-        """If a test case omits `metrics`, run the agent's default (base) metric set."""
-        profile = self.agent_factory.metrics_profile(test_case.agent_name)
-        base_metrics = self.metric_factory.load_base_metrics(profile)
+        """
+        Resolve metrics for a case:
+          1. `suite` → catalog via evaluations/<profile>/<suite>.yaml
+          2. else default suite / legacy base_metrics
+          3. optional `metrics:` list filters / overrides thresholds
+        """
+        profile = agent_metrics_profile(test_case.agent_name, path=self.agents_path)
+
+        if test_case.suite:
+            pool = resolve_suite_metrics(profile, test_case.suite)
+        else:
+            pool = self.metric_factory.load_base_metrics(profile)
 
         if not test_case.metrics:
-            return base_metrics
+            return pool
 
-        by_name = {m["name"]: m for m in base_metrics}
+        by_name = {m["name"]: m for m in pool}
+        if has_metric_catalog(profile):
+            catalog = load_metric_catalog(profile)
+            for name, cfg in catalog.items():
+                by_name.setdefault(name, cfg)
+
         configs = []
         for override in test_case.metrics:
             cfg = dict(by_name.get(override.name, {"name": override.name}))
             if override.threshold is not None:
                 cfg["threshold"] = override.threshold
+            if override.type is not None:
+                cfg["type"] = override.type
             configs.append(cfg)
         return configs
 
@@ -66,7 +104,9 @@ class EvaluationRunner:
             test_case = TestCase.from_json_file(path)
             result = self.run_test_case(test_case)
             result.print_summary()
-            (output_path / f"{test_case.test_case_id}.json").write_text(result.model_dump_json(indent=2))
+            (output_path / f"{test_case.test_case_id}.json").write_text(
+                result.model_dump_json(indent=2)
+            )
             results.append(result)
 
         summary = {
@@ -77,3 +117,10 @@ class EvaluationRunner:
         }
         (output_path / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
         return results
+
+
+def _default_invoke_mode() -> str:
+    demo = os.environ.get("DEMO_MODE", "cache").lower()
+    if demo in ("cache", "replay"):
+        return "replay"
+    return "live"

@@ -1,7 +1,7 @@
 {
   "test_case_id": "TC_001",
   "description": "Successful Fact Find summary for NC10010556 grounded in aggregated payload",
-  "agent_name": "fact_find_workflow_replay",
+  "agent_name": "fact_find_workflow",
   "input": {
     "complaint_ref": "NC10010556"
   },

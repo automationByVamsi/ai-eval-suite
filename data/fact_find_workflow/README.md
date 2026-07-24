@@ -17,5 +17,5 @@
 # Make targets: test-ff-gate, test-ff-summary, test-ff, demo-ff-e2e, generate-ff-payloads
 # Metrics: configs/evaluations/fact_find_workflow/METRICS.md
 #
-# Live agent: configs/agents.yaml → fact_find_workflow_live
-# Replay:     fact_find_workflow_replay
+# Agent: configs/agents.yaml → fact_find_workflow
+# Live vs replay: DEMO_MODE=refresh|cache (AdkClient / ensure_traces)

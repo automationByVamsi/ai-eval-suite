@@ -1,11 +1,17 @@
 """
 TestCase is the normalised shape of one row of test input for any agent.
 See testdata/<agent>/<tag>/*.json for examples on disk.
+
+Metrics selection (Knowledge Agent):
+  - `suite`: name under configs/evaluations/<profile>/ (e.g. stage1_query_rewrite, e2e)
+  - `metrics`: optional name list / overrides (rare); empty → suite or profile default
+  Same case JSON can be run under any suite — suite is an evaluation lens on the response.
 """
 
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
 
 class MetricConfig(BaseModel):
     """One entry of a test case's `metrics:` list."""
@@ -24,6 +30,7 @@ class TestCase(BaseModel):
     agent_name: str
     input: dict[str, Any]
     expected: dict[str, Any] = Field(default_factory=dict)
+    suite: Optional[str] = None
     metrics: list[MetricConfig] = Field(default_factory=list)
 
     @classmethod

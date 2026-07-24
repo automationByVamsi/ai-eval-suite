@@ -1,65 +1,33 @@
-# Every agent the framework can evaluate. `type` must match a name registered
-# in src/agents (see @AGENT_REGISTRY.register(...)). `metrics_profile` points
-# at configs/metrics/<profile>.yaml for that agent's default metric set.
+# Lab agent inventory (committed). Secrets/hosts live in `.env` via ${VAR}.
 #
-# Values support ${VAR} and ${VAR:-default}. Secrets/host overrides live in
-# gitignored `.env` (see `.env.example`).
+# Adding an agent = add an entry here. Invoke code is always AdkClient
+# (src/clients/adk_client.py) — same ADK session → /run → save JSON flow.
 #
-# Adding a new agent = add an entry here + implement BaseAgent. No code here changes.
+# metrics_profile → configs/metrics/<profile>/catalog.yaml (+ evaluation suites).
+
 agents:
-  knowledge_agent_replay:
-    type: replay
+  knowledge_agent:
     metrics_profile: knowledge_agent
-    config:
-      trace_dir: outputs/traces/knowledge_agent/sanity
+    app_name: ${KNOWLEDGE_ADK_APP_NAME:-knowledge_agent}
+    user_id: ${KNOWLEDGE_ADK_USER_ID:-eval_user}
+    base_url: ${KNOWLEDGE_ADK_BASE_URL:-http://localhost:8080}
+    base_path: ${KNOWLEDGE_ADK_BASE_PATH:-}
+    message_field: question
+    timeout_s: 180
+    verify_tls: false
+    max_retries: 2
+    headers: {}
 
-  # Local Google-ADK (e.g. `adk api_server` on :8080). Testdata uses this name.
-  knowledge_agent_local:
-    type: adk
-    metrics_profile: knowledge_agent
-    config:
-      base_url: ${KNOWLEDGE_BASE_URL_LOCAL:-http://localhost:8080}
-      base_path: ${KNOWLEDGE_BASE_PATH_LOCAL:-}
-      app_name: ${KNOWLEDGE_APP_NAME_LOCAL:-knowledge_agent}
-      user_id: ${KNOWLEDGE_USER_ID_LOCAL:-eval_user}
-      message_field: question
-      timeout_s: 180
-      verify_tls: false
-      max_retries: 2
-      headers: {}
-
-  knowledge_agent_live:
-    type: adk
-    metrics_profile: knowledge_agent
-    config:
-      base_url: ${ADK_BASE_URL:-https://internal-adk-host.example.com}
-      base_path: ${ADK_BASE_PATH:-}
-      app_name: ${ADK_APP_NAME:-knowledge_agent}
-      user_id: ${ADK_USER_ID:-eval_user}
-      message_field: question
-      timeout_s: 30
-      verify_tls: true
-      max_retries: 2
-      headers: {}
-
-  # Fact Find Workflow — complaint ref in → multi-system MCP gather → UI summary.
-  # Live host/timeouts mirror the other-repo .env.factfind.api (no secrets here).
-  fact_find_workflow_replay:
-    type: replay
+  fact_find_workflow:
     metrics_profile: fact_find_workflow
-    config:
-      trace_dir: outputs/traces/fact_find_workflow/sanity
-
-  fact_find_workflow_live:
-    type: adk
-    metrics_profile: fact_find_workflow
-    config:
-      base_url: ${FACTFIND_ADK_BASE_URL:-https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent}
-      base_path: ${FACTFIND_ADK_BASE_PATH:-}
-      app_name: ${FACTFIND_ADK_APP_NAME:-fact_find_workflow}
-      user_id: ${FACTFIND_ADK_USER_ID:-bdduser}
-      message_field: complaint_ref
-      timeout_s: 420
-      verify_tls: true
-      max_retries: 1
-      headers: {}
+    app_name: ${FACTFIND_ADK_APP_NAME:-fact_find_workflow}
+    user_id: ${FACTFIND_ADK_USER_ID:-bdduser}
+    base_url: ${FACTFIND_ADK_BASE_URL:-https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent}
+    base_path: ${FACTFIND_ADK_BASE_PATH:-}
+    message_field: complaint_ref
+    # Optional: wrap the raw input value in a prompt. {value} = message_field contents.
+    message_template: "Can you help me get details for complaint reference {value}?"
+    timeout_s: 420
+    verify_tls: true
+    max_retries: 1
+    headers: {}

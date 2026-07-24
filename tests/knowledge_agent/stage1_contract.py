@@ -104,10 +104,9 @@ def run_deterministic(parsed: Stage1Parsed) -> list[DeterministicCheckResult]:
     return results
 
 
-# ---------------------------------------------------------------------------
-# Layer 2 — LLM-as-a-Judge (threshold ≥ 0.7; rubrics under configs/criteria/)
-# ---------------------------------------------------------------------------
-
+# Layer 2 — LLM-as-a-Judge names (must match suite judges: + catalog entries)
+# Suite: configs/evaluations/knowledge_agent/stage1_query_rewrite.yaml
+# Catalog: configs/metrics/knowledge_agent/catalog.yaml
 JUDGE_METRICS = [
     "intent_preservation",
     "semantic_preservation",

@@ -10,11 +10,11 @@ class ConfigError(FrameworkError):
 
 
 class AgentNotFoundError(FrameworkError):
-    """Requested agent name/type is not registered or not in agents.yaml."""
+    """Requested agent name is not defined in agents.yaml."""
 
 
 class MetricNotFoundError(FrameworkError):
-    """Requested metric name/type is not registered or not in a metrics config."""
+    """Requested metric type is not registered (YAML `type:` has no matching class)."""
 
 
 class TraceParseError(FrameworkError):

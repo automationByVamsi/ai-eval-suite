@@ -6,7 +6,7 @@ Passing an explicitly unverified ssl.SSLContext per-connection (instead of
 monkeypatching ssl.create_default_context globally) gets the same
 compatibility without weakening TLS for any other code in the process.
 
-Both CortexClient and ADKAgentAdapter share this so retry/timeout/TLS
+Both CortexClient and AdkClient share this so retry/timeout/TLS
 behavior only needs to be right in one place.
 """
 

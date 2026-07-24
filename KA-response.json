@@ -1,0 +1,391 @@
+{
+    "id": 1,
+    "question": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+    "sessionId": "c261cd4d-3958-42ad-bdc2-1b2513f7fa5d",
+    "capturedAt": "2026-07-02T09:47:03.146290+00:00",
+    "agentOutput": "{\"rewritten_query\": \"customer lost card new card no address temporary address record customer needs system\"}\n{\n  \"applicability_reason\": \"The context directly addresses the situation of a customer without a permanent address who needs a replacement card, aligning with the customer's situation and the agent's need to record their needs within a business context.\",\n  \"context_applicability\": 1.0,\n  \"context_relevance\": 1.0,\n  \"context_sufficiency\": 1.0,\n  \"relevance_reason\": \"The anchor page 'no fixed support need' directly describes the customer's situation (homeless, no address) and their need (replacement card), and how to record their support needs.\",\n  \"sufficiency_reason\": \"The context provides guidance on handling replacement cards for customers without a fixed address (sending to a branch or alternative secure address) and on maintaining contact details and recording support needs, which sufficiently answers the query.\"\n}\n{\n  \"answer\": \"## anchor page\\n### 8255 | No Fixed Address Support Need\\n*   This support need is for customers without a permanent address, ensuring their mail is secure and enabling effective contact.\\n*   It helps customers open accounts or receive replacement cards/PINs even if they cannot provide ID and V documents.\\n*   Customers experiencing homelessness, bereavement, financial/domestic abuse, or relationship breakdown may benefit.\\n*   Review the Failed Electronic Identification and Verification (EID and V) - Branch Referral Process for further guidance.\\n*   If the customer cannot receive mail at their home address, offer an alternative secure address or send the card to a branch for collection.\\n*   Ensure correct contact details, including email, are on file to maintain support.\\n*   An example note format: \\\"DD/MM/YY: Ms X has no permanent address, mail to be sent to charity (NAME).\\\"\",\n  \"caveats\": []\n}",
+    "raw_events": [
+      {
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "knowledge_agent_workflow",
+        "actions": {
+          "stateDelta": {
+            "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+            "business_area": "/Customer_Vulnerability_Hub/",
+            "artifact_id": "ce763f57-9b18-4ce5-8388-a1463a813967",
+            "filtered_page_ids": [],
+            "rule_based_expansion": [],
+            "expanded_page_ids": []
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "output": {
+          "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system."
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/init_context_node@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/init_context_node@1"
+          ]
+        },
+        "id": "b2f34592-6455-4e3e-80aa-f2e3f299981f",
+        "timestamp": 1782985571.239151
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "text": "{\"rewritten_query\": \"customer lost card new card no address temporary address record customer needs system\"}"
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 0,
+          "candidatesTokenCount": 198,
+          "promptTokenCount": 222,
+          "thoughtsTokenCount": 177,
+          "totalTokenCount": 420
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "query_rewrite_agent",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/search_engine_workflow@1/query_rewrite_agent@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/search_engine_workflow@1/query_rewrite_agent@1"
+          ],
+          "messageAsOutput": true
+        },
+        "id": "14922095-b334-408f-9d50-56464df8f2f7",
+        "timestamp": 1782985571.242939
+      },
+      {
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "search_engine_workflow",
+        "actions": {
+          "stateDelta": {
+            "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+            "business_area": "/Customer_Vulnerability_Hub/",
+            "rewritten_query": "customer lost card new card no address temporary address record customer needs system",
+            "artifact_id": "ce763f57-9b18-4ce5-8388-a1463a813967",
+            "filtered_page_ids": [],
+            "rule_based_expansion": [],
+            "expanded_page_ids": []
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/search_engine_workflow@1/validate_query_rewrite_node@1"
+        },
+        "id": "7a8e4cd0-c0d0-4c3c-a0fc-ed9029da0418",
+        "timestamp": 1782985607.868948
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Search retrieved successfully. artifact_id=b91f8132-35c0-4c71-9656-2fcb3efe2f0c business_area=/Customer_Vulnerability_Hub/ result_count=5 deduplicated_page_ids=4"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "search_engine_workflow",
+        "actions": {
+          "stateDelta": {
+            "artifact_id": "b91f8132-35c0-4c71-9656-2fcb3efe2f0c"
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/search_engine_workflow@1/search_node@1"
+        },
+        "id": "ea58b769-4e0c-4878-b9e0-e765647339a3",
+        "timestamp": 1782985612.2147882
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Anchor page selected using baseline method.anchor_page_id=8255"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "anchor_node_workflow",
+        "actions": {
+          "stateDelta": {
+            "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+            "business_area": "/Customer_Vulnerability_Hub/",
+            "rewritten_query": "customer lost card new card no address temporary address record customer needs system",
+            "artifact_id": "b91f8132-35c0-4c71-9656-2fcb3efe2f0c",
+            "filtered_page_ids": [],
+            "anchor_page_id": "8255",
+            "rule_based_expansion": [],
+            "expanded_page_ids": []
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/anchor_node_workflow@1/anchor_baseline@1"
+        },
+        "id": "43b318ea-ad2e-4584-8695-3a948560b065",
+        "timestamp": 1782985612.216425
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Relation expansion complete. expanded_page_ids_count=0"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "relation_expansion_workflow",
+        "actions": {
+          "stateDelta": {
+            "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+            "business_area": "/Customer_Vulnerability_Hub/",
+            "rewritten_query": "customer lost card new card no address temporary address record customer needs system",
+            "artifact_id": "b91f8132-35c0-4c71-9656-2fcb3efe2f0c",
+            "filtered_page_ids": [],
+            "anchor_page_id": "8255",
+            "rule_based_expansion": [],
+            "expanded_page_ids": []
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1/relation_baseline@1"
+        },
+        "id": "0d6ed163-316e-48be-a5e8-23d414facad3",
+        "timestamp": 1782985612.221154
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Prepared validation input. anchor_page_id=8255 neighbor_count=0"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "validation_workflow",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "output": {
+          "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+          "anchor_page_content": "## Overview\n\nThe no fixed support need is for customers who don\u2019t have a permanent address and need us to make sure their mail is secure and we can contact them effectively.\u00a0 They may need support with opening accounts or receiving mail securely. The support need\u00a0makes sure that customers classed as being in a vulnerable group such as the homeless, victims of domestic abuse etc, who aren't able to provide ID and V documents aren't excluded from opening accounts or receiving replacement cards or pins.\n\n## Customers Who May Benefit\n\nThose who are experiencing:\n\n* Bereavement.\n* Financial and domestic abuse.\n* Homelessness.\n* Relationship breakdown.\n\n## How We Can Help - Treatments\n\n* Review the Failed Electronic Identification and Verification (EID and V) - Branch Referral Process\u00a0for further guidance.\n* If the customer is unable to receive mail at their home address, offer an alternative secure address for items such a debit cards or pins to be sent, see Order Replacement Card or PIN Multi-channel Processes.\u00a0If they are unable to provide an alternative address, we are able to send the card to a branch for them collect.\n* When a customer contacts us, ensure we maintain support by verifying that we have the correct contact details on file, including their email address.\n\n## Example Support Need Note\n\nDD/MM/YY: Ms X has no permanent address, mail to be sent to charity (NAME).\n\n1. Overview\n2. Customers Who May Benefit\n3. How We Can Help - Treatments\n4. Example Support Need Note",
+          "neighbor_page_content": []
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/validation_workflow@1/prepare_validation_input_node@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/validation_workflow@1/prepare_validation_input_node@1"
+          ]
+        },
+        "id": "0ffcce0d-f703-47f7-bd2b-667b369faa8f",
+        "timestamp": 1782985613.596426
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "text": "{\n  \"applicability_reason\": \"The context directly addresses the situation of a customer without a permanent address who needs a replacement card, aligning with the customer's situation and the agent's need to record their needs within a business context.\",\n  \"context_applicability\": 1.0,\n  \"context_relevance\": 1.0,\n  \"context_sufficiency\": 1.0,\n  \"relevance_reason\": \"The anchor page 'no fixed support need' directly describes the customer's situation (homeless, no address) and their need (replacement card), and how to record their support needs.\",\n  \"sufficiency_reason\": \"The context provides guidance on handling replacement cards for customers without a fixed address (sending to a branch or alternative secure address) and on maintaining contact details and recording support needs, which sufficiently answers the query.\"\n}"
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 0,
+          "candidatesTokenCount": 499,
+          "promptTokenCount": 735,
+          "thoughtsTokenCount": 313,
+          "totalTokenCount": 1234
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "validation_agent",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1",
+            "knowledge_agent_workflow@1/validation_workflow@1"
+          ],
+          "messageAsOutput": true
+        },
+        "id": "81a7fb58-21ef-4717-a789-022666bbfefd",
+        "timestamp": 1782985613.6000261
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Validation routing complete. decision=FINISH confidence=HIGH"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "knowledge_agent_workflow",
+        "actions": {
+          "stateDelta": {
+            "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+            "business_area": "/Customer_Vulnerability_Hub/",
+            "rewritten_query": "customer lost card new card no address temporary address record customer needs system",
+            "artifact_id": "b91f8132-35c0-4c71-9656-2fcb3efe2f0c",
+            "filtered_page_ids": [],
+            "anchor_page_id": "8255",
+            "rule_based_expansion": [],
+            "expanded_page_ids": [],
+            "context_relevance": 1.0,
+            "context_applicability": 1.0,
+            "context_sufficiency": 1.0,
+            "relevance_reason": "The anchor page 'no fixed support need' directly describes the customer's situation (homeless, no address) and their need (replacement card), and how to record their support needs.",
+            "applicability_reason": "The context directly addresses the situation of a customer without a permanent address who needs a replacement card, aligning with the customer's situation and the agent's need to record their needs within a business context.",
+            "sufficiency_reason": "The context provides guidance on handling replacement cards for customers without a fixed address (sending to a branch or alternative secure address) and on maintaining contact details and recording support needs, which sufficiently answers the query.",
+            "decision": "FINISH",
+            "confidence": "HIGH"
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {},
+          "route": "FINISH"
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/validation_action_router_node@1"
+        },
+        "id": "9e7a6ddf-04cb-4521-8057-a09edc59edef",
+        "timestamp": 1782985618.231515
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Prepared synthesizer input. confidence=HIGH neighbor_count=0"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "knowledge_agent_workflow",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "output": {
+          "query": "My customer is living on a friends sofa and don\u2019t want to provide an address. They\u2019ve lost their card and need a new one, I also need to record the customers needs on our system.",
+          "confidence": "HIGH",
+          "anchor_page_content": "page_id: 8255\ntitle: No Fixed Address Support Need\ncontent:\n## Overview\n\nThe no fixed support need is for customers who don\u2019t have a permanent address and need us to make sure their mail is secure and we can contact them effectively.\u00a0 They may need support with opening accounts or receiving mail securely. The support need\u00a0makes sure that customers classed as being in a vulnerable group such as the homeless, victims of domestic abuse etc, who aren't able to provide ID and V documents aren't excluded from opening accounts or receiving replacement cards or pins.\n\n## Customers Who May Benefit\n\nThose who are experiencing:\n\n* Bereavement.\n* Financial and domestic abuse.\n* Homelessness.\n* Relationship breakdown.\n\n## How We Can Help - Treatments\n\n* Review the Failed Electronic Identification and Verification (EID and V) - Branch Referral Process\u00a0for further guidance.\n* If the customer is unable to receive mail at their home address, offer an alternative secure address for items such a debit cards or pins to be sent, see Order Replacement Card or PIN Multi-channel Processes.\u00a0If they are unable to provide an alternative address, we are able to send the card to a branch for them collect.\n* When a customer contacts us, ensure we maintain support by verifying that we have the correct contact details on file, including their email address.\n\n## Example Support Need Note\n\nDD/MM/YY: Ms X has no permanent address, mail to be sent to charity (NAME).\n\n1. Overview\n2. Customers Who May Benefit\n3. How We Can Help - Treatments\n4. Example Support Need Note",
+          "relation_sections_text": "",
+          "relevance_reason": null,
+          "applicability_reason": null,
+          "sufficiency_reason": null
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/prepare_synthesizer_input_node@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/prepare_synthesizer_input_node@1"
+          ]
+        },
+        "id": "028a3d5a-1aaa-40de-8f2e-3bbf374b3c0c",
+        "timestamp": 1782985619.149716
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "text": "{\n  \"answer\": \"## anchor page\\n### 8255 | No Fixed Address Support Need\\n*   This support need is for customers without a permanent address, ensuring their mail is secure and enabling effective contact.\\n*   It helps customers open accounts or receive replacement cards/PINs even if they cannot provide ID and V documents.\\n*   Customers experiencing homelessness, bereavement, financial/domestic abuse, or relationship breakdown may benefit.\\n*   Review the Failed Electronic Identification and Verification (EID and V) - Branch Referral Process for further guidance.\\n*   If the customer cannot receive mail at their home address, offer an alternative secure address or send the card to a branch for collection.\\n*   Ensure correct contact details, including email, are on file to maintain support.\\n*   An example note format: \\\"DD/MM/YY: Ms X has no permanent address, mail to be sent to charity (NAME).\\\"\",\n  \"caveats\": []\n}"
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 0,
+          "candidatesTokenCount": 555,
+          "promptTokenCount": 983,
+          "thoughtsTokenCount": 349,
+          "totalTokenCount": 1538
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "synthesizer_agent",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/synthesizer_agent@1",
+          "outputFor": [
+            "knowledge_agent_workflow@1/synthesizer_agent@1"
+          ],
+          "messageAsOutput": true
+        },
+        "id": "3b764c1f-f707-42ec-b652-826143eeb52b",
+        "timestamp": 1782985619.1538188
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "Success branch reached.\n\nAnswer:\n## anchor page\n### 8255 | No Fixed Address Support Need\n*   This support need is for customers without a permanent address, ensuring their mail is secure and enabling effective contact.\n*   It helps customers open accounts or receive replacement cards/PINs even if they cannot provide ID and V documents.\n*   Customers experiencing homelessness, bereavement, financial/domestic abuse, or relationship breakdown may benefit.\n*   Review the Failed Electronic Identification and Verification (EID and V) - Branch Referral Process for further guidance.\n*   If the customer cannot receive mail at their home address, offer an alternative secure address or send the card to a branch for collection.\n*   Ensure correct contact details, including email, are on file to maintain support.\n*   An example note format: \"DD/MM/YY: Ms X has no permanent address, mail to be sent to charity (NAME).\"\n\n"
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-b55b13ed-4985-435e-904a-8355eeefd8f1",
+        "author": "knowledge_agent_workflow",
+        "actions": {
+          "stateDelta": {},
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "nodeInfo": {
+          "path": "knowledge_agent_workflow@1/format_answer_node@1"
+        },
+        "id": "10019db7-a02c-4307-8e6a-330f4489be75",
+        "timestamp": 1782985623.143201
+      }
+    ]
+  }
