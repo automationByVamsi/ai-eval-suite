@@ -45,12 +45,12 @@ def _resolve_headers(config: dict[str, Any]) -> dict[str, str]:
     if not isinstance(raw, dict):
         raise ConfigError(f"agents.yaml 'headers' must be a mapping, got {type(raw).__name__}")
 
-    headers = {str(k): str(v) for k, v in raw.items()}
+    headers = {str(k): str(v).strip() for k, v in raw.items()}
 
     from_env = config.get("headers_from_env") or {}
     if isinstance(from_env, dict):
         for header_name, env_var in from_env.items():
-            val = os.environ.get(str(env_var), "")
+            val = os.environ.get(str(env_var), "").strip()
             if val:
                 headers[str(header_name)] = val
 

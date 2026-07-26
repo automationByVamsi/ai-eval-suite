@@ -68,7 +68,8 @@ def post_json(
         raise ValueError(f"Unsupported scheme {scheme!r}")
 
     body = json.dumps(payload)
-    request_headers = {"Content-Type": "application/json", **headers}
+    # Match working factfind/ai-evals ADK_HEADERS (lowercase content-type).
+    request_headers = {"content-type": "application/json", **headers}
 
     last_error: Exception | None = None
     for attempt in range(retries + 1):
@@ -77,11 +78,13 @@ def post_json(
                 host, timeout=timeout_s
             )
         else:
-            context = (
-                ssl.create_default_context()
-                if verify_tls
-                else ssl._create_unverified_context()
-            )
+            if verify_tls:
+                context = ssl.create_default_context()
+            else:
+                # Same posture as working LBG eval_config SSL_CTX.
+                context = ssl._create_unverified_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
             conn = HTTPSConnection(host, context=context, timeout=timeout_s)
         try:
             conn.request("POST", path, body, request_headers)
@@ -89,7 +92,7 @@ def post_json(
             resp_body = resp.read().decode("utf-8")
             if resp.status != 200:
                 raise RuntimeError(
-                    f"HTTP {resp.status} from {scheme}://{host}{path}: {resp_body[:400]}"
+                    f"HTTP {resp.status} from {scheme}://{host}{path}: {resp_body[:400]!r}"
                 )
             return json.loads(resp_body) if resp_body else {}
         except Exception as exc:  # noqa: BLE001 - we deliberately retry on any failure
