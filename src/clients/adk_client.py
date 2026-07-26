@@ -18,7 +18,7 @@ from typing import Any
 
 from src.agents import adk_parser
 from src.core.config import get_agent_config
-from src.core.exceptions import AgentInvocationError, TraceParseError
+from src.core.exceptions import AgentInvocationError
 from src.core.network import post_json, split_host_path
 from src.models.agent_response import AgentResponse
 
@@ -220,20 +220,6 @@ def extract_final_text(events: list[dict[str, Any]]) -> str:
     return final_text
 
 
-def load_replay_response(trace_path: Path) -> AgentResponse:
-    """Build AgentResponse from a previously saved trace file."""
-    if not trace_path.exists():
-        raise TraceParseError(f"No captured trace at {trace_path}")
-    with trace_path.open(encoding="utf-8") as f:
-        trace = json.load(f)
-    # capture_one wraps as {test_case, raw_output}; AdkClient.save_output writes raw
-    raw = trace.get("raw_output", trace)
-    if isinstance(raw, dict) and "raw_events" not in raw and "agentOutput" not in raw:
-        # Sometimes the whole file IS the raw blob already handled above
-        pass
-    return _response_from_raw(raw if isinstance(raw, dict) else {})
-
-
 def _response_from_raw(raw: dict[str, Any]) -> AgentResponse:
     return AgentResponse(
         answer=adk_parser.extract_answer(raw),
@@ -249,29 +235,16 @@ def invoke_agent(
     agent_name: str,
     payload: dict[str, Any],
     *,
-    mode: str = "live",
-    trace_dir: Path | None = None,
+    save_dir: Path | None = None,
     agents_path: str | Path = "configs/agents.yaml",
 ) -> AgentResponse:
-    """
-    Run one agent for one input.
-
-    mode:
-      live   — call ADK; if trace_dir set, save JSON there
-      replay — read JSON from trace_dir / {test_case_id}.json (no network)
-    """
+    """Live ADK call for one input; optionally save under save_dir."""
     case_id = str(payload.get("_test_case_id") or "run")
     client = AdkClient.from_agent_name(agent_name, agents_path=agents_path)
-
-    if mode == "replay":
-        if trace_dir is None:
-            raise TraceParseError("replay mode requires trace_dir")
-        return load_replay_response(trace_dir / f"{case_id}.json")
-
     user_text = client.build_user_text(payload)
     response, _saved = client.get_agent_output(
         user_text,
         case_id=case_id,
-        save_dir=trace_dir,
+        save_dir=save_dir,
     )
     return response

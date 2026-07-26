@@ -1,6 +1,5 @@
 """
-CLI entry point: load test cases, invoke each ADK agent (or replay a
-captured trace), score with metrics, write results.
+CLI entry point: load test cases, live ADK invoke, score with metrics, write results.
 
     python -m src.main --tests testdata/knowledge_agent/sanity --output outputs
 
@@ -24,7 +23,7 @@ def _collect_test_case_paths(tests_arg: str) -> list[str]:
     return [tests_arg]
 
 
-def _infer_trace_dir(tests_arg: str) -> Path | None:
+def _infer_save_dir(tests_arg: str) -> Path | None:
     """testdata/<profile>/<tag> → outputs/traces/<profile>/<tag>."""
     path = Path(tests_arg)
     if path.is_file():
@@ -41,32 +40,25 @@ def _infer_trace_dir(tests_arg: str) -> Path | None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run agent evaluations")
+    parser = argparse.ArgumentParser(description="Run agent evaluations (live ADK)")
     parser.add_argument("--tests", required=True, help="Test case JSON file or a directory of them")
     parser.add_argument("--configs", default="configs", help="Root config dir (agents.yaml, cortex.yaml)")
     parser.add_argument("--output", default="outputs")
     parser.add_argument(
-        "--mode",
-        choices=("live", "replay"),
+        "--save-dir",
         default=None,
-        help="live=call ADK, replay=read traces (default: DEMO_MODE / cache→replay)",
-    )
-    parser.add_argument(
-        "--trace-dir",
-        default=None,
-        help="Trace directory for replay/save (default: inferred from --tests)",
+        help="Where to save ADK JSON (default: inferred from --tests under outputs/traces/)",
     )
     args = parser.parse_args()
 
     setup_logging()
 
     metric_factory = MetricFactory(f"{args.configs}/cortex.yaml")
-    trace_dir = Path(args.trace_dir) if args.trace_dir else _infer_trace_dir(args.tests)
+    save_dir = Path(args.save_dir) if args.save_dir else _infer_save_dir(args.tests)
     runner = EvaluationRunner(
         metric_factory,
         agents_path=f"{args.configs}/agents.yaml",
-        invoke_mode=args.mode,
-        trace_dir=trace_dir,
+        save_dir=save_dir,
     )
 
     test_case_paths = _collect_test_case_paths(args.tests)

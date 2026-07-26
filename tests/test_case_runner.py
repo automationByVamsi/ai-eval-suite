@@ -1,19 +1,28 @@
-"""Unit tests for load_cases / run_case (load is offline; live invoke is optional)."""
+"""Unit tests for load_cases / run_case helpers."""
 
 from pathlib import Path
 
 import pytest
 
-from src.runners.case_runner import load_cases, run_case
+from src.core.exceptions import AgentInvocationError
+from src.runners.case_runner import load_cases, run_case, validate_case_envelope
 
 
 def test_load_cases_knowledge_agent_sanity():
     cases = load_cases("knowledge_agent", "sanity")
     ids = {c["test_case_id"] for c in cases}
-    assert "TC_001" in ids
-    assert "TC_002" in ids
+    assert ids == {"TC_001", "TC_002"}
     tc1 = next(c for c in cases if c["test_case_id"] == "TC_001")
     assert "question" in tc1["input"]
+    assert "agent_name" not in tc1
+
+
+def test_load_cases_fact_find_sanity():
+    cases = load_cases("fact_find_workflow", "sanity")
+    ids = {c["test_case_id"] for c in cases}
+    assert ids == {"TC_001", "TC_002"}
+    tc1 = next(c for c in cases if c["test_case_id"] == "TC_001")
+    assert "complaint_ref" in tc1["input"]
 
 
 def test_load_cases_missing_folder():
@@ -21,34 +30,34 @@ def test_load_cases_missing_folder():
         load_cases("knowledge_agent", "does_not_exist_suite")
 
 
-def test_run_case_replay_from_existing_trace(tmp_path: Path):
-    """Replay mode reads a previously saved ADK JSON (no network)."""
-    agent = "knowledge_agent"
-    suite = "sanity"
-    case_id = "TC_001"
-    # Use a tiny fake saved output under tmp_path
-    save_dir = tmp_path / agent / suite
-    save_dir.mkdir(parents=True)
-    (save_dir / f"{case_id}.json").write_text(
-        '{"agentOutput": "hello from replay", "sessionId": "s1", "raw_events": []}',
+def test_validate_envelope_requires_input():
+    with pytest.raises(ValueError, match="input"):
+        validate_case_envelope({"test_case_id": "X", "input": {}})
+
+
+def test_load_rejects_empty_input(tmp_path: Path):
+    agent_dir = tmp_path / "demo_agent" / "sanity"
+    agent_dir.mkdir(parents=True)
+    (agent_dir / "bad.json").write_text(
+        '{"test_case_id": "BAD", "input": {}}',
         encoding="utf-8",
     )
-    case = {"test_case_id": case_id, "input": {"question": "ignored in replay"}}
-    result = run_case(agent, case, suite, output_dir=tmp_path, mode="replay")
-    assert result.response.answer == "hello from replay"
-    assert result.saved_path is not None
-    assert result.test_case_id == case_id
+    with pytest.raises(ValueError, match="input"):
+        load_cases("demo_agent", "sanity", testdata_root=tmp_path)
 
 
-def test_run_case_live_smoke():
-    """Optional live call — skipped unless RUN_LIVE=1."""
-    import os
-
-    if os.environ.get("RUN_LIVE") != "1":
-        pytest.skip("Set RUN_LIVE=1 to hit a real knowledge_agent")
-
+def test_run_case_live():
     cases = load_cases("knowledge_agent", "sanity")
     case = next(c for c in cases if c["test_case_id"] == "TC_002")
-    result = run_case("knowledge_agent", case, "sanity", output_dir="outputs", mode="live")
+    try:
+        result = run_case(
+            "knowledge_agent",
+            case,
+            "sanity",
+            output_dir="outputs/traces",
+        )
+    except AgentInvocationError as exc:
+        pytest.skip(f"ADK not reachable: {exc}")
+
     assert result.response.answer
     assert result.saved_path and result.saved_path.exists()

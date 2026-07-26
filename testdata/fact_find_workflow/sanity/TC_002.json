@@ -1,13 +1,11 @@
 {
   "test_case_id": "TC_002",
   "description": "Invalid complaint reference is rejected with InvalidComplaintId guidance",
-  "agent_name": "fact_find_workflow",
   "input": {
     "complaint_ref": "please look up NC10010556 for me"
   },
   "expected": {
     "path": "invalid_complaint",
     "keywords": ["InvalidComplaintId", "NC"]
-  },
-  "metrics": []
+  }
 }

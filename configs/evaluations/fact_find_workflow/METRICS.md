@@ -31,7 +31,7 @@ Ground truth for the success path = aggregated payload (`data/fact_find_workflow
 | **mcp_use** | Right MCP tool + args vs catalog | Scores selection against Fact Find MCP catalog | Calls wrong server or bad args for party lookup |
 | **mcp_task_completion** | Did MCP usage finish the job? | Wrapped as short conversation (ref → summary + tools) | Tools called but summary still empty / failed |
 
-MCP / tool metrics **auto-skip** when the ADK replay has no tool events. Prefer a live success capture to activate them.
+MCP / tool metrics **auto-skip** when the ADK response has no tool events. Prefer a live success capture to activate them.
 
 ### Domain GEval (Fact Find–specific risks)
 

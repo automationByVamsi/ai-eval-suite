@@ -71,7 +71,7 @@ VERDICT is not another thing that produces answers. It is the layer that decides
 
 ## Try it (v0 in this repo)
 
-Uses existing `testdata/knowledge_agent/sanity` cases + cached traces. Layer-1 contracts only by default (fast/offline).
+Uses existing `testdata/knowledge_agent/sanity` cases + saved ADK outputs under `outputs/traces`. Layer-1 contracts only by default (fast when captures already exist).
 
 ```bash
 make verdict-demo

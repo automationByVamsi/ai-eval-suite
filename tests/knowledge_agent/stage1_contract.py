@@ -1,10 +1,11 @@
 """
-Stage 1 contract — Query Rewrite & Search Execution (full strategy matrix).
+Stage 1 contract — deterministic checks for Query Rewrite & Search.
 
-Layer 1: deterministic asserts (execution + state).
-Layer 2: judge metric names only — scoring lives in YAML + criteria.
+Judges (non-deterministic) live in:
+  configs/evaluations/knowledge_agent/stage1_query_rewrite.yaml
+  configs/metrics/knowledge_agent/catalog.yaml
 
-Does NOT call CORTEX. Tests run judges via KnowledgeAgentTest.
+Does NOT call CORTEX.
 """
 
 from src.models.evaluation_result import DeterministicCheckResult
@@ -104,9 +105,8 @@ def run_deterministic(parsed: Stage1Parsed) -> list[DeterministicCheckResult]:
     return results
 
 
-# Layer 2 — LLM-as-a-Judge names (must match suite judges: + catalog entries)
-# Suite: configs/evaluations/knowledge_agent/stage1_query_rewrite.yaml
-# Catalog: configs/metrics/knowledge_agent/catalog.yaml
+# Layer 2 — judge names (must match suite judges: + catalog)
+# Suite YAML is judges-only; this list is for reference / optional filtering.
 JUDGE_METRICS = [
     "intent_preservation",
     "semantic_preservation",

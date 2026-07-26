@@ -1,13 +1,11 @@
 """
-Core end-to-end flow behind `python -m src.main`: load test cases, invoke
-each one's ADK agent (or replay a captured trace), score with metrics, write
-per-case results plus a summary.json.
+Core end-to-end flow behind `python -m src.main`: load test cases, live ADK
+invoke, score with metrics, write per-case results plus a summary.json.
 """
 
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 from src.clients.adk_client import invoke_agent
@@ -23,14 +21,11 @@ class EvaluationRunner:
         metric_factory: MetricFactory,
         *,
         agents_path: str = "configs/agents.yaml",
-        invoke_mode: str | None = None,
-        trace_dir: Path | None = None,
+        save_dir: Path | None = None,
     ):
         self.metric_factory = metric_factory
         self.agents_path = agents_path
-        # live | replay — default from DEMO_MODE (cache → replay)
-        self.invoke_mode = invoke_mode or _default_invoke_mode()
-        self.trace_dir = trace_dir
+        self.save_dir = save_dir
 
     def run_test_case(self, test_case: TestCase) -> EvaluationResult:
         try:
@@ -38,11 +33,10 @@ class EvaluationRunner:
             response = invoke_agent(
                 test_case.agent_name,
                 payload,
-                mode=self.invoke_mode,
-                trace_dir=self.trace_dir,
+                save_dir=self.save_dir,
                 agents_path=self.agents_path,
             )
-        except Exception as exc:  # noqa: BLE001 - one bad test case shouldn't crash the whole run
+        except Exception as exc:  # noqa: BLE001
             return EvaluationResult(
                 test_case_id=test_case.test_case_id,
                 agent_name=test_case.agent_name,
@@ -63,12 +57,6 @@ class EvaluationRunner:
         )
 
     def _resolve_metric_configs(self, test_case: TestCase) -> list[dict]:
-        """
-        Resolve metrics for a case:
-          1. `suite` → catalog via evaluations/<profile>/<suite>.yaml
-          2. else default suite / legacy base_metrics
-          3. optional `metrics:` list filters / overrides thresholds
-        """
         profile = agent_metrics_profile(test_case.agent_name, path=self.agents_path)
 
         if test_case.suite:
@@ -117,10 +105,3 @@ class EvaluationRunner:
         }
         (output_path / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
         return results
-
-
-def _default_invoke_mode() -> str:
-    demo = os.environ.get("DEMO_MODE", "cache").lower()
-    if demo in ("cache", "replay"):
-        return "replay"
-    return "live"

@@ -1,48 +1,33 @@
 """
-Example QA pattern: load → run_case → assert.
+Smoke: both agents load cases; live invoke when ADK is up.
 
   pytest tests/test_framework_setup.py -v
-  RUN_LIVE=1 pytest tests/test_framework_setup.py -v   # hits real ADK
 """
 
 from pathlib import Path
 
 import pytest
 
+from src.core.exceptions import AgentInvocationError
 from src.runners.case_runner import load_cases, run_case
 
 
-AGENT = "knowledge_agent"
-DATA_SUITE = "sanity"
-
-
-@pytest.fixture(scope="module")
-def sanity_cases():
-    return load_cases(AGENT, DATA_SUITE)
-
-
 @pytest.mark.parametrize(
-    "case_id",
-    ["TC_001", "TC_002"],
+    "agent,message_key",
+    [
+        ("knowledge_agent", "question"),
+        ("fact_find_workflow", "complaint_ref"),
+    ],
 )
-def test_sanity_replay_or_skip(sanity_cases, case_id: str):
-    """
-    Default: replay from outputs/<agent>/<suite>/ if present.
-    With RUN_LIVE=1: call ADK and overwrite that file.
-    """
-    import os
+def test_both_agents_load_and_live_one_case(agent: str, message_key: str):
+    cases = load_cases(agent, "sanity")
+    case = cases[0]
+    assert message_key in case["input"]
 
-    case = next(c for c in sanity_cases if c["test_case_id"] == case_id)
-    mode = "live" if os.environ.get("RUN_LIVE") == "1" else "replay"
-    out = Path("outputs")
+    try:
+        result = run_case(agent, case, "sanity", output_dir=Path("outputs/traces"))
+    except AgentInvocationError as exc:
+        pytest.skip(f"ADK not reachable: {exc}")
 
-    if mode == "replay":
-        expected = out / AGENT / DATA_SUITE / f"{case_id}.json"
-        if not expected.exists():
-            pytest.skip(f"No saved output at {expected}; run with RUN_LIVE=1 first")
-
-    result = run_case(AGENT, case, DATA_SUITE, output_dir=out, mode=mode)
-
-    # --- validation only (QA owns this) ---
-    assert result.response.answer, "empty agent answer"
+    assert result.response.answer
     assert result.saved_path and result.saved_path.exists()

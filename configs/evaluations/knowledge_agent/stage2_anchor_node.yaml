@@ -1,15 +1,7 @@
-# Suite: Stage 2 — Anchor Node Identification.
-# Metric *definitions* live in configs/metrics/knowledge_agent/catalog.yaml.
+# Suite: Stage 2 — Anchor Node (judges only).
+# Definitions: configs/metrics/knowledge_agent/catalog.yaml
+# Deterministic checks: tests/knowledge_agent/stage2_contract.py
 suite: stage2_anchor_node
-
-deterministic:
-  - anchor_selected
-  - anchor_id_valid
-  - anchor_belongs_to_candidates
-  - workflow_completed
-  - selection_path_correct
-  # optional golden (when expected.expected_anchor_page_id is set):
-  - anchor_accuracy
 
 judges:
   - anchor_relevance

@@ -1,15 +1,14 @@
 """
 Run existing Knowledge Agent stage contracts many times and aggregate.
 
-Uses cached traces by default (DEMO_MODE=cache) so Layer-1 is stable;
-re-running judges N times surfaces judge noise. --simulate-regression
-injects the DAFAT-style upstream drop so baseline diff is visible without
-a live broken build.
+Expects ADK outputs already under outputs/traces (capture live via run_case /
+scripts.capture_traces first). Re-running judges N times surfaces judge noise.
+--simulate-regression injects a DAFAT-style upstream drop so baseline diff
+is visible without a live broken build.
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Callable
 
@@ -163,16 +162,13 @@ def run_verdict(
     """
     Evaluate existing sanity cases N times, aggregate, optionally diff baseline.
 
-    Default run_judges=False keeps the demo fast/offline (Layer-1 only).
+    Default run_judges=False keeps the demo fast (Layer-1 only).
     Pass run_judges=True to also sample CORTEX GEval variance.
     """
-    os.environ.setdefault("DEMO_MODE", "cache")
-
     harness = _VerdictHarness()
     harness.profile = profile
     harness.tag = tag
     cases = harness.load_cases()
-    harness.ensure_traces(list(cases.values()))
 
     selected_ids = case_ids or sorted(cases.keys())
     selected_stages = stages or [stage1_contract.STAGE, stage2_contract.STAGE]

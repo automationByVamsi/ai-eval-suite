@@ -43,7 +43,7 @@ judge_metrics:
     should_consider_ordering: false
     should_exact_match: false
 
-  # MCP-specific built-ins (need live tool/MCP events; auto-skipped on replay fixtures)
+  # MCP-specific built-ins (need live tool/MCP events; auto-skipped if absent)
   - name: mcp_use
     type: mcp_use
     threshold: 0.7

@@ -27,7 +27,7 @@ class TestCase(BaseModel):
 
     test_case_id: str
     description: str = ""
-    agent_name: str
+    agent_name: str = ""
     input: dict[str, Any]
     expected: dict[str, Any] = Field(default_factory=dict)
     suite: Optional[str] = None

@@ -1,5 +1,4 @@
-# Suite: end-to-end — all stage suites + final-answer metrics.
-# Same test data can run this suite; it is an evaluation lens on the full response.
+# Suite: end-to-end — stage suites + final-answer judges.
 suite: e2e
 
 include:

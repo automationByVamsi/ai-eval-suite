@@ -1,28 +1,17 @@
-# knowledge_agent test targets.
+# knowledge_agent test targets (live ADK).
 
-.PHONY: test-ka-stage1 test-ka-stage2 test-ka demo-e2e demo-cache demo-incremental demo-refresh dashboard
+.PHONY: test-ka-sanity test-ka-stage1 test-ka demo-e2e dashboard
+
+test-ka-sanity:
+	pytest tests/knowledge_agent/test_sanity.py -v -s
 
 test-ka-stage1:
-	pytest tests/knowledge_agent/test_stage1.py -v -s
-
-test-ka-stage2:
-	pytest tests/knowledge_agent/test_stage2.py -v -s
+	pytest tests/knowledge_agent/test_stage1_eval.py -v -s
 
 test-ka:
-	pytest tests/knowledge_agent/test_stage1.py tests/knowledge_agent/test_stage2.py -v
+	pytest tests/knowledge_agent/ -v
 
-# Leadership / walkthrough: all registered stages → dashboard
-demo-e2e:
-	DEMO_MODE=cache pytest tests/knowledge_agent/test_demo_e2e.py -v -s
-
-demo-cache:
-	DEMO_MODE=cache pytest tests/knowledge_agent/test_demo_e2e.py -v -s
-
-demo-incremental:
-	DEMO_MODE=incremental pytest tests/knowledge_agent/test_demo_e2e.py -v -s
-
-demo-refresh:
-	DEMO_MODE=refresh pytest tests/knowledge_agent/test_demo_e2e.py -v -s
+demo-e2e: test-ka-sanity
 
 dashboard:
 	streamlit run scripts/dashboard_app.py

@@ -1,17 +1,7 @@
-# Suite: Stage 1 — Query Rewrite & Search.
-# Metric *definitions* live in configs/metrics/knowledge_agent/catalog.yaml.
-# Deterministic runners still live in tests/knowledge_agent/stage1_contract.py;
-# names here document which Layer-1 checks belong to this suite.
+# Suite: Stage 1 — Query Rewrite & Search (judges only).
+# Definitions: configs/metrics/knowledge_agent/catalog.yaml
+# Deterministic checks: tests/knowledge_agent/stage1_contract.py (code, not YAML)
 suite: stage1_query_rewrite
-
-deterministic:
-  - input_query_present
-  - rewrite_executed
-  - rewrite_output_valid
-  - state_propagation_intact
-  - search_executed
-  - result_count_positive
-  - downstream_state_available
 
 judges:
   - intent_preservation

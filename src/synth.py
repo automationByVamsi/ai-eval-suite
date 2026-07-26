@@ -73,7 +73,7 @@ def main() -> None:
         test_case = {
             "test_case_id": test_case_id,
             "description": "Auto-generated golden test case",
-            "agent_name": synth_config.get("agent_name", f"{args.agent}_replay"),
+            "agent_name": synth_config.get("agent_name", f"{args.agent}_synth"),
             "input": {"question": golden.input},
             "expected": {"answer": golden.expected_output or ""},
             "metrics": [],
