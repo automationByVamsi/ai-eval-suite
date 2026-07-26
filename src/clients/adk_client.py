@@ -11,6 +11,7 @@ Every lab agent uses Google ADK the same way. Only config differs
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,9 +19,50 @@ from typing import Any
 
 from src.agents import adk_parser
 from src.core.config import get_agent_config
-from src.core.exceptions import AgentInvocationError
+from src.core.exceptions import AgentInvocationError, ConfigError
 from src.core.network import post_json, split_host_path
 from src.models.agent_response import AgentResponse
+
+
+def _resolve_headers(config: dict[str, Any]) -> dict[str, str]:
+    """
+    Build request headers from agents.yaml.
+
+    Supports:
+      headers:
+        x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
+      headers_from_env:
+        x-lbg-origin-client-id: CORTEX_CLIENT_ID
+    """
+    raw = config.get("headers") or {}
+    if isinstance(raw, str):
+        raise ConfigError(
+            "agents.yaml 'headers' must be a YAML mapping, e.g.\n"
+            "  headers:\n"
+            "    x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}\n"
+            f"Got a string instead: {raw!r}"
+        )
+    if not isinstance(raw, dict):
+        raise ConfigError(f"agents.yaml 'headers' must be a mapping, got {type(raw).__name__}")
+
+    headers = {str(k): str(v) for k, v in raw.items()}
+
+    from_env = config.get("headers_from_env") or {}
+    if isinstance(from_env, dict):
+        for header_name, env_var in from_env.items():
+            val = os.environ.get(str(env_var), "")
+            if val:
+                headers[str(header_name)] = val
+
+    empty = [k for k, v in headers.items() if not str(v).strip()]
+    if empty:
+        raise ConfigError(
+            f"Agent header(s) have empty values: {empty}. "
+            "Set CORTEX_CLIENT_ID in repo-root .env "
+            "(same client id the working factfind/ai-evals repo uses). "
+            "Also accepted: src/.env or env/.env.factfind.api"
+        )
+    return headers
 
 
 class AdkClient:
@@ -37,7 +79,7 @@ class AdkClient:
         self.timeout_s: float = float(config.get("timeout_s", 30))
         self.verify_tls: bool = bool(config.get("verify_tls", True))
         self.max_retries: int = int(config.get("max_retries", 2))
-        self.headers: dict[str, str] = dict(config.get("headers") or {})
+        self.headers: dict[str, str] = _resolve_headers(config)
         self.metrics_profile: str = str(
             config.get("metrics_profile") or agent_name or self.app_name
         )
@@ -71,8 +113,10 @@ class AdkClient:
                 host, path, {}, self.headers, **self._call_kwargs(scheme)
             )
         except Exception as exc:  # noqa: BLE001
+            header_keys = sorted(self.headers)
             raise AgentInvocationError(
-                f"ADK create_session failed for {self.app_name}: {exc}"
+                f"ADK create_session failed for {self.app_name}: {exc} "
+                f"(url={scheme}://{host}{path}; header_keys={header_keys})"
             ) from exc
         session_id = session.get("id")
         if not session_id:

@@ -14,19 +14,16 @@ from typing import Any
 _ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 _DOTENV_LOADED = False
 
+# Prefer repo-root `.env`; also accept common office-machine locations.
+_DEFAULT_ENV_CANDIDATES = (
+    Path(".env"),
+    Path("src/.env"),
+    Path("env/.env.factfind.api"),
+)
 
-def load_dotenv(path: str | Path = ".env") -> None:
-    """Load KEY=VALUE lines into os.environ if the key is not already set."""
-    global _DOTENV_LOADED
-    if _DOTENV_LOADED:
-        return
-    _DOTENV_LOADED = True
 
-    env_path = Path(path)
-    if not env_path.is_file():
-        return
-
-    for raw in env_path.read_text().splitlines():
+def _load_env_file(env_path: Path) -> None:
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -35,6 +32,23 @@ def load_dotenv(path: str | Path = ".env") -> None:
         value = value.strip().strip("'").strip('"')
         if key and key not in os.environ:
             os.environ[key] = value
+
+
+def load_dotenv(path: str | Path | None = None) -> None:
+    """Load KEY=VALUE lines into os.environ if the key is not already set."""
+    global _DOTENV_LOADED
+    if _DOTENV_LOADED:
+        return
+    _DOTENV_LOADED = True
+
+    if path is not None:
+        candidates = [Path(path)]
+    else:
+        candidates = list(_DEFAULT_ENV_CANDIDATES)
+
+    for env_path in candidates:
+        if env_path.is_file():
+            _load_env_file(env_path)
 
 
 def expand_env_string(value: str) -> str:

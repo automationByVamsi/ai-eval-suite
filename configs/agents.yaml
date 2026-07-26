@@ -31,6 +31,8 @@ agents:
     # Internal LBG host — same as working factfind/ai-evals (unverified TLS).
     verify_tls: false
     max_retries: 1
-    # Gateway auth — must be a YAML map (not a string). Value from .env.
+    # Gateway auth (working repo ADK_HEADERS). Must be a YAML map, not a string.
     headers:
       x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
+    headers_from_env:
+      x-lbg-origin-client-id: CORTEX_CLIENT_ID

@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
+from src.clients.adk_client import _resolve_headers
+from src.core.exceptions import ConfigError
 from src.core.network import post_json, split_host_path
 
 
@@ -77,3 +80,24 @@ def test_post_json_over_http():
         assert received["path"].endswith("/sessions")
     finally:
         server.shutdown()
+
+
+def test_resolve_headers_from_env(monkeypatch):
+    monkeypatch.setenv("CORTEX_CLIENT_ID", "cid-123")
+    headers = _resolve_headers(
+        {
+            "headers": {"x-lbg-origin-client-id": ""},
+            "headers_from_env": {"x-lbg-origin-client-id": "CORTEX_CLIENT_ID"},
+        }
+    )
+    assert headers["x-lbg-origin-client-id"] == "cid-123"
+
+
+def test_resolve_headers_rejects_string():
+    with pytest.raises(ConfigError, match="mapping"):
+        _resolve_headers({"headers": "x-lbg-origin-client-id: foo"})
+
+
+def test_resolve_headers_rejects_empty():
+    with pytest.raises(ConfigError, match="empty"):
+        _resolve_headers({"headers": {"x-lbg-origin-client-id": ""}})
