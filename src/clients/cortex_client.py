@@ -40,7 +40,7 @@ class CortexClient:
             "temperature": self.temperature,
             "messages": [{"role": "user", "content": prompt}],
         }
-        host, path = split_host_path(self.base_url + self.path)
+        scheme, host, path = split_host_path(self.base_url + self.path)
 
         try:
             data = post_json(
@@ -48,10 +48,13 @@ class CortexClient:
                 path,
                 payload,
                 self.headers,
+                scheme=scheme,
                 verify_tls=self.verify_tls,
                 timeout_s=self.timeout_s,
                 retries=self.retries,
             )
             return data["choices"][0]["message"]["content"].strip()
         except Exception as exc:  # noqa: BLE001 - post_json already retried; this is the final failure
-            raise CortexClientError(f"CORTEX call to {host}{path} failed: {exc}") from exc
+            raise CortexClientError(
+                f"CORTEX call to {scheme}://{host}{path} failed: {exc}"
+            ) from exc

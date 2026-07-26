@@ -50,11 +50,13 @@ class AdkClient:
     ) -> AdkClient:
         return cls(get_agent_config(agent_name, path=agents_path), agent_name=agent_name)
 
-    def _host_and_base(self) -> tuple[str, str]:
+    def _host_and_base(self) -> tuple[str, str, str]:
+        """Return (scheme, host[:port], base_path) from agents.yaml + .env."""
         return split_host_path(self.base_url + self.base_path)
 
-    def _call_kwargs(self) -> dict[str, Any]:
+    def _call_kwargs(self, scheme: str) -> dict[str, Any]:
         return {
+            "scheme": scheme,
             "verify_tls": self.verify_tls,
             "timeout_s": self.timeout_s,
             "retries": self.max_retries,
@@ -62,10 +64,12 @@ class AdkClient:
 
     def create_session(self) -> str:
         """Step 1 — create ADK session; return session_id."""
-        host, base_path = self._host_and_base()
+        scheme, host, base_path = self._host_and_base()
         path = f"{base_path}/apps/{self.app_name}/users/{self.user_id}/sessions"
         try:
-            session = post_json(host, path, {}, self.headers, **self._call_kwargs())
+            session = post_json(
+                host, path, {}, self.headers, **self._call_kwargs(scheme)
+            )
         except Exception as exc:  # noqa: BLE001
             raise AgentInvocationError(
                 f"ADK create_session failed for {self.app_name}: {exc}"
@@ -77,7 +81,7 @@ class AdkClient:
 
     def run(self, session_id: str, user_text: str) -> tuple[list[dict[str, Any]], str]:
         """Step 2 — POST /run; return (raw_events, final_answer_text)."""
-        host, base_path = self._host_and_base()
+        scheme, host, base_path = self._host_and_base()
         path = f"{base_path}/run"
         payload = {
             "app_name": self.app_name,
@@ -86,7 +90,9 @@ class AdkClient:
             "new_message": {"role": "user", "parts": [{"text": user_text}]},
         }
         try:
-            events = post_json(host, path, payload, self.headers, **self._call_kwargs())
+            events = post_json(
+                host, path, payload, self.headers, **self._call_kwargs(scheme)
+            )
         except Exception as exc:  # noqa: BLE001
             raise AgentInvocationError(
                 f"ADK /run failed for {self.app_name}: {exc}"
