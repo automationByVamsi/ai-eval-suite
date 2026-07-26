@@ -25,8 +25,6 @@ agents:
     base_url: ${FACTFIND_ADK_BASE_URL:-https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/hive-complaints-agent}
     base_path: ${FACTFIND_ADK_BASE_PATH:-}
     message_field: complaint_ref
-    # Optional: wrap the raw input value in a prompt. {value} = message_field contents.
-    message_template: "Can you help me get details for complaint reference {value}?"
     timeout_s: 420
     # Internal LBG host — same as working factfind/ai-evals (unverified TLS).
     verify_tls: false
