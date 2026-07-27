@@ -1,0 +1,3 @@
+# DeepEval FiltrationConfig — drop low-quality synthetic questions
+synthetic_input_quality_threshold: 0.5
+max_quality_retries: 3

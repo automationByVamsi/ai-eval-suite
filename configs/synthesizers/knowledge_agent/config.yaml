@@ -1,0 +1,33 @@
+# Knowledge Agent — synthesizer config (thin).
+#
+# Style prompts live under styles/*.md — one file per input/output style.
+# DeepEval helpers: src/synthesizer/goldens/{styling,evolution,filtration,generator}.py
+#
+#   python -m src.synth --prepare --page-id 8708
+#   python -m src.synth --prepare --page-id 8708 --fixture 8708-response.json
+#   python -m src.synth --generate
+
+agent_name: knowledge_agent
+
+source_docs_dir: data/knowledge_agent/source_docs
+output_dir: testdata/knowledge_agent/golden
+
+include_expected_output: true
+# Default max when a style entry omits max_goldens_per_context
+max_goldens_per_context: 2
+
+# Shared domain rules (folded into every style's StylingConfig.scenario)
+instruction_file: instructions.md
+
+evolution_file: evolution.yaml
+filtration_file: filtration.yaml
+
+# Each style → its own StylingConfig (scenario / task / input / expected output)
+styles:
+  - name: simple_query
+    file: styles/simple_query.md
+    max_goldens_per_context: 2
+
+  - name: complex_query
+    file: styles/complex_query.md
+    max_goldens_per_context: 2

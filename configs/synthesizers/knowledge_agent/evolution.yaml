@@ -1,0 +1,9 @@
+# DeepEval EvolutionConfig — question variety (weights should sum ~1.0)
+num_evolutions: 1
+evolutions:
+  REASONING: 0.20
+  CONCRETIZING: 0.20
+  CONSTRAINED: 0.20
+  HYPOTHETICAL: 0.15
+  COMPARATIVE: 0.15
+  IN_BREADTH: 0.10
