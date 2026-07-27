@@ -18,3 +18,4 @@ data/**/_generated_txt/
 # Fact Find APIC mTLS material (keep .gitkeep only)
 data/fact_find_workflow/certs/*
 !data/fact_find_workflow/certs/.gitkeep
+.env
