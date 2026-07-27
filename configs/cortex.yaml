@@ -1,20 +1,16 @@
-# CORTEX is the internal LLM gateway used as the judge model for every
-# DeepEval metric and the Synthesizer. No OpenAI key is ever needed - see
-# src/clients/cortex_client.py and src/clients/cortex_deepeval.py.
+# CORTEX judge — aligned with working factfind/ai-evals eval_config.py
 #
-# Override host/model/path via `.env` (see `.env.example`). Auth header values
-# are env VAR NAMES under headers_from_env — never put secrets in this file.
+# CORTEX_HOST should be the full gateway prefix ending at /v1/ (trailing slash OK).
+# Client always POSTs to {host}{prefix}/chat/completions — do not use /generate.
 cortex:
-  # If CORTEX_HOST already ends with /v1, set CORTEX_PATH=/generate in `.env`.
-  base_url: ${CORTEX_HOST:-https://cortex.internal.example.com}
-  path: ${CORTEX_PATH:-/v1/generate}
-  model: ${CORTEX_MODEL:-vertex-gemini-2.5-pro}
+  base_url: ${CORTEX_HOST:-https://cortex.internal.example.com/int/control-plane-api/v1}
+  # path kept for docs; CortexClient builds .../chat/completions from base_url like working repo
+  path: /chat/completions
+  model: ${CORTEX_MODEL:-vertex_ai/gemini-2.5-pro}
   temperature: 0.0
-  timeout_s: 30
-  # Internal LBG host — same as working factfind/ai-evals (unverified TLS).
+  timeout_s: 60
   verify_tls: false
   retries: 2
-  # Static-header auth (working repo uses x-lbg-origin-client-id).
   headers_from_env:
     x-lbg-origin-client-id: CORTEX_CLIENT_ID
   extra_headers: {}
