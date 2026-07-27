@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from src.clients.cortex_deepeval import CortexDeepEvalLLM, _strip_markdown_fence
+from src.clients.cortex_deepeval import CortexDeepEvalLLM, _strip_code_fence, _to_schema
 
 
 class _FakeCortex:
@@ -55,5 +55,7 @@ def test_fenced_json_parses():
     assert out.score == 0.5
 
 
-def test_strip_fence():
-    assert _strip_markdown_fence("```\nhi\n```") == "hi"
+def test_helpers():
+    assert _strip_code_fence("```\nhi\n```") == "hi"
+    wrapped = _to_schema("plain question", Response)
+    assert wrapped.response == "plain question"
