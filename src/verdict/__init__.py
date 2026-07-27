@@ -1,8 +1,8 @@
 """
-VERDICT — reliability layer on top of existing HIVE stage contracts.
+VERDICT — reliability layer on top of existing agent evals.
 
 Wraps multi-run scoring + baseline regression diffs. Does not redefine
-what "good" means; that stays in stage contracts / GEval rubrics.
+what "good" means; that stays in agent contracts / suite judges.
 """
 
 from src.verdict.models import MetricAggregate, VerdictReport

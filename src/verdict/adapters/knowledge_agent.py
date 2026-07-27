@@ -1,8 +1,4 @@
-"""
-Temporary KA stage helpers for VERDICT (until stage1/stage2 are redesigned).
-
-Parse saved traces → deterministic contracts → AgentResponse for optional judges.
-"""
+"""Knowledge Agent — stage1 / stage2 contracts for VERDICT."""
 
 from __future__ import annotations
 
@@ -10,33 +6,19 @@ from pathlib import Path
 from typing import Any
 
 from src.models.agent_response import AgentResponse
-from src.parsers.knowledge_agent.stage1 import Stage1Parsed
 from src.parsers.knowledge_agent.stage1 import parse as parse_stage1
-from src.parsers.knowledge_agent.stage2 import Stage2Parsed
 from src.parsers.knowledge_agent.stage2 import parse as parse_stage2
-from src.runners.evaluate import CheckResult, load_trace
+from src.runners.evaluate import CheckResult, evaluate, load_trace
+from src.verdict import obs
+from src.verdict.models import CheckObservation
+from src.verdict.registry import AgentPack, register
 from tests.knowledge_agent import stage1_contract, stage2_contract
 
 
-def resolve_trace_path(
-    case_id: str,
-    *,
-    agent: str = "knowledge_agent",
-    data_suite: str = "sanity",
-    traces_root: str | Path = "outputs/traces",
-) -> Path:
-    path = Path(traces_root) / agent / data_suite / f"{case_id}.json"
-    if path.is_file():
-        return path
-    raise FileNotFoundError(
-        f"No trace at {path}. Run: pytest tests/knowledge_agent/test_sanity.py -v -s"
-    )
-
-
 def prepare_stage1(
-    response_path: str,
+    response_path: str | Path,
     case: dict[str, Any],
-) -> tuple[Stage1Parsed, list[CheckResult], AgentResponse]:
+) -> tuple[list[CheckResult], AgentResponse]:
     trace = load_trace(response_path, case)
     parsed = parse_stage1(trace)
     det = [
@@ -57,13 +39,13 @@ def prepare_stage1(
         session_id=parsed.session_id,
         latency_ms=parsed.latency_ms,
     )
-    return parsed, det, response
+    return det, response
 
 
 def prepare_stage2(
-    response_path: str,
+    response_path: str | Path,
     case: dict[str, Any],
-) -> tuple[Stage2Parsed, list[CheckResult], AgentResponse]:
+) -> tuple[list[CheckResult], AgentResponse]:
     trace = load_trace(response_path, case)
     parsed = parse_stage2(trace)
     det = [
@@ -86,4 +68,48 @@ def prepare_stage2(
         session_id=parsed.session_id,
         latency_ms=parsed.latency_ms,
     )
-    return parsed, det, response
+    return det, response
+
+
+def _eval_stage1(
+    agent: str,
+    case: dict[str, Any],
+    trace_path: Path,
+    run_judges: bool,
+) -> list[CheckObservation]:
+    det, response = prepare_stage1(trace_path, case)
+    checks = obs.from_deterministic(det)
+    if run_judges:
+        judges = evaluate(agent, stage1_contract.STAGE, case, response, publish=False)
+        checks.extend(obs.from_judges(judges.judges))
+    return checks
+
+
+def _eval_stage2(
+    agent: str,
+    case: dict[str, Any],
+    trace_path: Path,
+    run_judges: bool,
+) -> list[CheckObservation]:
+    det, response = prepare_stage2(trace_path, case)
+    checks = obs.from_deterministic(det)
+    if run_judges:
+        judges = evaluate(agent, stage2_contract.STAGE, case, response, publish=False)
+        checks.extend(obs.from_judges(judges.judges))
+    return checks
+
+
+register(
+    AgentPack(
+        agent="knowledge_agent",
+        default_suite="sanity",
+        packs={
+            stage1_contract.STAGE: _eval_stage1,
+            stage2_contract.STAGE: _eval_stage2,
+        },
+        sim_fail={
+            stage1_contract.STAGE: frozenset({"result_count_positive", "query_optimization"}),
+            stage2_contract.STAGE: frozenset({"anchor_accuracy", "anchor_relevance"}),
+        },
+    )
+)

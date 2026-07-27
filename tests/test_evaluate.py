@@ -6,7 +6,7 @@ import pytest
 
 from src.models.agent_response import AgentResponse
 from src.runners.evaluate import evaluate, load_trace
-from src.verdict.ka_stages import prepare_stage1
+from src.verdict.adapters.knowledge_agent import prepare_stage1
 
 
 def test_load_trace_wrapped_and_flat(tmp_path: Path):
@@ -38,7 +38,7 @@ def test_ka_stage1_deterministic_via_ka_helper():
         "input": {"question": "How do I support someone gambling?"},
         "expected": {},
     }
-    _parsed, det, response = prepare_stage1(str(trace), case)
+    det, response = prepare_stage1(str(trace), case)
     assert isinstance(response, AgentResponse)
     failed = [c.name for c in det if not c.passed]
     assert not failed, failed

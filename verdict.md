@@ -71,17 +71,26 @@ VERDICT is not another thing that produces answers. It is the layer that decides
 
 ## Try it (v0 in this repo)
 
-Uses existing `testdata/knowledge_agent/sanity` cases + saved ADK outputs under `outputs/traces`. Layer-1 contracts only by default (fast when captures already exist).
+Agent-agnostic: pick any registered agent (`knowledge_agent`, `fact_find_workflow`, …).
+Uses that agent’s testdata suite + saved traces under `outputs/traces/<agent>/<suite>/`.
+Layer-1 / deterministic checks only by default (fast when captures already exist).
 
 ```bash
-make verdict-demo
+# Knowledge Agent demo
+make verdict-demo AGENT=knowledge_agent
+
+# Fact Find
+make verdict-check AGENT=fact_find_workflow
+
 # or:
-#   python3 -m scripts.run_verdict --n 5 --save-baseline --no-compare
-#   python3 -m scripts.run_verdict --n 5 --simulate-regression
+#   python3 -m scripts.run_verdict --agent knowledge_agent --n 5 --save-baseline --no-compare
+#   python3 -m scripts.run_verdict --agent knowledge_agent --n 5 --simulate-regression
+#   python3 -m scripts.run_verdict --agent fact_find_workflow --n 5
 
 # Dashboard
 make verdict-dashboard
-# or: streamlit run scripts/verdict_dashboard.py
 ```
 
-Optional judge resampling (needs CORTEX): `make verdict-judges`
+Optional judge resampling (needs CORTEX): `make verdict-judges AGENT=…`
+
+New agent: add a small adapter under `src/verdict/adapters/` and `register(AgentPack(...))`.

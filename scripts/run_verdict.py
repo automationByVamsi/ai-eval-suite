@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 """
-VERDICT CLI — multi-run reliability + baseline regression on existing cases.
+VERDICT CLI — multi-run reliability + baseline regression (any registered agent).
 
 Examples:
-  # 1) Freeze a trusted baseline from current sanity traces (Layer-1 only)
-  python -m scripts.run_verdict --save-baseline --n 5
-
-  # 2) Show what a broken build looks like vs that baseline
-  python -m scripts.run_verdict --simulate-regression --n 5
-
-  # 3) Also re-sample CORTEX judges (slower, needs network)
-  python -m scripts.run_verdict --judges --n 3 --save-baseline
+  python -m scripts.run_verdict --agent knowledge_agent --n 5 --save-baseline
+  python -m scripts.run_verdict --agent fact_find_workflow --n 5
+  python -m scripts.run_verdict --agent knowledge_agent --simulate-regression --n 5
 """
 
 from __future__ import annotations
@@ -18,23 +13,40 @@ from __future__ import annotations
 import argparse
 import sys
 
+from src.verdict.registry import list_agents, load_builtin_packs
 from src.verdict.runner import run_verdict
 
 
 def main() -> int:
+    load_builtin_packs()
+    agents = list_agents()
+
     parser = argparse.ArgumentParser(description="Run VERDICT reliability checks")
-    parser.add_argument("--n", type=int, default=5, help="Repetitions per case×stage (default 5)")
+    parser.add_argument(
+        "--agent",
+        default="knowledge_agent",
+        choices=agents or None,
+        help=f"Agent to score (registered: {', '.join(agents) or '…'})",
+    )
+    parser.add_argument(
+        "--suite",
+        default=None,
+        help="Testdata / traces suite (default: agent pack default, usually sanity)",
+    )
+    parser.add_argument("--n", type=int, default=5, help="Repetitions per case×pack (default 5)")
     parser.add_argument(
         "--cases",
         nargs="*",
         default=None,
-        help="Case ids (default: all under testdata/knowledge_agent/sanity)",
+        help="Case ids (default: all cases in the suite)",
     )
     parser.add_argument(
+        "--packs",
         "--stages",
+        dest="packs",
         nargs="*",
         default=None,
-        help="Stages (default: stage1_query_rewrite stage2_anchor_node)",
+        help="Check packs to run (default: all packs for the agent)",
     )
     parser.add_argument(
         "--judges",
@@ -54,7 +66,7 @@ def main() -> int:
     parser.add_argument(
         "--simulate-regression",
         action="store_true",
-        help="Inject DAFAT-style stage drops on most reps (demo usefulness)",
+        help="Inject intentional drops on most reps (demo usefulness)",
     )
     parser.add_argument("--baseline-name", default="latest")
     parser.add_argument(
@@ -67,9 +79,11 @@ def main() -> int:
     args = parser.parse_args()
 
     report = run_verdict(
+        agent=args.agent,
+        suite=args.suite,
         n_reps=args.n,
         case_ids=args.cases,
-        stages=args.stages,
+        packs=args.packs,
         run_judges=args.judges,
         simulate_regression=args.simulate_regression,
         save_as_baseline=args.save_baseline,
@@ -79,9 +93,7 @@ def main() -> int:
         output_dir=args.output,
     )
 
-    if report.has_regression:
-        return 1
-    return 0
+    return 1 if report.has_regression else 0
 
 
 if __name__ == "__main__":

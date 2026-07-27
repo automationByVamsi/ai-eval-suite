@@ -1,25 +1,28 @@
-# VERDICT — reliability multi-run + baseline regression (wraps existing KA cases).
-# Capture live ADK outputs first (make test-ka-sanity / scripts.capture_traces).
+# VERDICT — multi-run reliability + baseline regression (any registered agent).
+# Capture live ADK outputs first (pytest tests/<agent>/test_sanity.py).
+#
+#   make verdict-demo AGENT=knowledge_agent
+#   make verdict-check AGENT=fact_find_workflow
+
+AGENT ?= knowledge_agent
+SUITE ?= sanity
+N ?= 5
 
 .PHONY: verdict-baseline verdict-demo verdict-check verdict-judges verdict-dashboard
 
-# Freeze current sanity outputs as the trusted baseline (Layer-1)
 verdict-baseline:
-	python3 -m scripts.run_verdict --n 5 --save-baseline --no-compare
+	python3 -m scripts.run_verdict --agent $(AGENT) --suite $(SUITE) --n $(N) --save-baseline --no-compare
 
-# Show usefulness: same cases, simulated upstream drop → regression vs baseline
+# Show usefulness: baseline then simulated regression vs that baseline
 verdict-demo:
-	python3 -m scripts.run_verdict --n 5 --save-baseline --no-compare
-	python3 -m scripts.run_verdict --n 5 --simulate-regression
+	python3 -m scripts.run_verdict --agent $(AGENT) --suite $(SUITE) --n $(N) --save-baseline --no-compare
+	python3 -m scripts.run_verdict --agent $(AGENT) --suite $(SUITE) --n $(N) --simulate-regression
 
-# Re-check current build against last baseline (no simulation)
 verdict-check:
-	python3 -m scripts.run_verdict --n 5
+	python3 -m scripts.run_verdict --agent $(AGENT) --suite $(SUITE) --n $(N)
 
-# Optional: include CORTEX judge resampling (needs network + creds)
 verdict-judges:
-	python3 -m scripts.run_verdict --n 3 --judges --save-baseline
+	python3 -m scripts.run_verdict --agent $(AGENT) --suite $(SUITE) --n 3 --judges --save-baseline
 
-# Streamlit UI for outputs/verdict/runs/*.json
 verdict-dashboard:
 	streamlit run scripts/verdict_dashboard.py
