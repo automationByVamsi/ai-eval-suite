@@ -3,7 +3,7 @@ TestCase is the normalised shape of one row of test input for any agent.
 See testdata/<agent>/<tag>/*.json for examples on disk.
 
 Metrics selection (Knowledge Agent):
-  - `suite`: name under configs/evaluations/<profile>/ (e.g. stage1_query_rewrite, e2e)
+  - `suite`: name under configs/evaluations/<profile>/ (e.g. sanity, e2e)
   - `metrics`: optional name list / overrides (rare); empty → suite or profile default
   Same case JSON can be run under any suite — suite is an evaluation lens on the response.
 """

@@ -72,8 +72,8 @@ VERDICT is not another thing that produces answers. It is the layer that decides
 ## Try it (v0 in this repo)
 
 Agent-agnostic: pick any registered agent (`knowledge_agent`, `fact_find_workflow`, …).
-Uses that agent’s testdata suite + saved traces under `outputs/traces/<agent>/<suite>/`.
-Layer-1 / deterministic checks only by default (fast when captures already exist).
+Uses that agent’s **sanity** suite + saved traces under `outputs/traces/<agent>/sanity/`.
+Deterministic sanity checks (answer / keywords) by default; optional judges with `--judges`.
 
 ```bash
 # Knowledge Agent demo
@@ -94,3 +94,4 @@ make verdict-dashboard
 Optional judge resampling (needs CORTEX): `make verdict-judges AGENT=…`
 
 New agent: add a small adapter under `src/verdict/adapters/` and `register(AgentPack(...))`.
+Stage-wise KA contracts are deferred — rewrite later under parsers/ when ready.

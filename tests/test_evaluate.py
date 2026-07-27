@@ -2,11 +2,8 @@
 
 from pathlib import Path
 
-import pytest
-
 from src.models.agent_response import AgentResponse
 from src.runners.evaluate import evaluate, load_trace
-from src.verdict.adapters.knowledge_agent import prepare_stage1
 
 
 def test_load_trace_wrapped_and_flat(tmp_path: Path):
@@ -28,22 +25,6 @@ def test_load_trace_wrapped_and_flat(tmp_path: Path):
     assert w2["test_case"]["input"]["question"] == "new"
 
 
-def test_ka_stage1_deterministic_via_ka_helper():
-    trace = Path("outputs/traces/knowledge_agent/sanity/TC_001.json")
-    if not trace.exists():
-        pytest.skip("missing KA sanity trace")
-
-    case = {
-        "test_case_id": "TC_001",
-        "input": {"question": "How do I support someone gambling?"},
-        "expected": {},
-    }
-    det, response = prepare_stage1(str(trace), case)
-    assert isinstance(response, AgentResponse)
-    failed = [c.name for c in det if not c.passed]
-    assert not failed, failed
-
-
 def test_evaluate_resolves_suite_without_running_cortex(monkeypatch):
     """evaluate uses suite→catalog; empty metric list means no CORTEX calls."""
     import src.runners.evaluate as ev
@@ -51,11 +32,11 @@ def test_evaluate_resolves_suite_without_running_cortex(monkeypatch):
     monkeypatch.setattr(ev, "resolve_suite_metrics", lambda *a, **k: [])
     result = evaluate(
         "knowledge_agent",
-        "stage1_query_rewrite",
+        "sanity",
         {"test_case_id": "T", "input": {"question": "q"}},
-        AgentResponse(answer="a", metadata={"rewritten_query": "r"}),
+        AgentResponse(answer="a", metadata={"question": "q"}),
         publish=False,
     )
-    assert result.suite == "stage1_query_rewrite"
+    assert result.suite == "sanity"
     assert result.judges == []
     assert result.passed

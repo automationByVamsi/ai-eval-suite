@@ -11,12 +11,12 @@ def test_aggregate_pass_rate():
         reps.append(
             RepResult(
                 test_case_id="TC_001",
-                stage="stage1_query_rewrite",
+                stage="sanity",
                 rep=i,
                 passed=i == 0,
                 checks=[
                     CheckObservation(
-                        name="result_count_positive",
+                        name="answer_non_empty",
                         kind="deterministic",
                         passed=(i == 0),
                     )
@@ -33,8 +33,8 @@ def test_diff_flags_regression():
     baseline = [
         MetricAggregate(
             test_case_id="TC_001",
-            stage="stage2_anchor_node",
-            name="anchor_accuracy",
+            stage="sanity",
+            name="answer_non_empty",
             kind="deterministic",
             n=5,
             pass_rate=1.0,
@@ -43,8 +43,8 @@ def test_diff_flags_regression():
     current = [
         MetricAggregate(
             test_case_id="TC_001",
-            stage="stage2_anchor_node",
-            name="anchor_accuracy",
+            stage="sanity",
+            name="answer_non_empty",
             kind="deterministic",
             n=5,
             pass_rate=0.4,

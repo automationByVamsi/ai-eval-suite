@@ -1,9 +1,8 @@
 """
 Config-only metrics: a YAML block (type: geval) + a Markdown rubric file is
 all it takes to add a brand-new LLM-judge metric - no Python class, no core
-change. See configs/metrics/knowledge_agent/catalog.yaml (definition) +
-configs/evaluations/knowledge_agent/<suite>.yaml (selection) and
-configs/criteria/knowledge_agent/intent_preservation.md for a real example.
+change. See configs/metrics/<agent>/catalog.yaml +
+configs/evaluations/<agent>/<suite>.yaml and a rubric under configs/criteria/.
 """
 
 from pathlib import Path
