@@ -1,10 +1,16 @@
 """
-Shared HTTP helpers (stdlib http.client — no `requests`).
+Shared HTTP request utils (stdlib http.client — no `requests`).
 
-Simple rule: give a full URL, get JSON back.
+Use these for any API call in the suite:
 
-  get_json(url, headers=..., verify_tls=False)
-  post_json(host, path, payload, headers=...)   # kept for ADK / CORTEX callers
+    from src.core.network import get, post, put, patch
+
+    data = get(url, headers=..., params={"format": "json"}, verify_tls=False)
+    data = post(url, payload={...}, headers=...)
+    data = put(url, payload={...}, headers=...)
+    data = patch(url, payload={...}, headers=...)
+
+Legacy helpers `get_json` / `post_json(host, path, ...)` still work for ADK / CORTEX.
 """
 
 from __future__ import annotations
@@ -15,6 +21,8 @@ import time
 from http.client import HTTPConnection, HTTPSConnection
 from typing import Any
 from urllib.parse import urlencode, urlparse, urlunparse
+
+_METHODS_WITH_BODY = frozenset({"POST", "PUT", "PATCH"})
 
 
 def split_host_path(url: str) -> tuple[str, str, str]:
@@ -45,7 +53,7 @@ def split_host_path(url: str) -> tuple[str, str, str]:
     return scheme, host, path
 
 
-def _ssl_context(verify_tls: bool) -> ssl.SSLContext | None:
+def _ssl_context(verify_tls: bool) -> ssl.SSLContext:
     if verify_tls:
         return ssl.create_default_context()
     ctx = ssl._create_unverified_context()
@@ -54,26 +62,39 @@ def _ssl_context(verify_tls: bool) -> ssl.SSLContext | None:
     return ctx
 
 
-def request_json(
+def _with_params(url: str, params: dict[str, str] | None) -> str:
+    if not params:
+        return url
+    parsed = urlparse(url)
+    query = urlencode(params)
+    if parsed.query:
+        query = f"{parsed.query}&{query}"
+    return urlunparse(parsed._replace(query=query))
+
+
+def request(
     method: str,
     url: str,
     *,
-    payload: dict[str, Any] | None = None,
+    payload: dict[str, Any] | list[Any] | None = None,
     headers: dict[str, str] | None = None,
+    params: dict[str, str] | None = None,
     verify_tls: bool = True,
     timeout_s: float = 30,
     retries: int = 0,
+    ok_statuses: tuple[int, ...] | None = None,
 ) -> Any:
     """
-    HTTP GET/POST a URL and return parsed JSON.
+    Call an HTTP API and return parsed JSON (or {} if the body is empty).
 
-    `url` is a full URL, e.g. https://host/path?format=json
+    `ok_statuses` defaults to any 2xx.
     """
     method = (method or "GET").upper()
-    if method not in ("GET", "POST"):
-        raise ValueError(f"Unsupported method {method!r} (use GET or POST)")
+    if method not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+        raise ValueError(f"Unsupported method {method!r}")
 
-    parsed = urlparse(url.strip())
+    final_url = _with_params(url.strip(), params)
+    parsed = urlparse(final_url)
     scheme = (parsed.scheme or "https").lower()
     if scheme not in ("http", "https"):
         raise ValueError(f"Unsupported URL scheme {scheme!r}")
@@ -86,11 +107,13 @@ def request_json(
 
     request_headers = dict(headers or {})
     body: str | None = None
-    if method == "POST":
-        body = json.dumps(payload or {})
+    if method in _METHODS_WITH_BODY:
+        body = json.dumps(payload if payload is not None else {})
         request_headers.setdefault("content-type", "application/json")
 
+    allowed = ok_statuses or tuple(range(200, 300))
     last_error: Exception | None = None
+
     for attempt in range(retries + 1):
         if scheme == "http":
             conn: HTTPConnection | HTTPSConnection = HTTPConnection(
@@ -106,12 +129,14 @@ def request_json(
             conn.request(method, path, body, request_headers)
             resp = conn.getresponse()
             resp_body = resp.read().decode("utf-8")
-            if resp.status != 200:
+            if resp.status not in allowed:
                 raise RuntimeError(
                     f"HTTP {resp.status} from {scheme}://{parsed.netloc}{path}: "
                     f"{resp_body[:400]!r}"
                 )
-            return json.loads(resp_body) if resp_body else {}
+            if not resp_body.strip():
+                return {}
+            return json.loads(resp_body)
         except Exception as exc:  # noqa: BLE001 - retry on any failure
             last_error = exc
             if attempt < retries:
@@ -125,6 +150,128 @@ def request_json(
     )
 
 
+# ---------------------------------------------------------------------------
+# Simple verbs — prefer these in new code
+# ---------------------------------------------------------------------------
+
+
+def get(
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    params: dict[str, str] | None = None,
+    verify_tls: bool = True,
+    timeout_s: float = 30,
+    retries: int = 0,
+) -> Any:
+    """HTTP GET → JSON."""
+    return request(
+        "GET",
+        url,
+        headers=headers,
+        params=params,
+        verify_tls=verify_tls,
+        timeout_s=timeout_s,
+        retries=retries,
+    )
+
+
+def post(
+    url: str,
+    *,
+    payload: dict[str, Any] | list[Any] | None = None,
+    headers: dict[str, str] | None = None,
+    params: dict[str, str] | None = None,
+    verify_tls: bool = True,
+    timeout_s: float = 30,
+    retries: int = 0,
+) -> Any:
+    """HTTP POST JSON → JSON."""
+    return request(
+        "POST",
+        url,
+        payload=payload,
+        headers=headers,
+        params=params,
+        verify_tls=verify_tls,
+        timeout_s=timeout_s,
+        retries=retries,
+    )
+
+
+def put(
+    url: str,
+    *,
+    payload: dict[str, Any] | list[Any] | None = None,
+    headers: dict[str, str] | None = None,
+    params: dict[str, str] | None = None,
+    verify_tls: bool = True,
+    timeout_s: float = 30,
+    retries: int = 0,
+) -> Any:
+    """HTTP PUT JSON → JSON."""
+    return request(
+        "PUT",
+        url,
+        payload=payload,
+        headers=headers,
+        params=params,
+        verify_tls=verify_tls,
+        timeout_s=timeout_s,
+        retries=retries,
+    )
+
+
+def patch(
+    url: str,
+    *,
+    payload: dict[str, Any] | list[Any] | None = None,
+    headers: dict[str, str] | None = None,
+    params: dict[str, str] | None = None,
+    verify_tls: bool = True,
+    timeout_s: float = 30,
+    retries: int = 0,
+) -> Any:
+    """HTTP PATCH JSON → JSON."""
+    return request(
+        "PATCH",
+        url,
+        payload=payload,
+        headers=headers,
+        params=params,
+        verify_tls=verify_tls,
+        timeout_s=timeout_s,
+        retries=retries,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatible aliases
+# ---------------------------------------------------------------------------
+
+
+def request_json(
+    method: str,
+    url: str,
+    *,
+    payload: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    verify_tls: bool = True,
+    timeout_s: float = 30,
+    retries: int = 0,
+) -> Any:
+    """Alias for request() (older call sites)."""
+    return request(
+        method,
+        url,
+        payload=payload,
+        headers=headers,
+        verify_tls=verify_tls,
+        timeout_s=timeout_s,
+        retries=retries,
+    )
+
+
 def get_json(
     url: str,
     *,
@@ -134,18 +281,11 @@ def get_json(
     timeout_s: float = 30,
     retries: int = 0,
 ) -> Any:
-    """GET a full URL (optional query `params`) and return parsed JSON."""
-    final_url = url
-    if params:
-        parsed = urlparse(url)
-        query = urlencode(params)
-        if parsed.query:
-            query = f"{parsed.query}&{query}"
-        final_url = urlunparse(parsed._replace(query=query))
-    return request_json(
-        "GET",
-        final_url,
+    """Alias for get()."""
+    return get(
+        url,
         headers=headers,
+        params=params,
         verify_tls=verify_tls,
         timeout_s=timeout_s,
         retries=retries,
@@ -163,14 +303,12 @@ def post_json(
     timeout_s: float = 30,
     retries: int = 0,
 ) -> Any:
-    """POST a JSON body (host + path form used by ADK / CORTEX clients)."""
+    """POST using host + path (ADK / CORTEX clients). Prefer post(url=...) in new code."""
     scheme = (scheme or "https").lower()
     if not path.startswith("/"):
         path = f"/{path}"
-    url = f"{scheme}://{host}{path}"
-    return request_json(
-        "POST",
-        url,
+    return post(
+        f"{scheme}://{host}{path}",
         payload=payload,
         headers=headers,
         verify_tls=verify_tls,

@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from src.core.network import get_json
+from src.core.network import get
 
 
 class AthenaClient:
@@ -45,7 +45,7 @@ class AthenaClient:
     def get_page_contents(self, page_id: str) -> dict[str, Any]:
         """Live GET page contents as JSON."""
         url = f"{self.base_url}/control-plane/v1/pages/{page_id}/contents"
-        data = get_json(
+        data = get(
             url,
             headers=self._headers(),
             params={"format": "json"},
