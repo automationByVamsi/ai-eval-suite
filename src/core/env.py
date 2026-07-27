@@ -1,7 +1,9 @@
 """
 Load gitignored `.env` and expand `${VAR}` / `${VAR:-default}` in config values.
 
-Existing process env wins over `.env` (dotenv never overrides).
+First file wins for a given key (later files do not override), except CORTEX_*
+from env/.env.factfind.api which always win — so office setups match the
+working factfind repo even if root .env has a stale client id.
 """
 
 from __future__ import annotations
@@ -9,17 +11,27 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 _ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 _DOTENV_LOADED = False
 
-# Prefer repo-root `.env`; also accept common office-machine locations.
+# Factfind CORTEX file first — root .env often has a stale/wrong CLIENT_ID.
 _DEFAULT_ENV_CANDIDATES = (
-    Path(".env"),
-    Path("src/.env"),
     Path("env/.env.factfind.api"),
     Path(".env.factfind.api"),
+    Path(".env"),
+    Path("src/.env"),
+)
+
+_CORTEX_KEYS = frozenset(
+    {
+        "CORTEX_HOST",
+        "CORTEX_CLIENT_ID",
+        "CORTEX_CLIENT_SECRET",
+        "CORTEX_MODEL",
+        "CORTEX_PATH",
+    }
 )
 
 # Working factfind/ai-evals + older local names → current ai-eval-suite names.
@@ -34,7 +46,8 @@ _ENV_ALIASES: tuple[tuple[str, str], ...] = (
 )
 
 
-def _load_env_file(env_path: Path) -> None:
+def _load_env_file(env_path: Path, *, override_keys: Iterable[str] | None = None) -> None:
+    allow_override = set(override_keys or ())
     for raw in env_path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -42,7 +55,9 @@ def _load_env_file(env_path: Path) -> None:
         key, _, value = line.partition("=")
         key = key.strip()
         value = value.strip().strip("'").strip('"')
-        if key and key not in os.environ:
+        if not key:
+            continue
+        if key in allow_override or key not in os.environ:
             os.environ[key] = value
 
 
@@ -54,7 +69,7 @@ def _apply_env_aliases() -> None:
 
 
 def load_dotenv(path: str | Path | None = None) -> None:
-    """Load KEY=VALUE lines into os.environ if the key is not already set."""
+    """Load KEY=VALUE lines into os.environ."""
     global _DOTENV_LOADED
     if _DOTENV_LOADED:
         return
@@ -66,7 +81,12 @@ def load_dotenv(path: str | Path | None = None) -> None:
         candidates = list(_DEFAULT_ENV_CANDIDATES)
 
     for env_path in candidates:
-        if env_path.is_file():
+        if not env_path.is_file():
+            continue
+        # Always let the working factfind file win for CORTEX credentials.
+        if env_path.name == ".env.factfind.api":
+            _load_env_file(env_path, override_keys=_CORTEX_KEYS)
+        else:
             _load_env_file(env_path)
 
     _apply_env_aliases()
