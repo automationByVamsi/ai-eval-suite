@@ -151,25 +151,16 @@ def run_deterministic(parsed: SummaryVsAggregateParsed, expected: dict | None = 
     return results
 
 
+# Mirrors configs/evaluations/fact_find_workflow/summary_vs_aggregate.yaml
 JUDGE_METRICS = [
-    # Built-in DeepEval
     "faithfulness",
     "relevance",
     "summarization",
-    "hallucination",
-    "tool_correctness",
-    "contextual_relevancy",
-    "mcp_use",
-    "mcp_task_completion",
     "task_completion",
-    # Domain-specific GEval (Fact Find risk areas not covered by builtins)
     "support_needs_fidelity",
     "profile_accuracy",
     "missing_data_honesty",
     "complaint_account_association",
 ]
-
-# Metrics that need live MCP/tool events — skipped when the trace has none.
-MCP_OR_TOOL_METRICS = frozenset({"tool_correctness", "mcp_use", "mcp_task_completion"})
 
 JUDGE_METRICS_INVALID: list[str] = []

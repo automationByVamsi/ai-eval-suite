@@ -1,0 +1,6 @@
+# Fact Find e2e = gate + summary suites.
+suite: e2e
+
+include:
+  - gate_validation
+  - summary_vs_aggregate

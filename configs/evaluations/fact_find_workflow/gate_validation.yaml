@@ -1,18 +1,7 @@
 # Gate validation = complaint reference accept / InvalidComplaintId reject.
-mode: stage_only
+# Definitions: configs/metrics/fact_find_workflow/catalog.yaml
+suite: gate_validation
 
-judge_metrics:
-  - name: validation_message_clarity
-    type: geval
-    threshold: 0.7
-    rubric: configs/criteria/fact_find_workflow/validation_message_clarity.md
-    evaluation_params: [input, actual_output]
-    input_source: complaint_ref
-    actual_source: answer
-
-  # Built-in: is the (validation) answer relevant to the complaint_ref input?
-  - name: relevance
-    type: relevance
-    threshold: 0.5
-    input_source: complaint_ref
-    actual_source: answer
+judges:
+  - validation_message_clarity
+  - relevance

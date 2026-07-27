@@ -1,0 +1,85 @@
+# Fact Find Workflow — metric definitions (once).
+# Suites under configs/evaluations/fact_find_workflow/ only *select* names from here.
+#
+# default_suite: used when a case has no suite/metrics.
+default_suite: sanity
+
+metrics:
+  # --- Built-in DeepEval (final answer) ---
+  relevance:
+    type: relevance
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+
+  faithfulness:
+    type: faithfulness
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  summarization:
+    type: summarization
+    threshold: 0.7
+    input_source: source_document
+    actual_source: answer
+
+  task_completion:
+    type: task_completion
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+
+  contextual_relevancy:
+    type: contextual_relevancy
+    threshold: 0.7
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  # --- Gate / validation ---
+  validation_message_clarity:
+    type: geval
+    threshold: 0.7
+    rubric: configs/criteria/fact_find_workflow/validation_message_clarity.md
+    evaluation_params: [input, actual_output]
+    input_source: complaint_ref
+    actual_source: answer
+
+  # --- Domain-specific GEval (summary vs aggregate) ---
+  support_needs_fidelity:
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/support_needs_fidelity.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  profile_accuracy:
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/profile_accuracy.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  missing_data_honesty:
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/missing_data_honesty.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
+  complaint_account_association:
+    type: geval
+    threshold: 0.8
+    rubric: configs/criteria/fact_find_workflow/complaint_account_association.md
+    evaluation_params: [input, actual_output, retrieval_context]
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context

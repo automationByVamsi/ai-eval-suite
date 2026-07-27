@@ -1,0 +1,8 @@
+# Fact Find — sanity suite (final-answer judges that need no aggregate context).
+# Definitions: configs/metrics/fact_find_workflow/catalog.yaml
+#
+# Works on live run_case AgentResponse for both success and invalid-ref cases.
+suite: sanity
+
+judges:
+  - relevance
