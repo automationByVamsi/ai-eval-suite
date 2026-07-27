@@ -54,6 +54,7 @@ def test_evaluate_resolves_suite_without_running_cortex(monkeypatch):
         "stage1_query_rewrite",
         {"test_case_id": "T", "input": {"question": "q"}},
         AgentResponse(answer="a", metadata={"rewritten_query": "r"}),
+        publish=False,
     )
     assert result.suite == "stage1_query_rewrite"
     assert result.judges == []

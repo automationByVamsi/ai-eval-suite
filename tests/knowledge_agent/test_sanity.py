@@ -1,11 +1,12 @@
 """
 Knowledge Agent — sanity capture + optional suite judges.
 
-  load_cases → run_case → assert answer + saved file
-  RUN_JUDGES=1 → evaluate suite "sanity" (relevance via CORTEX / DeepEval)
+  load_cases → run_case → assert answer
+  RUN_JUDGES=1 → evaluate("sanity")  # also publishes to Streamlit dashboard
 
   pytest tests/knowledge_agent/test_sanity.py -v -s
   RUN_JUDGES=1 pytest tests/knowledge_agent/test_sanity.py -v -s
+  streamlit run scripts/dashboard_app.py
 """
 
 from __future__ import annotations
@@ -42,7 +43,6 @@ class TestKnowledgeAgentSanity:
             assert isinstance(case.get("expected", {}), dict)
 
     def test_sanity_suite_resolves_from_catalog(self):
-        """Suite YAML selects catalog metrics — no live ADK / CORTEX needed."""
         from src.core.config import resolve_suite_metrics
 
         cfgs = resolve_suite_metrics(AGENT, METRICS_SUITE)
@@ -61,7 +61,6 @@ class TestKnowledgeAgentSanity:
         assert result.saved_path and result.saved_path.exists()
         assert result.response.answer, "empty agent answer"
 
-        # Cheap local check (not a DeepEval judge)
         for kw in case.get("expected", {}).get("keywords") or []:
             assert kw.lower() in result.response.answer.lower(), (
                 f"expected keyword {kw!r} not found in answer"

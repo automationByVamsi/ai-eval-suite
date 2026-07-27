@@ -11,9 +11,10 @@ cortex:
   model: ${CORTEX_MODEL:-vertex-gemini-2.5-pro}
   temperature: 0.0
   timeout_s: 30
-  verify_tls: true
+  # Internal LBG host — same as working factfind/ai-evals (unverified TLS).
+  verify_tls: false
   retries: 2
-  # Static-header auth: client id as a plain header (no OAuth in this client).
+  # Static-header auth (working repo uses x-lbg-origin-client-id).
   headers_from_env:
-    x-origin-client-id: CORTEX_CLIENT_ID
+    x-lbg-origin-client-id: CORTEX_CLIENT_ID
   extra_headers: {}

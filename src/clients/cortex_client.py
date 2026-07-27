@@ -12,10 +12,40 @@ src/core/network.py) - proven to work through a TLS-intercepting corporate
 proxy where `requests` sometimes isn't.
 """
 
+from __future__ import annotations
+
 import os
+import ssl
 
 from src.core.exceptions import CortexClientError
 from src.core.network import post_json, split_host_path
+
+_INSECURE_TLS_APPLIED = False
+
+
+def _apply_insecure_tls_for_deepeval() -> None:
+    """
+    DeepEval/urllib3 may call CORTEX (/generate, /batch) outside CortexClient.
+    Mirror working factfind/ai-evals eval_config: unverified default SSL context.
+    """
+    global _INSECURE_TLS_APPLIED
+    if _INSECURE_TLS_APPLIED:
+        return
+    _INSECURE_TLS_APPLIED = True
+
+    def _unverified_context(*_args, **_kwargs):
+        ctx = ssl._create_unverified_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+
+    ssl.create_default_context = _unverified_context  # type: ignore[assignment]
+    try:
+        import urllib3
+
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 class CortexClient:
@@ -27,12 +57,17 @@ class CortexClient:
         self.model: str = config["model"]
         self.temperature: float = config.get("temperature", 0.0)
         self.timeout_s: float = config.get("timeout_s", 30)
-        self.verify_tls: bool = config.get("verify_tls", True)
+        self.verify_tls: bool = bool(config.get("verify_tls", True))
         self.retries: int = config.get("retries", 2)
 
-        self.headers = {"Content-Type": "application/json", **config.get("extra_headers", {})}
+        if not self.verify_tls:
+            _apply_insecure_tls_for_deepeval()
+
+        self.headers = {"content-type": "application/json", **config.get("extra_headers", {})}
         for header_name, env_var in config.get("headers_from_env", {}).items():
-            self.headers[header_name] = os.environ.get(env_var, "")
+            val = os.environ.get(env_var, "").strip()
+            if val:
+                self.headers[header_name] = val
 
     def generate(self, prompt: str) -> str:
         payload = {

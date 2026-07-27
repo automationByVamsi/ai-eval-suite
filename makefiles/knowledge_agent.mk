@@ -5,7 +5,7 @@
 test-ka-sanity:
 	pytest tests/knowledge_agent/test_sanity.py -v -s
 
-# Live capture + CORTEX DeepEval judges (relevance)
+# Live capture + CORTEX DeepEval judges (relevance) → outputs/dashboard
 test-ka-sanity-judges:
 	RUN_JUDGES=1 pytest tests/knowledge_agent/test_sanity.py -v -s
 

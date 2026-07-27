@@ -6,12 +6,14 @@ invoke, score with metrics, write per-case results plus a summary.json.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from src.clients.adk_client import invoke_agent
 from src.core.config import agent_metrics_profile, has_metric_catalog, load_metric_catalog, resolve_suite_metrics
 from src.models.evaluation_result import EvaluationResult
 from src.models.test_case import TestCase
+from src.reporting.persist import publish_suite_result
 from src.runners.factories import MetricFactory
 
 
@@ -48,6 +50,20 @@ class EvaluationRunner:
         metric_results = [
             self.metric_factory.create(cfg).evaluate(test_case, response) for cfg in metric_configs
         ]
+
+        # Blind path: same Streamlit dashboard as evaluate()
+        if os.environ.get("DASHBOARD_DISABLE") != "1":
+            publish_suite_result(
+                agent_name=test_case.agent_name,
+                suite=test_case.suite or "run",
+                case={
+                    "test_case_id": test_case.test_case_id,
+                    "input": test_case.input,
+                    "expected": test_case.expected,
+                },
+                response=response,
+                judges=metric_results,
+            )
 
         return EvaluationResult(
             test_case_id=test_case.test_case_id,

@@ -20,8 +20,11 @@ import os
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
+from typing import Any
 
+from src.models.agent_response import AgentResponse
 from src.models.evaluation_result import CaseEvaluationResult, E2ECaseResult
+from src.models.metric_result import MetricResult
 
 _lock = Lock()
 _current_run_dir: Path | None = None
@@ -59,6 +62,13 @@ def ensure_run_dir(root: str | Path = DEFAULT_DASHBOARD_ROOT) -> Path:
 
         _current_run_dir = run_dir
         return run_dir
+
+
+def reset_run_dir() -> None:
+    """Clear process run dir (tests only)."""
+    global _current_run_dir
+    with _lock:
+        _current_run_dir = None
 
 
 def list_runs(root: str | Path = DEFAULT_DASHBOARD_ROOT) -> list[Path]:
@@ -108,6 +118,58 @@ def save_e2e_result(result: E2ECaseResult, output_dir: str) -> Path:
     out_path = agent_dir / f"e2e__{result.test_case_id}.json"
     out_path.write_text(result.model_dump_json(indent=2))
     return out_path
+
+
+def _question_from_case(case: dict[str, Any]) -> str:
+    inp = case.get("input") or {}
+    if not isinstance(inp, dict):
+        return ""
+    for key in ("question", "complaint_ref"):
+        if inp.get(key):
+            return str(inp[key])
+    for value in inp.values():
+        if value is not None and str(value).strip():
+            return str(value)
+    return ""
+
+
+def publish_suite_result(
+    *,
+    agent_name: str,
+    suite: str,
+    case: dict[str, Any],
+    response: AgentResponse,
+    judges: list[Any],
+    dashboard_root: str | Path = DEFAULT_DASHBOARD_ROOT,
+) -> Path:
+    """
+    Write one suite × case result for Streamlit (pass or fail).
+
+    `judges` items need .name/.passed/.reason and optional .score/.threshold
+    (CheckResult from evaluate() works).
+    """
+    metric_results = [
+        MetricResult(
+            name=j.name,
+            score=float(j.score if getattr(j, "score", None) is not None else 0.0),
+            threshold=float(j.threshold if getattr(j, "threshold", None) is not None else 0.0),
+            passed=bool(j.passed),
+            reason=str(getattr(j, "reason", "") or ""),
+        )
+        for j in judges
+    ]
+    result = CaseEvaluationResult(
+        eval_name=suite,
+        test_case_id=str(case.get("test_case_id") or "unknown"),
+        agent_name=agent_name,
+        question=_question_from_case(case),
+        answer=response.answer or "",
+        context=list(response.context or []),
+        latency_ms=response.latency_ms,
+        metric_results=metric_results,
+    )
+    run_dir = ensure_run_dir(dashboard_root)
+    return save_eval_result(result, str(run_dir))
 
 
 # Backward-compatible alias

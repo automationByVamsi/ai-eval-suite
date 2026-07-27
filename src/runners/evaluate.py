@@ -3,16 +3,17 @@ Run suite judges (DeepEval / GEval via CORTEX) for any agent.
 
   evaluate(agent_name, suite, case, response) → EvalResult
 
-- Suite YAML lists judge names only; catalog defines how they run.
-- Deterministic / stage parsing is NOT here — that stays in the agent pack
-  (e.g. knowledge_agent stage contracts + parsers).
+Always publishes to outputs/dashboard (Streamlit) unless publish=False or
+DASHBOARD_DISABLE=1. Callers do not need to touch persist themselves.
 
-Caller prepares AgentResponse (answer, context, metadata field sources).
+Suite YAML lists judge names only; catalog defines how they run.
+Deterministic / stage parsing stays in the agent pack.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,7 @@ from src.core.config import agent_metrics_profile, resolve_suite_metrics
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
+from src.reporting.persist import publish_suite_result
 from src.runners.factories import MetricFactory
 
 
@@ -39,6 +41,7 @@ class EvalResult:
     suite: str
     test_case_id: str
     judges: list[CheckResult] = field(default_factory=list)
+    dashboard_path: Path | None = None
 
     @property
     def passed(self) -> bool:
@@ -91,9 +94,12 @@ def evaluate(
     *,
     agents_path: str | Path = "configs/agents.yaml",
     cortex_config: str = "configs/cortex.yaml",
+    publish: bool | None = None,
 ) -> EvalResult:
     """
     Resolve metrics_profile + suite → catalog defs → run each judge on response.
+
+    By default writes CaseEvaluationResult under outputs/dashboard for Streamlit.
     """
     profile = agent_metrics_profile(agent_name, path=agents_path)
     metric_cfgs = resolve_suite_metrics(profile, suite)
@@ -122,12 +128,24 @@ def evaluate(
             )
         )
 
-    return EvalResult(
+    eval_result = EvalResult(
         agent_name=agent_name,
         suite=suite,
         test_case_id=test_case.test_case_id,
         judges=judges,
     )
+
+    do_publish = publish if publish is not None else os.environ.get("DASHBOARD_DISABLE") != "1"
+    if do_publish:
+        eval_result.dashboard_path = publish_suite_result(
+            agent_name=agent_name,
+            suite=suite,
+            case=case,
+            response=response,
+            judges=judges,
+        )
+
+    return eval_result
 
 
 def _should_run_metric(cfg: dict[str, Any], test_case: TestCase) -> bool:
