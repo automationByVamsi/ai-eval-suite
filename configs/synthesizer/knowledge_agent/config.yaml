@@ -1,3 +1,72 @@
-# Config for `python -m src.synth --agent knowledge_agent` (golden generation).
-agent_name: knowledge_agent   # which agents.yaml entry generated goldens get assigned to
-max_goldens_per_document: 2
+# Knowledge Agent — synthesizer config (all knobs in one place).
+#
+#   python -m src.synth --agent knowledge_agent --mode generate
+#   python -m src.synth --agent knowledge_agent --mode run
+#
+# Secrets stay in .env (CORTEX_CLIENT_ID). Hosts use ${VAR:-default}.
+
+agent_name: knowledge_agent
+
+# ---------------------------------------------------------------------------
+# Fetch Athena page contents
+# ---------------------------------------------------------------------------
+fetch:
+  base_url: ${ATHENA_BASE_URL:-https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/sjlab2/athena-management-api}
+  verify_tls: false
+  timeout_s: 60
+  retries: 1
+  # Same gateway header as Bruno / CORTEX
+  client_id_env: CORTEX_CLIENT_ID
+
+  # Pages to pull for golden generation
+  page_ids:
+    - "8708"
+
+  # Offline / CI: set use_fixture true to skip live Athena and read local JSON
+  use_fixture: false
+  fixture_path: 8708-response.json
+  # Or map per page: fixtures: { "8708": "8708-response.json" }
+
+# ---------------------------------------------------------------------------
+# DeepEval golden generation
+# ---------------------------------------------------------------------------
+generation:
+  max_goldens_per_context: 2
+  include_expected_output: true
+  output_suite: golden
+
+  instruction_file: configs/synthesizer/knowledge_agent/instructions.md
+
+  # DeepEval StylingConfig — shapes how questions / answers look
+  styling:
+    scenario: >
+      A bank advisor is using an internal knowledge assistant to answer
+      colleague questions about accessible statement formats and customer
+      vulnerability support needs.
+    task: >
+      Generate realistic advisor questions that can be answered from the
+      provided knowledge-base page content only.
+    input_format: >
+      A short natural-language question an advisor would type into the
+      knowledge agent (UK English, banking operations tone).
+    expected_output_format: >
+      A concise, accurate answer grounded only in the page content.
+      Do not invent policies that are not in the context.
+
+  # DeepEval EvolutionConfig — question variety (weights should sum ~1.0)
+  evolution:
+    num_evolutions: 1
+    evolutions:
+      REASONING: 0.25
+      CONCRETIZING: 0.25
+      CONSTRAINED: 0.20
+      HYPOTHETICAL: 0.15
+      COMPARATIVE: 0.15
+
+# ---------------------------------------------------------------------------
+# Run goldens against the live Knowledge Agent
+# ---------------------------------------------------------------------------
+run:
+  data_suite: golden
+  metrics_suite: sanity
+  run_judges: true
