@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 
 _ANCHOR_MSG_RE = re.compile(
     r"Anchor page selected using (?P<method>[\w\s]+?)method\s*\.?\s*anchor_page_id=(?P<anchor_page_id>\S+)",

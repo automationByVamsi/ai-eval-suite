@@ -15,12 +15,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
-from src.factfind import config
-from src.factfind.data_fetcher import DataFetcher
-from src.factfind.http_client import FactFindHttpClient
-from src.factfind.party_resolver import PartyResolver
-from src.factfind.payload_builder import PayloadBuilder
-from src.factfind.services import get_account_details, get_ica_case_details
+from src.agents.fact_find_workflow import config
+from src.agents.fact_find_workflow.data_fetcher import DataFetcher
+from src.agents.fact_find_workflow.http_client import FactFindHttpClient
+from src.agents.fact_find_workflow.party_resolver import PartyResolver
+from src.agents.fact_find_workflow.payload_builder import PayloadBuilder
+from src.agents.fact_find_workflow.services import get_account_details, get_ica_case_details
 from src.parsers.fact_find_workflow.complaint_refs import load_ref_groups
 
 

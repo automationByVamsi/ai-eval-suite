@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.factfind import config
-from src.factfind.http_client import FactFindHttpClient
+from src.agents.fact_find_workflow import config
+from src.agents.fact_find_workflow.http_client import FactFindHttpClient
 
 
 def get_ica_case_details(client: FactFindHttpClient, complaint_ref: str) -> Any:

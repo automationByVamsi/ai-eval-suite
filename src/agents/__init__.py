@@ -1,1 +1,1 @@
-"""ADK event helpers shared by live AdkClient and offline stage parsers."""
+"""Per-agent support code (fixtures, payload builders, helpers)."""

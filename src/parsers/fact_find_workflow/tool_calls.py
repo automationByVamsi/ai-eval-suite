@@ -12,7 +12,7 @@ from typing import Any
 
 from deepeval.test_case import ToolCall
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 
 
 def extract_tools_called(raw: dict[str, Any]) -> list[ToolCall]:

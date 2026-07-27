@@ -6,7 +6,7 @@ import pytest
 
 from src.models.agent_response import AgentResponse
 from src.runners.evaluate import evaluate, load_trace
-from tests.knowledge_agent.ka_eval import prepare_stage1
+from src.verdict.ka_stages import prepare_stage1
 
 
 def test_load_trace_wrapped_and_flat(tmp_path: Path):

@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 
 _COMPLAINT_REF_RE = re.compile(r"^NC\d{8}$")
 _INVALID_MARKERS = ("InvalidComplaintId", "valid complaint reference must begin")

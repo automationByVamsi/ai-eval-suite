@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 from src.core.config import get_agent_config
 from src.core.exceptions import AgentInvocationError, ConfigError
 from src.core.network import post_json, split_host_path

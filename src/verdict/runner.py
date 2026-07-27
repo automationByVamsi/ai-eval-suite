@@ -1,28 +1,28 @@
 """
-Run existing Knowledge Agent stage contracts many times and aggregate.
+Run Knowledge Agent stage contracts many times and aggregate (VERDICT).
 
-Expects ADK outputs already under outputs/traces (capture live via run_case /
-scripts.capture_traces first). Re-running judges N times surfaces judge noise.
---simulate-regression injects a DAFAT-style upstream drop so baseline diff
-is visible without a live broken build.
+Expects ADK outputs already under outputs/traces/<agent>/<suite>/ (from
+pytest test_sanity / run_case). Re-running N times surfaces flakiness;
+--simulate-regression injects a DAFAT-style drop so baseline diff is visible.
+
+Uses current helpers:
+  load_cases + src.verdict.ka_stages + evaluate(...)
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
-from src.models.evaluation_result import DeterministicCheckResult
-from src.models.metric_result import MetricResult
-from src.models.test_case import TestCase
+from src.runners.case_runner import load_cases
+from src.runners.evaluate import evaluate
 from src.verdict.aggregate import aggregate_reps
 from src.verdict.baseline import load_baseline, save_baseline
 from src.verdict.diff import diff_against_baseline
+from src.verdict.ka_stages import prepare_stage1, prepare_stage2, resolve_trace_path
 from src.verdict.models import CheckObservation, RepResult, VerdictReport
 from src.verdict.report import print_report
 from tests.knowledge_agent import stage1_contract, stage2_contract
-from tests.knowledge_agent.base import KnowledgeAgentTest
-
 
 # Metrics that "break" in simulate-regression (upstream expansion-style drop).
 _SIM_FAIL_CHECKS = {
@@ -31,28 +31,22 @@ _SIM_FAIL_CHECKS = {
 }
 
 
-class _VerdictHarness(KnowledgeAgentTest):
-    """Reuse KA parse/judge helpers without pytest fixtures."""
-
-    tag = "sanity"
-
-
-def _to_obs_det(results: list[DeterministicCheckResult]) -> list[CheckObservation]:
+def _to_obs_det(results: list[Any]) -> list[CheckObservation]:
     return [
-        CheckObservation(name=r.name, kind="deterministic", passed=r.passed, reason=r.reason)
+        CheckObservation(name=r.name, kind="deterministic", passed=r.passed, reason=r.reason or "")
         for r in results
     ]
 
 
-def _to_obs_judge(results: list[MetricResult]) -> list[CheckObservation]:
+def _to_obs_judge(results: list[Any]) -> list[CheckObservation]:
     return [
         CheckObservation(
             name=r.name,
             kind="judge",
             passed=r.passed,
-            score=r.score,
-            threshold=r.threshold,
-            reason=r.reason,
+            score=getattr(r, "score", None),
+            threshold=getattr(r, "threshold", None),
+            reason=getattr(r, "reason", "") or "",
         )
         for r in results
     ]
@@ -65,17 +59,11 @@ def _inject_regression(
     rep: int,
     n_reps: int,
 ) -> list[CheckObservation]:
-    """
-    Fail selected checks on the majority of reps (ceil(60%)).
-
-    Mimics a build where companion-page / candidate quality drops most of
-    the time, while a lucky single sample can still look fine.
-    """
+    """Fail selected checks on most reps (lucky first rep can still look green)."""
     fail_names = _SIM_FAIL_CHECKS.get(stage, set())
     if not fail_names:
         return checks
-    # Fail on reps after the first lucky one when N>=3; always fail majority.
-    fail_this_rep = rep >= max(1, n_reps // 5)  # ~80% of reps when N=5
+    fail_this_rep = rep >= max(1, n_reps // 5)
     if not fail_this_rep:
         return checks
 
@@ -101,40 +89,32 @@ def _inject_regression(
 
 
 def _eval_stage1(
-    harness: _VerdictHarness,
-    case: TestCase,
     *,
+    agent: str,
+    case: dict[str, Any],
+    trace_path: Path,
     run_judges: bool,
 ) -> tuple[list[CheckObservation], bool]:
-    raw = harness.load_trace(case.test_case_id)
-    parsed = harness.parse_stage1(raw)
-    det = stage1_contract.run_deterministic(parsed)
+    _parsed, det, response = prepare_stage1(str(trace_path), case)
     checks = _to_obs_det(det)
     if run_judges:
-        response = harness.build_response(parsed)
-        judges = harness.run_stage_judges(
-            case, response, stage1_contract.JUDGE_METRICS, stage=stage1_contract.STAGE
-        )
-        checks.extend(_to_obs_judge(judges))
+        judges = evaluate(agent, stage1_contract.STAGE, case, response, publish=False)
+        checks.extend(_to_obs_judge(judges.judges))
     return checks, all(c.passed for c in checks)
 
 
 def _eval_stage2(
-    harness: _VerdictHarness,
-    case: TestCase,
     *,
+    agent: str,
+    case: dict[str, Any],
+    trace_path: Path,
     run_judges: bool,
 ) -> tuple[list[CheckObservation], bool]:
-    raw = harness.load_trace(case.test_case_id)
-    parsed = harness.parse_stage2(raw)
-    det = stage2_contract.run_deterministic(parsed, expected=case.expected)
+    _parsed, det, response = prepare_stage2(str(trace_path), case)
     checks = _to_obs_det(det)
     if run_judges:
-        response = harness.build_stage2_response(parsed)
-        judges = harness.run_stage_judges(
-            case, response, stage2_contract.JUDGE_METRICS, stage=stage2_contract.STAGE
-        )
-        checks.extend(_to_obs_judge(judges))
+        judges = evaluate(agent, stage2_contract.STAGE, case, response, publish=False)
+        checks.extend(_to_obs_judge(judges.judges))
     return checks, all(c.passed for c in checks)
 
 
@@ -158,28 +138,36 @@ def run_verdict(
     output_dir: str = "outputs/verdict",
     profile: str = "knowledge_agent",
     tag: str = "sanity",
+    traces_root: str = "outputs/traces",
 ) -> VerdictReport:
     """
-    Evaluate existing sanity cases N times, aggregate, optionally diff baseline.
+    Evaluate existing sanity traces N times, aggregate, optionally diff baseline.
 
     Default run_judges=False keeps the demo fast (Layer-1 only).
-    Pass run_judges=True to also sample CORTEX GEval variance.
     """
-    harness = _VerdictHarness()
-    harness.profile = profile
-    harness.tag = tag
-    cases = harness.load_cases()
+    cases_list = load_cases(profile, tag)
+    cases = {str(c["test_case_id"]): c for c in cases_list}
 
     selected_ids = case_ids or sorted(cases.keys())
     selected_stages = stages or [stage1_contract.STAGE, stage2_contract.STAGE]
 
     reps: list[RepResult] = []
     for case_id in selected_ids:
+        if case_id not in cases:
+            raise KeyError(f"Unknown case id {case_id!r}; have {sorted(cases)}")
         case = cases[case_id]
+        trace_path = resolve_trace_path(
+            case_id, agent=profile, data_suite=tag, traces_root=traces_root
+        )
         for stage in selected_stages:
             eval_fn = _STAGE_EVAL[stage]
             for rep in range(n_reps):
-                checks, _ = eval_fn(harness, case, run_judges=run_judges)
+                checks, _ = eval_fn(
+                    agent=profile,
+                    case=case,
+                    trace_path=trace_path,
+                    run_judges=run_judges,
+                )
                 if simulate_regression:
                     checks = _inject_regression(
                         checks, stage=stage, rep=rep, n_reps=n_reps
@@ -198,15 +186,17 @@ def run_verdict(
 
     aggregates = aggregate_reps(reps)
 
-    # Single-run illusion: first rep of each case×stage
     first_keys = {(r.test_case_id, r.stage) for r in reps}
     single_ok = True
     for case_id, stage in first_keys:
-        first = next(r for r in reps if r.test_case_id == case_id and r.stage == stage and r.rep == 0)
+        first = next(
+            r
+            for r in reps
+            if r.test_case_id == case_id and r.stage == stage and r.rep == 0
+        )
         if not first.passed:
             single_ok = False
             break
-    # If simulate mode leaves rep0 lucky-pass, single_ok stays True — that's the point.
 
     diffs = []
     has_regression = False
@@ -233,7 +223,6 @@ def run_verdict(
             },
         )
 
-    # Persist full report
     run_dir = Path(output_dir) / "runs"
     run_dir.mkdir(parents=True, exist_ok=True)
     report = VerdictReport(

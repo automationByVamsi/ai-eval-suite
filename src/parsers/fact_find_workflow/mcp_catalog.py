@@ -16,7 +16,7 @@ from typing import Any
 from deepeval.test_case import ToolCall
 from deepeval.test_case.mcp import MCPServer, MCPToolCall
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 
 # Default MCP tool surface for Fact Find (mirrors backend services / agent tools).
 FACTFIND_MCP_TOOLS: list[dict[str, Any]] = [

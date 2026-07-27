@@ -10,9 +10,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
-from src.factfind import config
-from src.factfind.http_client import FactFindHttpClient
-from src.factfind.services import get_account_details, get_contact_notes, get_customer_holding, get_trusted_parties
+from src.agents.fact_find_workflow import config
+from src.agents.fact_find_workflow.http_client import FactFindHttpClient
+from src.agents.fact_find_workflow.services import get_account_details, get_contact_notes, get_customer_holding, get_trusted_parties
 
 PartyId = str
 

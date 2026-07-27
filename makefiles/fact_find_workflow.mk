@@ -10,7 +10,7 @@ test-ff-sanity-judges:
 	RUN_JUDGES=1 pytest tests/fact_find_workflow/test_sanity.py -v -s
 
 test-ff:
-	pytest tests/fact_find_workflow/ -v
+	pytest tests/fact_find_workflow/test_sanity.py -v
 
 demo-ff-e2e: test-ff-sanity
 

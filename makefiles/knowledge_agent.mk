@@ -1,6 +1,6 @@
 # knowledge_agent test targets (live ADK).
 
-.PHONY: test-ka-sanity test-ka-sanity-judges test-ka-stage1 test-ka demo-e2e dashboard \
+.PHONY: test-ka-sanity test-ka-sanity-judges test-ka demo-e2e dashboard \
 	synth-ka-prepare synth-ka-prepare-fixture synth-ka-generate
 
 test-ka-sanity:
@@ -10,11 +10,8 @@ test-ka-sanity:
 test-ka-sanity-judges:
 	RUN_JUDGES=1 pytest tests/knowledge_agent/test_sanity.py -v -s
 
-test-ka-stage1:
-	pytest tests/knowledge_agent/test_stage1_eval.py -v -s
-
 test-ka:
-	pytest tests/knowledge_agent/ -v
+	pytest tests/knowledge_agent/test_sanity.py -v
 
 # Synthesizer step 1: Athena → cleaned source_docs (like generate-ff-payloads)
 synth-ka-prepare:

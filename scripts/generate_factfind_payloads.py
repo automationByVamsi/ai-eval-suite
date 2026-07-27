@@ -63,8 +63,8 @@ def main() -> int:
 
     _load_dotenv(Path(args.env_file))
 
-    from src.factfind import config
-    from src.factfind.generate import generate_all, generate_expected_payload
+    from src.agents.fact_find_workflow import config
+    from src.agents.fact_find_workflow.generate import generate_all, generate_expected_payload
 
     output_dir = Path(args.output_dir) if args.output_dir else config.DEFAULT_OUTPUT_DIR
 

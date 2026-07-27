@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from src.factfind import config
+from src.agents.fact_find_workflow import config
 
 PartyId = str
 

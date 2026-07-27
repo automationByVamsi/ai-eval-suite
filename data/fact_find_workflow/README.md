@@ -9,6 +9,7 @@
 #   2. Optional APIC mTLS certs under data/fact_find_workflow/certs/
 #   3. make generate-ff-payloads
 #      → data/fact_find_workflow/aggregated_payloads/{complaintRef}.json
+#   Code: src/agents/fact_find_workflow/ (payload generation helpers)
 #
 # Eval packages (not Knowledge-Agent pipeline stages):
 #   gate_validation       — complaint ref format / InvalidComplaintId

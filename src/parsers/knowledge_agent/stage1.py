@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.agents import adk_parser
+from src.parsers import adk_parser
 
 _SEARCH_MSG_RE = re.compile(
     r"Search retrieved successfully\."
