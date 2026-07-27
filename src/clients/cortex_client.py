@@ -1,31 +1,22 @@
-"""
-HTTP client for the internal CORTEX LLM gateway.
-
-Aligned with working factfind/ai-evals/core/{eval_config,cortex_llm}.py:
-  - HTTPS + unverified SSL (corporate proxy)
-  - POST {CORTEX_HOST}/chat/completions
-  - header x-lbg-origin-client-id: CORTEX_CLIENT_ID
-  - model vertex_ai/gemini-2.5-pro (project-bound)
-"""
+"""Minimal CORTEX client used by DeepEval judges."""
 
 from __future__ import annotations
 
-import json
 import os
 import ssl
 
 from src.core.exceptions import CortexClientError
 from src.core.network import post_json
 
-_INSECURE_TLS_APPLIED = False
+_TLS_PATCHED = False
 
 
 def _apply_insecure_tls() -> None:
-    """Match working eval_config SSL monkeypatch for DeepEval/urllib3 too."""
-    global _INSECURE_TLS_APPLIED
-    if _INSECURE_TLS_APPLIED:
+    """Match working setup: disable TLS verification process-wide for judges."""
+    global _TLS_PATCHED
+    if _TLS_PATCHED:
         return
-    _INSECURE_TLS_APPLIED = True
+    _TLS_PATCHED = True
 
     def _unverified_context(*_args, **_kwargs):
         ctx = ssl._create_unverified_context()
@@ -46,8 +37,7 @@ def _apply_insecure_tls() -> None:
 
 def _host_and_chat_path(cortex_host: str) -> tuple[str, str, str]:
     """
-    Same as working eval_config:
-      CORTEX_HOST=https://host/.../v1/  →  host + /.../v1/chat/completions
+    CORTEX_HOST=https://host/.../v1/ -> host + /.../v1/chat/completions
     """
     raw = (cortex_host or "").strip().rstrip("/")
     if "://" in raw:
@@ -72,7 +62,7 @@ def _strip_markdown_fence(content: str) -> str:
 
 
 class CortexClient:
-    """Config from configs/cortex.yaml + .env (same shape as working eval_config)."""
+    """Thin wrapper around POST /chat/completions."""
 
     def __init__(self, config: dict):
         self.base_url: str = str(config["base_url"]).rstrip("/")
@@ -85,18 +75,10 @@ class CortexClient:
         if not self.verify_tls:
             _apply_insecure_tls()
 
-        # Working repo: only x-lbg-origin-client-id
         client_id = os.environ.get("CORTEX_CLIENT_ID", "").strip()
         if not client_id:
-            # also allow expanded header from yaml headers_from_env already applied upstream
-            for env_var in (config.get("headers_from_env") or {}).values():
-                client_id = os.environ.get(str(env_var), "").strip()
-                if client_id:
-                    break
-        if not client_id:
             raise CortexClientError(
-                "CORTEX_CLIENT_ID is missing/empty — copy it exactly from "
-                "working factfind env/.env.factfind.api into repo-root .env"
+                "CORTEX_CLIENT_ID is missing/empty in environment."
             )
 
         self.headers = {
@@ -107,7 +89,7 @@ class CortexClient:
         self.scheme, self.host, self.path = _host_and_chat_path(self.base_url)
 
     def chat(self, messages: list[dict]) -> str:
-        """POST chat/completions — same as working _cortex_chat()."""
+        """POST chat/completions and return plain text."""
         payload = {
             "model": self.model,
             "messages": messages,
@@ -127,16 +109,8 @@ class CortexClient:
             content = data["choices"][0]["message"]["content"]
             return _strip_markdown_fence(str(content))
         except Exception as exc:  # noqa: BLE001
-            hint = ""
-            err = str(exc)
-            if "401" in err or "No_matching_project" in err:
-                hint = (
-                    " Hint: use CORTEX_MODEL=vertex_ai/gemini-2.5-pro and the exact "
-                    "CORTEX_CLIENT_ID from working .env.factfind.api "
-                    f"(model now={self.model!r})."
-                )
             raise CortexClientError(
-                f"CORTEX call to {self.scheme}://{self.host}{self.path} failed: {exc}.{hint}"
+                f"CORTEX call to {self.scheme}://{self.host}{self.path} failed: {exc}"
             ) from exc
 
     def generate(self, prompt: str) -> str:
