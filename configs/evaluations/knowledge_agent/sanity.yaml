@@ -1,0 +1,8 @@
+# Knowledge Agent — sanity suite (final-answer DeepEval judges only).
+# Definitions: configs/metrics/knowledge_agent/catalog.yaml
+#
+# No stage1 rewrite / retrieval context required — works on run_case AgentResponse.
+suite: sanity
+
+judges:
+  - relevance
