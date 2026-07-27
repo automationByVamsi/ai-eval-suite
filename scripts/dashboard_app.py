@@ -5,12 +5,12 @@ Two views (sidebar toggle) — neither replaces the other:
   - By stage: one card per stage × case (existing stage-wise debugging)
   - By test case (e2e): one card per case with stages nested inside
 
-Reads timestamped JSON under outputs/dashboard/runs/<stamp>/ (LATEST pointer).
-Defaults to the newest run; pick older runs from the sidebar.
+Scope (sidebar):
+  - Single run: one timestamped folder (default — current per-pytest flow)
+  - All runs: union across runs/*/ so KA + Fact Find show together
 
-Files per run:
-  - <agent>/<eval>__<id>.json  → CaseEvaluationResult
-  - <agent>/e2e__<id>.json     → E2ECaseResult (kind=e2e)
+Publish path is unchanged: each evaluate() still writes under
+outputs/dashboard/runs/<stamp>/<agent>/....json
 
     streamlit run scripts/dashboard_app.py
 """
@@ -119,7 +119,11 @@ def _esc(value) -> str:
     return html.escape(str(value)) if value is not None else ""
 
 
-def _load_all(output_dir: str) -> tuple[list[CaseEvaluationResult], list[E2ECaseResult]]:
+def _load_all(
+    output_dir: str,
+    *,
+    run_id: str | None = None,
+) -> tuple[list[CaseEvaluationResult], list[E2ECaseResult]]:
     root = Path(output_dir)
     if not root.exists():
         return [], []
@@ -132,15 +136,48 @@ def _load_all(output_dir: str) -> tuple[list[CaseEvaluationResult], list[E2ECase
             continue
         if isinstance(data, dict) and data.get("kind") == "e2e":
             try:
-                e2e_results.append(E2ECaseResult.model_validate(data))
+                r = E2ECaseResult.model_validate(data)
+                if run_id:
+                    r = r.model_copy(update={"run_id": run_id})
+                e2e_results.append(r)
             except Exception:
                 continue
         else:
             try:
-                stage_results.append(CaseEvaluationResult.model_validate(data))
+                r = CaseEvaluationResult.model_validate(data)
+                if run_id:
+                    r = r.model_copy(update={"run_id": run_id})
+                stage_results.append(r)
             except Exception:
                 continue
     return stage_results, e2e_results
+
+
+def _load_all_runs(root: Path) -> tuple[list[CaseEvaluationResult], list[E2ECaseResult]]:
+    """Union of every timestamped run — common all-agents overview."""
+    stage_results: list[CaseEvaluationResult] = []
+    e2e_results: list[E2ECaseResult] = []
+    for run_dir in list_runs(root):
+        stages, e2es = _load_all(str(run_dir), run_id=run_dir.name)
+        stage_results.extend(stages)
+        e2e_results.extend(e2es)
+    return stage_results, e2e_results
+
+
+def _agent_summary_tiles(filtered: list[CaseEvaluationResult]) -> None:
+    """Per-agent pass rates when multiple agents are in scope."""
+    by_agent: dict[str, list[CaseEvaluationResult]] = {}
+    for r in filtered:
+        by_agent.setdefault(r.agent_name or "unknown", []).append(r)
+    if len(by_agent) < 2:
+        return
+    tiles: list[tuple[str, str, str]] = []
+    for agent, rows in sorted(by_agent.items()):
+        ok = sum(1 for r in rows if r.passed)
+        n = len(rows)
+        tiles.append((agent, f"{ok}/{n} ({_pct(ok, n)})", "good" if ok == n else "critical"))
+    st.subheader("By agent")
+    _stat_tiles(tiles)
 
 
 def _pct(numerator: int, denominator: int) -> str:
@@ -211,6 +248,9 @@ def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
     judge_passed_n = sum(m.passed for m in r.metric_results)
     latency_html = f'<span class="case-latency">{r.latency_ms / 1000:.1f}s</span>' if r.latency_ms else ""
     question_html = f'<div class="case-question">{_esc(r.question)}</div>' if r.question else ""
+    run_pill = (
+        f'<span class="pill stage">run {_esc(r.run_id)}</span>' if getattr(r, "run_id", "") else ""
+    )
 
     card_html = f"""
     <div class="case-card">
@@ -218,6 +258,7 @@ def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
         <span class="case-id">{_esc(r.test_case_id)}</span>
         <span class="pill agent">{_esc(r.agent_name or "unknown agent")}</span>
         <span class="pill stage">{_esc(r.eval_name)}</span>
+        {run_pill}
         {_status_pill(r.passed)}
         {latency_html}
       </div>
@@ -269,17 +310,19 @@ def _render_stage_view(filtered: list[CaseEvaluationResult], show_eval: bool) ->
         ("Avg latency", f"{avg_latency_s:.1f}s" if avg_latency_s is not None else "–", ""),
     ])
 
-    for r in sorted(filtered, key=lambda r: (r.test_case_id, r.eval_name)):
+    for r in sorted(filtered, key=lambda r: (r.agent_name or "", r.run_id or "", r.test_case_id, r.eval_name)):
         status_icon = "✅" if r.passed else "❌"
         label_bits = [f"**{r.test_case_id}**", r.agent_name or "unknown agent"]
         if show_eval:
             label_bits.append(r.eval_name)
+        if r.run_id:
+            label_bits.append(r.run_id)
         if r.latency_ms:
             label_bits.append(f"{r.latency_ms / 1000:.1f}s")
         label = f"{status_icon}  " + "  ·  ".join(label_bits)
 
         with st.expander(label, expanded=False):
-            _render_stage_body(r, key_prefix="stage")
+            _render_stage_body(r, key_prefix=f"stage_{r.run_id or 'run'}")
 
 
 def _render_e2e_view(filtered: list[E2ECaseResult]) -> None:
@@ -301,7 +344,7 @@ def _render_e2e_view(filtered: list[E2ECaseResult]) -> None:
         ("Avg latency", f"{avg_latency_s:.1f}s" if avg_latency_s is not None else "–", ""),
     ])
 
-    for r in sorted(filtered, key=lambda r: r.test_case_id):
+    for r in sorted(filtered, key=lambda r: (r.agent_name or "", r.run_id or "", r.test_case_id)):
         status_icon = "✅" if r.passed else "❌"
         n_stages = len(r.stages)
         stages_ok = sum(1 for s in r.stages if s.deterministic_passed)
@@ -310,6 +353,8 @@ def _render_e2e_view(filtered: list[E2ECaseResult]) -> None:
             r.agent_name or "unknown agent",
             f"{stages_ok}/{n_stages} stages",
         ]
+        if r.run_id:
+            label_bits.append(r.run_id)
         if r.latency_ms:
             label_bits.append(f"{r.latency_ms / 1000:.1f}s")
         label = f"{status_icon}  " + "  ·  ".join(label_bits)
@@ -373,7 +418,23 @@ with st.sidebar:
     runs = list_runs(root_path)
     latest = resolve_latest_run(root_path)
 
-    if runs:
+    scope = st.radio(
+        "Scope",
+        ["Single run", "All runs (all agents)"],
+        index=0,
+        help=(
+            "Single run = one pytest timestamp (default). "
+            "All runs = KA + Fact Find (and older runs) in one overview — "
+            "does not change how results are published."
+        ),
+    )
+    all_runs_scope = scope.startswith("All runs")
+
+    if all_runs_scope:
+        output_dir = str(root_path / "runs") if runs else results_root
+        stage_results, e2e_results = _load_all_runs(root_path)
+        st.caption(f"Loading {len(runs)} run(s) under `runs/`")
+    elif runs:
         run_names = [r.name for r in runs]
         labels_by_name = {r.name: _format_run_label(r, latest) for r in runs}
         newest = run_names[0]
@@ -393,15 +454,18 @@ with st.sidebar:
         )
         output_dir = str(root_path / "runs" / st.session_state["dashboard_run"])
         st.caption(f"Loading `{st.session_state['dashboard_run']}`")
+        stage_results, e2e_results = _load_all(
+            output_dir, run_id=st.session_state["dashboard_run"]
+        )
     elif latest is not None:
         # Legacy flat layout (pre-timestamp) or LATEST-only
         output_dir = str(latest)
         st.info("No timestamped runs yet — loading legacy folder. New evals write under `runs/<timestamp>/`.")
+        stage_results, e2e_results = _load_all(output_dir)
     else:
         output_dir = results_root
         st.caption("No runs found yet.")
-
-    stage_results, e2e_results = _load_all(output_dir)
+        stage_results, e2e_results = [], []
 
     view_options = ["By stage"]
     if e2e_results:
@@ -426,14 +490,15 @@ with st.sidebar:
         )
         status_filter = st.radio("Status", ["All", "Passed only", "Failed only"], index=0)
         search = st.text_input("Search test case ID").strip().lower()
-        show_eval = len(eval_names) > 1
+        show_eval = len(eval_names) > 1 or all_runs_scope
 
 st.title("Agent Evaluation Dashboard")
-run_label = Path(output_dir).name
-if view_mode.startswith("By test case"):
-    st.caption(f"E2E view · run `{run_label}` — one card per test case, stages nested.")
+if all_runs_scope:
+    st.caption("All runs · every agent under `outputs/dashboard/runs/` — filter by Agent below.")
+elif view_mode.startswith("By test case"):
+    st.caption(f"E2E view · run `{Path(output_dir).name}` — one card per test case, stages nested.")
 else:
-    st.caption(f"Stage view · run `{run_label}` — one card per stage × case.")
+    st.caption(f"Stage view · run `{Path(output_dir).name}` — one card per stage × case.")
 
 if view_mode.startswith("By test case"):
     if not e2e_results:
@@ -467,9 +532,8 @@ else:
             f"""
             <div class="empty-state">
               <p>No results found under <code>{_esc(output_dir)}</code>.</p>
-              <p>Run your agent pytest suite first (e.g.
-              <code>pytest tests/knowledge_agent/test_stage1.py -v -s</code>) —
-              it writes one JSON file per stage × case there.</p>
+              <p>Run agent pytest with <code>RUN_JUDGES=1</code> first —
+              it writes one JSON file per suite × case there.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -487,4 +551,5 @@ else:
     if not filtered:
         st.info("No test cases match the current filters.")
         st.stop()
+    _agent_summary_tiles(filtered)
     _render_stage_view(filtered, show_eval=show_eval)

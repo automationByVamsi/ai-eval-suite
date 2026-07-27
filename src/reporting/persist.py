@@ -1,18 +1,22 @@
-"""
-Writes evaluation results for scripts/dashboard_app.py.
+# Writes evaluation results for scripts/dashboard_app.py.
+#
+# Layout (timestamped runs so make dashboard always opens the latest):
+#
+#     outputs/dashboard/
+#       LATEST                          # relative path, e.g. runs/20260720_175812
+#       runs/
+#         20260720_175812/
+#           <agent>/<eval>__<id>.json
+#           <agent>/e2e__<id>.json
+#
+# One pytest process = one run directory (shared across stage / e2e publishes).
+# Override with DASHBOARD_RUN_DIR (absolute path) or DASHBOARD_RUN_ID (stamp name).
+#
+# Common all-agents view: Streamlit sidebar → Scope → "All runs (all agents)".
+# To force KA + FF into the *same* single-run folder without changing code:
+#   DASHBOARD_RUN_ID=demo_all make test-ka-sanity-judges
+#   DASHBOARD_RUN_ID=demo_all make test-ff-sanity-judges
 
-Layout (timestamped runs so make dashboard always opens the latest):
-
-    outputs/dashboard/
-      LATEST                          # relative path, e.g. runs/20260720_175812
-      runs/
-        20260720_175812/
-          <agent>/<eval>__<id>.json
-          <agent>/e2e__<id>.json
-
-One pytest process = one run directory (shared across stage / e2e publishes).
-Override with DASHBOARD_RUN_DIR (absolute path) or DASHBOARD_RUN_ID (stamp name).
-"""
 
 from __future__ import annotations
 

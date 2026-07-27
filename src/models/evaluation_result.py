@@ -55,6 +55,8 @@ class CaseEvaluationResult(BaseModel):
     deterministic_results: list[DeterministicCheckResult] = Field(default_factory=list)
     metric_results: list[MetricResult] = Field(default_factory=list)
     result_fields: dict[str, Any] = Field(default_factory=dict)
+    # Set by the dashboard when aggregating across runs (not required at publish time).
+    run_id: str = ""
 
     @model_validator(mode="before")
     @classmethod
@@ -104,6 +106,8 @@ class E2ECaseResult(BaseModel):
     question: str = ""
     latency_ms: Optional[float] = None
     stages: list[CaseEvaluationResult] = Field(default_factory=list)
+    # Set by the dashboard when aggregating across runs (not required at publish time).
+    run_id: str = ""
 
     @property
     def deterministic_passed(self) -> bool:
