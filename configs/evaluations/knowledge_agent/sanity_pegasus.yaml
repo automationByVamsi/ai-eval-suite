@@ -3,12 +3,10 @@
 #
 # Select: METRICS_SUITE=sanity_pegasus
 # Mode: METRIC_MODE=pegasus|pegasus_ragas
-#   (Answer Correctness has no deepeval method — pegasus_deepeval coerces to pegasus)
+#   (Answer Correctness has no deepeval method)
 #
-# faithfulness_pegasus  → answer vs retrieved_contexts
-# correctness_pegasus   → answer vs expected_answer  ← use this to test golden edits
+# correctness_pegasus → agent answer vs expected_answer
 suite: sanity_pegasus
 
 judges:
-  - faithfulness_pegasus
   - correctness_pegasus

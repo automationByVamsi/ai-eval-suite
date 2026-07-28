@@ -125,6 +125,9 @@ def run_pegasus_answer_correctness(
     answer = str(
         resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
     )
+    question = str(
+        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
+    )
     reference = resolve_field(
         cfg.get("expected_source") or "expected_answer", test_case, response
     )
@@ -141,15 +144,26 @@ def run_pegasus_answer_correctness(
             passed=False,
             reason="Skipped: no reference_answer / expected_answer for Answer Correctness.",
         )
+    if not question.strip():
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no question for Answer Correctness (pegasus method).",
+        )
 
     try:
         from pegasus.metrics.rag import AnswerCorrectness  # type: ignore
 
         llm = _build_llm(cortex_client)
         metric = AnswerCorrectness(llm=llm, method=method, threshold=threshold)
+        # pegasus method requires: answer, reference_answer, question
+        # ragas method requires: answer, reference_answer (question still safe to include)
         data = pd.DataFrame(
             [
                 {
+                    "question": question,
                     "answer": answer,
                     "reference_answer": reference,
                 }

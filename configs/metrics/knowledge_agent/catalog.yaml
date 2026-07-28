@@ -91,10 +91,12 @@ metrics:
     context_source: retrieval_context
 
   # Answer Correctness = answer vs expected_answer (methods: pegasus|ragas only).
+  # pegasus method needs columns: question, answer, reference_answer
   correctness_pegasus:
     type: answer_correctness
     mode: ${METRIC_MODE:-pegasus}
     threshold: 0.7
+    input_source: question
     actual_source: answer
     expected_source: expected_answer
 
