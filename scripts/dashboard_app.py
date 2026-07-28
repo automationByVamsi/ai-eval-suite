@@ -119,6 +119,27 @@ def _esc(value) -> str:
     return html.escape(str(value)) if value is not None else ""
 
 
+def _chunk_title_and_body(chunk: str) -> tuple[str, str]:
+    """Split one ground-truth chunk into a readable title/body pair."""
+    text = (chunk or "").strip()
+    if not text:
+        return "Ground truth", ""
+    lines = [line.rstrip() for line in text.splitlines()]
+    title = lines[0].rstrip(":") or "Ground truth"
+    body = "\n".join(lines[1:]).strip()
+    if not body:
+        return "Ground truth", text
+    return title, body
+
+
+def _render_ground_truth_chunks(chunks: list[str]) -> None:
+    """Render ground-truth chunks as labeled sections instead of raw textareas."""
+    for i, chunk in enumerate(chunks, start=1):
+        title, body = _chunk_title_and_body(chunk)
+        with st.expander(f"{i}. {title}", expanded=(i == 1)):
+            st.code(body or chunk, language="text")
+
+
 def _load_all(
     output_dir: str,
     *,
@@ -281,16 +302,8 @@ def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
             st.markdown(expected_text)
         if chunks:
             if expected_text:
-                st.caption("Context chunks (e.g. aggregated payload)")
-            for i, ctx in enumerate(chunks, start=1):
-                st.text_area(
-                    f"Ground truth {i}",
-                    ctx,
-                    height=120,
-                    disabled=True,
-                    label_visibility="collapsed",
-                    key=f"{key_prefix}_gt_{r.agent_name}_{r.eval_name}_{r.test_case_id}_{i}",
-                )
+                st.caption("Supporting ground-truth sections")
+            _render_ground_truth_chunks(chunks)
         if not expected_text and not chunks:
             st.caption("No expected / ground truth recorded for this case.")
 
