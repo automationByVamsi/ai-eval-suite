@@ -19,6 +19,7 @@ def _apply_insecure_tls() -> None:
     _TLS_PATCHED = True
 
     def _unverified_context(*_args, **_kwargs):
+        """Return an SSL context with hostname and cert checks disabled."""
         ctx = ssl._create_unverified_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
@@ -54,6 +55,7 @@ def _host_and_chat_path(cortex_host: str) -> tuple[str, str, str]:
 
 
 def _strip_markdown_fence(content: str) -> str:
+    """Remove a surrounding Markdown fence from model output."""
     # Gemini 2.5 Pro sometimes wraps JSON scoring output in ```json ... ```
     text = (content or "").strip()
     if text.startswith("```"):
@@ -65,6 +67,7 @@ class CortexClient:
     """Thin wrapper around POST /chat/completions."""
 
     def __init__(self, config: dict):
+        """Store CORTEX request settings and resolve auth headers."""
         self.base_url: str = str(config["base_url"]).rstrip("/")
         self.model: str = str(config.get("model") or "vertex_ai/gemini-2.5-pro")
         self.temperature: float = float(config.get("temperature", 0.0))
@@ -114,4 +117,5 @@ class CortexClient:
             ) from exc
 
     def generate(self, prompt: str) -> str:
+        """Send one user prompt to CORTEX and return plain text."""
         return self.chat([{"role": "user", "content": prompt}])

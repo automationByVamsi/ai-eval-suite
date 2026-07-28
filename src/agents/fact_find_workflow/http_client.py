@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 
 
 class FactFindHttpClient:
+    """Small HTTPS client with optional mTLS and retry support."""
     def __init__(
         self,
         *,
@@ -25,12 +26,14 @@ class FactFindHttpClient:
         timeout_s: float = 60,
         retries: int = 1,
     ):
+        """Store connection settings for later requests."""
         self.cert_paths = cert_paths
         self.verify_tls = verify_tls
         self.timeout_s = timeout_s
         self.retries = retries
 
     def _ssl_context(self, host: str) -> ssl.SSLContext:
+        """Build the SSL context for one host, adding client certs when needed."""
         context = ssl.create_default_context() if self.verify_tls else ssl._create_unverified_context()
         if self.cert_paths and self._needs_mtls(host):
             cert, key = self.cert_paths
@@ -39,6 +42,7 @@ class FactFindHttpClient:
 
     @staticmethod
     def _needs_mtls(host: str) -> bool:
+        """Return True when the host should use APIC client certificates."""
         # Client certs are for APIC; Nucleus ICA proxy typically does not use them.
         host_l = host.lower()
         if "nucleus" in host_l:
@@ -53,6 +57,7 @@ class FactFindHttpClient:
         headers: dict[str, str] | None = None,
         json_body: Any | None = None,
     ) -> Any:
+        """Send one HTTPS request and decode a JSON response."""
         parsed = urlparse(url)
         if parsed.scheme != "https":
             raise ValueError(f"Only https URLs are supported, got {url}")
@@ -87,7 +92,9 @@ class FactFindHttpClient:
         raise RuntimeError(f"{method} {url} failed after {self.retries + 1} attempt(s): {last_error}")
 
     def get(self, url: str, *, headers: dict[str, str] | None = None) -> Any:
+        """Send a GET request."""
         return self.request("GET", url, headers=headers)
 
     def post(self, url: str, *, headers: dict[str, str] | None = None, json_body: Any = None) -> Any:
+        """Send a POST request with an optional JSON body."""
         return self.request("POST", url, headers=headers, json_body=json_body)

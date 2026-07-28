@@ -17,14 +17,17 @@ class HallucinationMetricAdapter(DeepEvalMetric):
     """
 
     def __init__(self, *args, ground_truth_context_source: str = "ground_truth_context", **kwargs):
+        """Default this metric to the configured ground-truth context field."""
         super().__init__(*args, ground_truth_context_source=ground_truth_context_source, **kwargs)
 
     def build_deepeval_metric(self):
+        """Create the DeepEval hallucination judge."""
         return HallucinationMetric(
             threshold=self.threshold, model=self.cortex_llm, include_reason=True
         )
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Use the inverted hallucination pass rule and handle missing context."""
         ground_truth = resolve_field(self.ground_truth_context_source, test_case, response)
         if not isinstance(ground_truth, list) or not ground_truth:
             return MetricResult(

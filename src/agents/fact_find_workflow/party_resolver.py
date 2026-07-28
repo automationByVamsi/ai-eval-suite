@@ -8,8 +8,10 @@ PartyId = str
 
 
 class PartyResolver:
+    """Resolve and deduplicate party ids from multiple backend sources."""
     @staticmethod
     def pick_primary_party_id(ica_response: Any) -> PartyId | None:
+        """Prefer the primary ICA customer, then fall back to the first valid id."""
         customers = ica_response.get("customers") if isinstance(ica_response, dict) else None
         if not isinstance(customers, list):
             return None
@@ -23,6 +25,7 @@ class PartyResolver:
 
     @staticmethod
     def get_all_party_ids(ica_response: Any) -> list[PartyId]:
+        """Return unique OCIS ids found in the ICA customer list."""
         customers = ica_response.get("customers") if isinstance(ica_response, dict) else None
         if not isinstance(customers, list):
             return []
@@ -44,6 +47,7 @@ class PartyResolver:
         ocis_party_id: PartyId | None,
         party_ids_from_ica: list[PartyId],
     ) -> dict[str, Any]:
+        """Choose a primary party id and return a deduplicated ordered list."""
         if isinstance(party_ids_from_account_details, list):
             account_detail_party_ids = [str(p) for p in party_ids_from_account_details if p]
         elif party_ids_from_account_details:

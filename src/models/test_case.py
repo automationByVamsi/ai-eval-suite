@@ -23,6 +23,7 @@ class MetricConfig(BaseModel):
 
 
 class TestCase(BaseModel):
+    """Normalized test case loaded from JSON input data."""
     __test__ = False  # tell pytest this isn't a test class, despite the name
 
     test_case_id: str
@@ -35,6 +36,7 @@ class TestCase(BaseModel):
 
     @classmethod
     def from_json_file(cls, path: str) -> "TestCase":
+        """Load and validate one test case JSON file."""
         import json
 
         with open(path) as f:

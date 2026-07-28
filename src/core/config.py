@@ -19,6 +19,7 @@ from src.core.exceptions import AgentNotFoundError, ConfigError
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
+    """Load one YAML file, expand env vars, and require a mapping root."""
     load_dotenv()
     path = Path(path)
     if not path.exists():
@@ -64,11 +65,13 @@ def agent_metrics_profile(
     agent_name: str,
     path: str | Path = "configs/agents.yaml",
 ) -> str:
+    """Return the metrics profile name for an agent."""
     cfg = get_agent_config(agent_name, path=path)
     return str(cfg.get("metrics_profile") or agent_name)
 
 
 def load_cortex_config(path: str | Path = "configs/cortex.yaml") -> dict[str, Any]:
+    """Return the `cortex:` config block from the YAML file."""
     data = load_yaml(path)
     cortex = data.get("cortex")
     if not cortex:
@@ -105,6 +108,7 @@ def catalog_default_suite(
     agent_profile: str,
     base_dir: str | Path = "configs/metrics",
 ) -> str:
+    """Read the default suite name from a metric catalog."""
     path = Path(base_dir) / agent_profile / "catalog.yaml"
     data = load_yaml(path)
     return str(data.get("default_suite") or "e2e")
@@ -114,6 +118,7 @@ def has_metric_catalog(
     agent_profile: str,
     base_dir: str | Path = "configs/metrics",
 ) -> bool:
+    """Return whether this agent profile has a catalog.yaml file."""
     return (Path(base_dir) / agent_profile / "catalog.yaml").exists()
 
 

@@ -69,6 +69,7 @@ class AdkClient:
     """Thin HTTP client for one ADK app (config from agents.yaml + .env)."""
 
     def __init__(self, config: dict[str, Any], *, agent_name: str = ""):
+        """Store resolved ADK settings for one agent."""
         self.agent_name = agent_name
         self.base_url: str = str(config["base_url"]).rstrip("/")
         self.base_path: str = str(config.get("base_path") or "")
@@ -90,6 +91,7 @@ class AdkClient:
         agent_name: str,
         agents_path: str | Path = "configs/agents.yaml",
     ) -> AdkClient:
+        """Build a client from one agents.yaml entry."""
         return cls(get_agent_config(agent_name, path=agents_path), agent_name=agent_name)
 
     def _host_and_base(self) -> tuple[str, str, str]:
@@ -97,6 +99,7 @@ class AdkClient:
         return split_host_path(self.base_url + self.base_path)
 
     def _call_kwargs(self, scheme: str) -> dict[str, Any]:
+        """Return shared network kwargs for ADK HTTP calls."""
         return {
             "scheme": scheme,
             "verify_tls": self.verify_tls,
@@ -271,6 +274,7 @@ def extract_final_text(events: list[dict[str, Any]]) -> str:
 
 
 def _response_from_raw(raw: dict[str, Any]) -> AgentResponse:
+    """Convert saved ADK JSON into the shared `AgentResponse` model."""
     return AgentResponse(
         answer=adk_parser.extract_answer(raw),
         raw_output=raw,

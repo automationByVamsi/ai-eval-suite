@@ -21,6 +21,7 @@ def _eval_sanity(
     response: AgentResponse,
     run_judges: bool,
 ) -> list[CheckObservation]:
+    """Run deterministic checks and optional judges for one Fact Find case."""
     complaint_ref = (case.get("input") or {}).get("complaint_ref") or ""
     raw = response.raw_output if isinstance(response.raw_output, dict) else {}
     det, _fields = run_deterministic(case, raw, complaint_ref)

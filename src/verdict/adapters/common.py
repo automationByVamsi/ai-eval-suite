@@ -12,6 +12,7 @@ def answer_and_keyword_checks(
     case: dict[str, Any],
     response: AgentResponse,
 ) -> list[CheckResult]:
+    """Return simple answer-present and keyword checks for a case."""
     results = [
         CheckResult(
             name="answer_non_empty",

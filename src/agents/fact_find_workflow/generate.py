@@ -25,6 +25,7 @@ from src.parsers.fact_find_workflow.complaint_refs import load_ref_groups
 
 
 def _write_json(path: Path, data: Any) -> None:
+    """Write JSON to disk, creating parent directories when needed."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
 

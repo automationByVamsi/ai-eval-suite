@@ -40,6 +40,7 @@ class CaseRun:
 
     @property
     def test_case_id(self) -> str:
+        """Return the case id, defaulting to `unknown` if it is missing."""
         return str(self.case.get("test_case_id") or "unknown")
 
 
@@ -63,6 +64,7 @@ def trace_path(
     *,
     output_dir: str | Path = "outputs/traces",
 ) -> Path:
+    """Return the standard trace file path for one saved case."""
     return Path(output_dir) / agent_name / data_suite / f"{case_id}.json"
 
 
@@ -208,6 +210,7 @@ def _unwrap_raw(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_case(raw: dict[str, Any], *, default_id: str) -> dict[str, Any]:
+    """Fill missing case fields so loaders can handle simple JSON shapes."""
     case = dict(raw)
     case.setdefault("test_case_id", default_id)
     if "expected" in case and case["expected"] is None:

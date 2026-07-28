@@ -113,6 +113,7 @@ def resolve_latest_run(root: str | Path = DEFAULT_DASHBOARD_ROOT) -> Path | None
 
 
 def save_eval_result(result: CaseEvaluationResult, output_dir: str) -> Path:
+    """Write one stage or suite result JSON under the dashboard run folder."""
     agent_dir = Path(output_dir) / (result.agent_name or "unknown_agent")
     agent_dir.mkdir(parents=True, exist_ok=True)
     out_path = agent_dir / f"{result.eval_name}__{result.test_case_id}.json"
@@ -121,6 +122,7 @@ def save_eval_result(result: CaseEvaluationResult, output_dir: str) -> Path:
 
 
 def save_e2e_result(result: E2ECaseResult, output_dir: str) -> Path:
+    """Write one e2e result JSON under the dashboard run folder."""
     agent_dir = Path(output_dir) / (result.agent_name or "unknown_agent")
     agent_dir.mkdir(parents=True, exist_ok=True)
     out_path = agent_dir / f"e2e__{result.test_case_id}.json"
@@ -129,6 +131,7 @@ def save_e2e_result(result: E2ECaseResult, output_dir: str) -> Path:
 
 
 def _question_from_case(case: dict[str, Any]) -> str:
+    """Pick a readable question string from the case input."""
     inp = case.get("input") or {}
     if not isinstance(inp, dict):
         return ""

@@ -18,6 +18,7 @@ EvalFn = Callable[[str, dict[str, Any], AgentResponse, bool], list[CheckObservat
 
 @dataclass(frozen=True)
 class AgentPack:
+    """Describe the packs and helpers available for one agent."""
     agent: str
     default_suite: str = "sanity"
     packs: dict[str, EvalFn] = field(default_factory=dict)
@@ -29,11 +30,13 @@ _REGISTRY: dict[str, AgentPack] = {}
 
 
 def register(pack: AgentPack) -> AgentPack:
+    """Register an agent pack and return it for inline use."""
     _REGISTRY[pack.agent] = pack
     return pack
 
 
 def get_pack(agent: str) -> AgentPack:
+    """Return the registered pack for an agent name."""
     if agent not in _REGISTRY:
         known = ", ".join(sorted(_REGISTRY)) or "(none)"
         raise KeyError(f"Unknown agent {agent!r} for VERDICT. Registered: {known}")
@@ -41,6 +44,7 @@ def get_pack(agent: str) -> AgentPack:
 
 
 def list_agents() -> list[str]:
+    """List registered agent names in sorted order."""
     return sorted(_REGISTRY)
 
 

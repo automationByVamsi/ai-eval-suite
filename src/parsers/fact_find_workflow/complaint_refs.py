@@ -17,6 +17,7 @@ DEFAULT_REFS_PATH = Path("data/fact_find_workflow/complaint-references.json")
 
 
 def load_ref_groups(path: str | Path | None = None) -> dict[str, list[str]]:
+    """Load complaint refs and normalize them into named groups."""
     path = Path(path) if path else DEFAULT_REFS_PATH
     with path.open("r", encoding="utf-8") as f:
         data: dict[str, Any] = json.load(f)
@@ -36,6 +37,7 @@ def load_ref_groups(path: str | Path | None = None) -> dict[str, list[str]]:
 
 
 def all_refs(path: str | Path | None = None, groups: list[str] | None = None) -> list[str]:
+    """Return unique refs from the selected groups in file order."""
     ref_groups = load_ref_groups(path)
     selected = groups or list(ref_groups.keys())
     out: list[str] = []
@@ -49,6 +51,7 @@ def all_refs(path: str | Path | None = None, groups: list[str] | None = None) ->
 
 
 def _unique_strings(items: list[Any]) -> list[str]:
+    """Trim values, drop blanks, and preserve first-seen order."""
     seen: set[str] = set()
     out: list[str] = []
     for item in items:

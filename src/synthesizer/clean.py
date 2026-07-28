@@ -35,11 +35,13 @@ class _HTMLToText(HTMLParser):
     _SKIP = {"script", "style", "noscript"}
 
     def __init__(self) -> None:
+        """Initialize the text buffer and skip-state tracker."""
         super().__init__(convert_charrefs=True)
         self._chunks: list[str] = []
         self._skip_depth = 0
 
     def handle_starttag(self, tag: str, attrs) -> None:  # noqa: ANN001
+        """Start a new text block or skip section based on the tag."""
         tag = tag.lower()
         if tag in self._SKIP:
             self._skip_depth += 1
@@ -52,6 +54,7 @@ class _HTMLToText(HTMLParser):
             self._chunks.append("- ")
 
     def handle_endtag(self, tag: str) -> None:
+        """Close block tags and leave skipped sections when they end."""
         tag = tag.lower()
         if tag in self._SKIP and self._skip_depth:
             self._skip_depth -= 1
@@ -62,6 +65,7 @@ class _HTMLToText(HTMLParser):
             self._chunks.append("\n")
 
     def handle_data(self, data: str) -> None:
+        """Collect visible text while trimming extra surrounding whitespace."""
         if self._skip_depth:
             return
         text = data.strip()

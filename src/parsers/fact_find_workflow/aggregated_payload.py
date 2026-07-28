@@ -11,6 +11,7 @@ from typing import Any
 
 
 def load_aggregated_payload(path: str | Path) -> dict[str, Any]:
+    """Load one aggregated ground-truth payload from disk."""
     path = Path(path)
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)

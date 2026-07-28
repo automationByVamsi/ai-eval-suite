@@ -65,21 +65,26 @@ class CortexDeepEvalLLM(DeepEvalBaseLLM):
     """Thin DeepEval LLM that sends every prompt to CORTEX."""
 
     def __init__(self, cortex_client: CortexClient):
+        """Wrap an existing `CortexClient` for DeepEval."""
         self.cortex_client = cortex_client
         super().__init__()
 
     def load_model(self):
+        """DeepEval hook: this wrapper is its own model object."""
         return self
 
     def get_model_name(self) -> str:
+        """Return the model name shown in DeepEval output."""
         return self.cortex_client.model
 
     def generate(self, prompt: str, schema: Any = None):
+        """Generate text, or coerce it into a requested schema."""
         text = self.cortex_client.generate(prompt)
         if schema is None:
             return text
         return _to_schema(text, schema)
 
     async def a_generate(self, prompt: str, schema: Any = None):
+        """Async DeepEval hook that reuses the sync generate path."""
         # CORTEX client is sync; DeepEval async path just reuses it.
         return self.generate(prompt, schema)

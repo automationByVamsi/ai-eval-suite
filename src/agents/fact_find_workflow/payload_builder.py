@@ -15,6 +15,7 @@ PartyId = str
 
 
 class PayloadBuilder:
+    """Assemble the final aggregated payload from fetched backend data."""
     @staticmethod
     def build_derived_metadata(
         *,
@@ -30,6 +31,7 @@ class PayloadBuilder:
         contact_notes_by_party: dict[str, Any],
         trusted_parties_by_party: dict[str, Any],
     ) -> dict[str, Any]:
+        """Build derived flags and identifiers used by downstream checks."""
         failed_holdings = [
             pid
             for pid in customer_flow_party_ids
@@ -78,6 +80,7 @@ class PayloadBuilder:
         trusted_parties_by_party: dict[str, Any],
         customer_flow_party_ids: list[PartyId],
     ) -> dict[str, Any]:
+        """Build the raw source-data section for the aggregated payload."""
         flattened_notes: list[Any] = []
         for party_id in customer_flow_party_ids:
             wrap = contact_notes_by_party.get(party_id) or {}
@@ -109,6 +112,7 @@ class PayloadBuilder:
         derived: dict[str, Any],
         sources: dict[str, Any],
     ) -> dict[str, Any]:
+        """Combine metadata and sources into the final payload shape."""
         return {
             "complaintRef": complaint_ref,
             "generatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),

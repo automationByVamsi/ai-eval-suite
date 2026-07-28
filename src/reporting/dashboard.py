@@ -4,6 +4,7 @@ from src.models.evaluation_result import EvaluationResult
 
 
 def print_dashboard(results: list[EvaluationResult]) -> None:
+    """Print a compact pass/fail summary for CLI runs."""
     total = len(results)
     passed = sum(r.passed for r in results)
 

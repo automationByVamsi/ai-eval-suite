@@ -15,11 +15,14 @@ from src.metrics.base_metric import BaseMetric
 
 
 class MetricFactory:
+    """Create and cache metric instances from YAML configs."""
     def __init__(self, cortex_config_path: str = "configs/cortex.yaml"):
+        """Build the shared CORTEX client used by metrics."""
         self._cortex_client = CortexClient(load_cortex_config(cortex_config_path))
         self._cache: dict[str, BaseMetric] = {}
 
     def create(self, metric_config: dict) -> BaseMetric:
+        """Create one metric instance from a config dict."""
         cache_key = json.dumps(metric_config, sort_keys=True)
         if cache_key in self._cache:
             return self._cache[cache_key]
@@ -35,4 +38,5 @@ class MetricFactory:
         return metric
 
     def load_base_metrics(self, agent_profile: str) -> list[dict]:
+        """Load the default metric list for an agent profile."""
         return load_metrics_config(agent_profile)

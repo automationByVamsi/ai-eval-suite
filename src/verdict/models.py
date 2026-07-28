@@ -53,6 +53,8 @@ class MetricAggregate(BaseModel):
 
 
 class DiffRow(BaseModel):
+    """Comparison of one current metric against its baseline value."""
+
     test_case_id: str
     stage: str
     name: str
@@ -64,6 +66,8 @@ class DiffRow(BaseModel):
 
 
 class VerdictReport(BaseModel):
+    """Top-level VERDICT report written for a run."""
+
     profile: str
     tag: str
     n_reps: int

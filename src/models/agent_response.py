@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 
 class AgentResponse(BaseModel):
+    """Normalized agent output used across runners, metrics, and dashboards."""
     answer: str
     raw_output: Any = None
     context: list[str] = Field(default_factory=list)

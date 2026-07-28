@@ -64,6 +64,7 @@ def _unwrap(raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def _party_id_from_tools(tools: list[ToolCall]) -> str:
+    """Return the first party id seen in recorded tool-call arguments."""
     for tool in tools:
         args = tool.input_parameters or {}
         if isinstance(args, dict) and args.get("partyId"):

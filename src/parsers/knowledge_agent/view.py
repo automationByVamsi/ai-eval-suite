@@ -16,6 +16,7 @@ from src.parsers import adk_parser
 
 @dataclass(frozen=True)
 class KnowledgeAgentView:
+    """Stable Knowledge Agent fields used by tests and judges."""
     answer: str = ""
     question: str = ""
     rewritten_query: str = ""

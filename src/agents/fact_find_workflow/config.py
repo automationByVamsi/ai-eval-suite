@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 
 def env(name: str, default: str | None = None) -> str | None:
+    """Read an environment variable and treat empty strings as missing."""
     value = os.environ.get(name)
     if value is None or value == "":
         return default
@@ -21,6 +22,7 @@ def env(name: str, default: str | None = None) -> str | None:
 
 
 def require_env(name: str) -> str:
+    """Read a required environment variable or raise a clear setup error."""
     value = env(name)
     if value is None:
         raise RuntimeError(f"{name} must be set (see .env.factfind.api.example)")
@@ -28,11 +30,13 @@ def require_env(name: str) -> str:
 
 
 def counter_api_version() -> str:
+    """Return the configured Counter API version in lowercase."""
     return (env("COUNTER_API_VERSION", "v3") or "v3").lower()
 
 
 @dataclass(frozen=True)
 class Endpoints:
+    """Resolved Fact Find backend endpoints built from environment settings."""
     ica_case_details_template: str
     account_details: str
     customer_holding: str
@@ -41,6 +45,7 @@ class Endpoints:
 
     @classmethod
     def from_env(cls) -> Endpoints:
+        """Build endpoint templates from the current environment."""
         version = counter_api_version()
         apic = env(
             "FACTFIND_APIC_BASE",
@@ -69,16 +74,20 @@ class Endpoints:
         )
 
     def ica_case_details(self, complaint_ref: str) -> str:
+        """Render the ICA case-details URL for one complaint reference."""
         return self.ica_case_details_template.format(complaintRef=complaint_ref)
 
     def contact_notes(self, party_id: str) -> str:
+        """Render the contact-notes URL for one party id."""
         return self.contact_notes_template.format(partyId=quote(str(party_id), safe=""))
 
     def trusted_parties(self, party_id: str) -> str:
+        """Render the trusted-parties URL for one party id."""
         return self.trusted_parties_template.format(partyId=quote(str(party_id), safe=""))
 
 
 def get_counter_api_headers() -> dict[str, str]:
+    """Build auth headers for Counter API requests."""
     version = counter_api_version()
     prefix = "COUNTER_V1" if version == "v1" else "COUNTER_V3"
     return {
@@ -92,6 +101,7 @@ def get_counter_api_headers() -> dict[str, str]:
 
 
 def get_ocis_api_headers() -> dict[str, str]:
+    """Build auth headers for OCIS API requests."""
     return {
         "accept": "application/json",
         "content-type": "application/json",
@@ -107,6 +117,7 @@ def get_ocis_api_headers() -> dict[str, str]:
 
 
 def get_nucleus_api_headers() -> dict[str, str]:
+    """Build auth headers for Nucleus ICA requests."""
     return {
         "accept": "application/json",
         "content-type": "application/json",

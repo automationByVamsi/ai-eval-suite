@@ -27,6 +27,7 @@ class AthenaClient:
         retries: int = 1,
         client_id_env: str = "ATHEN_ID",
     ):
+        """Store Athena connection settings for repeated page fetches."""
         self.base_url = base_url.rstrip("/")
         self.verify_tls = verify_tls
         self.timeout_s = timeout_s
@@ -34,6 +35,7 @@ class AthenaClient:
         self.client_id_env = client_id_env
 
     def _headers(self) -> dict[str, str]:
+        """Build the required Athena auth header from the environment."""
         client_id = os.environ.get(self.client_id_env, "").strip()
         if not client_id:
             raise RuntimeError(

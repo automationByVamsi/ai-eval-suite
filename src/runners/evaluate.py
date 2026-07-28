@@ -28,6 +28,7 @@ from src.runners.factories import MetricFactory
 
 @dataclass
 class CheckResult:
+    """One judge outcome in the lightweight evaluate() flow."""
     name: str
     passed: bool
     reason: str = ""
@@ -37,6 +38,7 @@ class CheckResult:
 
 @dataclass
 class EvalResult:
+    """Judge results for one case and suite run."""
     agent_name: str
     suite: str
     test_case_id: str
@@ -45,10 +47,12 @@ class EvalResult:
 
     @property
     def passed(self) -> bool:
+        """Return whether every judge passed."""
         return all(j.passed for j in self.judges)
 
     @property
     def failed(self) -> list[CheckResult]:
+        """Return only the judges that failed."""
         return [j for j in self.judges if not j.passed]
 
 

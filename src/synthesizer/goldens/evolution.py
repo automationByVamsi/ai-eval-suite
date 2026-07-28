@@ -13,6 +13,7 @@ _EVOLUTION_BY_NAME = {e.name: e for e in Evolution}
 
 
 def build_evolution_config(path: Path | None) -> EvolutionConfig | None:
+    """Load evolution weights from YAML when a config file is present."""
     if path is None or not path.is_file():
         return None
     evo = load_yaml(path)

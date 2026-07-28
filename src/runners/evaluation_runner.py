@@ -18,6 +18,7 @@ from src.runners.factories import MetricFactory
 
 
 class EvaluationRunner:
+    """Run live agent evals from JSON cases and write result files."""
     def __init__(
         self,
         metric_factory: MetricFactory,
@@ -25,11 +26,13 @@ class EvaluationRunner:
         agents_path: str = "configs/agents.yaml",
         save_dir: Path | None = None,
     ):
+        """Store shared config for repeated test-case runs."""
         self.metric_factory = metric_factory
         self.agents_path = agents_path
         self.save_dir = save_dir
 
     def run_test_case(self, test_case: TestCase) -> EvaluationResult:
+        """Invoke the agent for one case, score it, and return the result."""
         try:
             payload = {**test_case.input, "_test_case_id": test_case.test_case_id}
             response = invoke_agent(
@@ -73,6 +76,7 @@ class EvaluationRunner:
         )
 
     def _resolve_metric_configs(self, test_case: TestCase) -> list[dict]:
+        """Resolve the metric configs that should run for this case."""
         profile = agent_metrics_profile(test_case.agent_name, path=self.agents_path)
 
         if test_case.suite:
@@ -100,6 +104,7 @@ class EvaluationRunner:
         return configs
 
     def run_all(self, test_case_paths: list[str], output_dir: str) -> list[EvaluationResult]:
+        """Run every requested test case and write per-case outputs."""
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 

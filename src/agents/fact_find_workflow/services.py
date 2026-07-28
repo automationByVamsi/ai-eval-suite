@@ -9,6 +9,7 @@ from src.agents.fact_find_workflow.http_client import FactFindHttpClient
 
 
 def get_ica_case_details(client: FactFindHttpClient, complaint_ref: str) -> Any:
+    """Fetch ICA case details for one complaint reference."""
     endpoints = config.Endpoints.from_env()
     return client.get(
         endpoints.ica_case_details(complaint_ref),
@@ -39,6 +40,7 @@ def get_account_details(client: FactFindHttpClient, account_number: str) -> Any:
 
 
 def get_customer_holding(client: FactFindHttpClient, party_id: str) -> Any:
+    """Fetch the customer-holding summary for one party id."""
     endpoints = config.Endpoints.from_env()
     return client.post(
         endpoints.customer_holding,
@@ -48,6 +50,7 @@ def get_customer_holding(client: FactFindHttpClient, party_id: str) -> Any:
 
 
 def get_contact_notes(client: FactFindHttpClient, party_id: str) -> list[Any]:
+    """Fetch contact notes and normalize non-list responses to an empty list."""
     endpoints = config.Endpoints.from_env()
     body = client.get(
         endpoints.contact_notes(party_id),
@@ -57,6 +60,7 @@ def get_contact_notes(client: FactFindHttpClient, party_id: str) -> list[Any]:
 
 
 def get_trusted_parties(client: FactFindHttpClient, party_id: str) -> list[Any]:
+    """Fetch trusted parties and normalize non-list responses to an empty list."""
     endpoints = config.Endpoints.from_env()
     body = client.get(
         endpoints.trusted_parties(party_id),

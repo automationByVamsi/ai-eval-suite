@@ -25,7 +25,10 @@ _PARAM_MAP = {
 
 @METRIC_REGISTRY.register("geval")
 class CustomGEval(DeepEvalMetric):
+    """Build a GEval metric from a rubric file and configured params."""
+
     def __init__(self, *args, rubric: str, **kwargs):
+        """Load and store the rubric text used by the judge."""
         super().__init__(*args, **kwargs)
         rubric_path = Path(rubric)
         if not rubric_path.exists():
@@ -33,6 +36,7 @@ class CustomGEval(DeepEvalMetric):
         self.criteria = rubric_path.read_text().strip()
 
     def build_deepeval_metric(self):
+        """Create the GEval judge after validating requested params."""
         unknown = [p for p in self.evaluation_params if p not in _PARAM_MAP]
         if unknown:
             raise ConfigError(

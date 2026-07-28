@@ -11,22 +11,27 @@ from typing import Any
 
 
 def extract_answer(raw: dict[str, Any]) -> str:
+    """Return the final agent text from a raw ADK payload."""
     return raw.get("agentOutput") or ""
 
 
 def extract_context(raw: dict[str, Any]) -> list[str]:
+    """Return the stored retrieval context, if the trace includes it."""
     return raw.get("context") or []
 
 
 def extract_events(raw: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return the raw ADK event list for lower-level parsing helpers."""
     return raw.get("raw_events") or []
 
 
 def extract_session_id(raw: dict[str, Any]) -> str | None:
+    """Return the ADK session id when present."""
     return raw.get("sessionId")
 
 
 def extract_latency_ms(raw: dict[str, Any]) -> float | None:
+    """Return the captured latency in milliseconds, if available."""
     return raw.get("latency_ms")
 
 

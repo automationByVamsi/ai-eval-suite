@@ -13,9 +13,11 @@ class CorrectnessMetric(DeepEvalMetric):
     """Is the answer factually correct and complete compared to the expected answer?"""
 
     def __init__(self, *args, expected_source: str = "expected_answer", **kwargs):
+        """Default this metric to the configured expected answer field."""
         super().__init__(*args, expected_source=expected_source, **kwargs)
 
     def build_deepeval_metric(self):
+        """Create the GEval judge used for correctness scoring."""
         return GEval(
             name="Correctness",
             criteria=(
@@ -32,6 +34,7 @@ class CorrectnessMetric(DeepEvalMetric):
         )
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Skip cleanly when no expected answer is available."""
         expected_output = resolve_field(self.expected_source, test_case, response)
         if not expected_output or not str(expected_output).strip():
             return MetricResult(

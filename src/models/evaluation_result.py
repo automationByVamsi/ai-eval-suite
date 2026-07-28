@@ -14,12 +14,14 @@ from src.models.metric_result import MetricResult
 
 
 class DeterministicCheckResult(BaseModel):
+    """Result of one deterministic check attached to a case."""
     name: str
     passed: bool
     reason: str = ""
 
 
 class EvaluationResult(BaseModel):
+    """End-to-end result for one case in the simple CLI flow."""
     test_case_id: str
     agent_name: str
     passed: bool
@@ -28,11 +30,13 @@ class EvaluationResult(BaseModel):
 
     @property
     def failed_reasons(self) -> list[str]:
+        """Return human-readable reasons for any failing checks."""
         if self.error:
             return [self.error]
         return [f"{m.name}: {m.reason}" for m in self.metric_results if not m.passed]
 
     def print_summary(self) -> None:
+        """Print a short CLI summary for this case."""
         status = "PASS" if self.passed else "FAIL"
         print(f"[{status}] {self.test_case_id} ({self.agent_name})")
         for m in self.metric_results:
@@ -64,27 +68,32 @@ class CaseEvaluationResult(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _accept_legacy_stage_name(cls, data: Any) -> Any:
+        """Accept older payloads that still use `stage_name`."""
         if isinstance(data, dict) and "eval_name" not in data and "stage_name" in data:
             data = {**data, "eval_name": data["stage_name"]}
         return data
 
     @property
     def deterministic_passed(self) -> bool:
+        """Return whether all deterministic checks passed."""
         return all(r.passed for r in self.deterministic_results)
 
     @property
     def passed(self) -> bool:
+        """Return whether both deterministic checks and judges passed."""
         det_ok = self.deterministic_passed
         metrics_ok = all(r.passed for r in self.metric_results)
         return det_ok and metrics_ok
 
     @property
     def failed_reasons(self) -> list[str]:
+        """Return readable reasons for failed deterministic or judge checks."""
         reasons = [r.reason for r in self.deterministic_results if not r.passed]
         reasons += [f"{m.name}: {m.reason}" for m in self.metric_results if not m.passed]
         return reasons
 
     def print_summary(self) -> None:
+        """Print a short CLI summary for this stage result."""
         status = "PASS" if self.passed else "FAIL"
         print(f"[{status}] {self.eval_name} :: {self.test_case_id}")
         for field, value in self.result_fields.items():
@@ -114,6 +123,7 @@ class E2ECaseResult(BaseModel):
 
     @property
     def deterministic_passed(self) -> bool:
+        """Return whether every nested stage passed its deterministic checks."""
         return bool(self.stages) and all(s.deterministic_passed for s in self.stages)
 
     @property
@@ -122,6 +132,7 @@ class E2ECaseResult(BaseModel):
         return self.deterministic_passed
 
     def print_summary(self) -> None:
+        """Print a short CLI summary for this e2e case."""
         status = "PASS" if self.passed else "FAIL"
         print(f"[{status}] e2e :: {self.test_case_id} ({len(self.stages)} stages)")
         for s in self.stages:

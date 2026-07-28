@@ -47,6 +47,7 @@ _ENV_ALIASES: tuple[tuple[str, str], ...] = (
 
 
 def _load_env_file(env_path: Path, *, override_keys: Iterable[str] | None = None) -> None:
+    """Load KEY=VALUE lines from one env file into `os.environ`."""
     allow_override = set(override_keys or ())
     for raw in env_path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -96,6 +97,7 @@ def expand_env_string(value: str) -> str:
     """Replace `${VAR}` and `${VAR:-default}` using os.environ."""
 
     def _repl(match: re.Match[str]) -> str:
+        """Replace one `${VAR}` match using the environment or default."""
         var_name = match.group(1)
         default = match.group(2)
         if var_name in os.environ:

@@ -17,6 +17,7 @@ from src.runners.factories import MetricFactory
 
 
 def _collect_test_case_paths(tests_arg: str) -> list[str]:
+    """Expand `--tests` into a sorted list of JSON case paths."""
     path = Path(tests_arg)
     if path.is_dir():
         return sorted(str(p) for p in path.glob("*.json"))
@@ -40,6 +41,7 @@ def _infer_save_dir(tests_arg: str) -> Path | None:
 
 
 def main() -> int:
+    """Parse CLI args, run evaluations, print the dashboard, and exit."""
     parser = argparse.ArgumentParser(description="Run agent evaluations (live ADK)")
     parser.add_argument("--tests", required=True, help="Test case JSON file or a directory of them")
     parser.add_argument("--configs", default="configs", help="Root config dir (agents.yaml, cortex.yaml)")

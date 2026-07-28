@@ -22,11 +22,13 @@ _DEFAULT_ATHENA_BASE = (
 
 
 def load_synth_config(agent: str, configs_dir: str | Path = "configs") -> dict[str, Any]:
+    """Load the synthesizer config for one agent."""
     path = Path(configs_dir) / "synthesizers" / agent / "config.yaml"
     return load_yaml(path)
 
 
 def agent_config_dir(agent: str, configs_dir: str | Path = "configs") -> Path:
+    """Return the config directory for one agent synthesizer."""
     return Path(configs_dir) / "synthesizers" / agent
 
 
@@ -48,6 +50,7 @@ class KnowledgeAgentSynthesizer:
         athena_base_url: str | None = None,
         fixture_path: str | Path | None = None,
     ):
+        """Initialize paths, config, and the Athena client for synthesis work."""
         self.agent = agent
         self.configs_dir = Path(configs_dir)
         self.agent_dir = agent_config_dir(agent, configs_dir)

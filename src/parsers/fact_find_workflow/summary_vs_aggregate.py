@@ -23,6 +23,7 @@ from src.parsers.fact_find_workflow.tool_calls import extract_tools_called, tool
 
 
 class SummaryVsAggregateParsed(BaseModel):
+    """Parsed summary plus checks against the aggregated ground truth."""
     complaint_ref: str
     answer: str
     path: str = "success"  # success | invalid_complaint
@@ -56,11 +57,13 @@ class SummaryVsAggregateParsed(BaseModel):
 
 
 def _section_present(answer: str, *needles: str) -> bool:
+    """Return True when any expected section label appears in the answer."""
     lower = answer.lower()
     return any(n.lower() in lower for n in needles)
 
 
 def _token_hits(answer: str, tokens: list[str], *, min_hits: int = 2) -> bool:
+    """Check whether enough expected tokens appear in the answer text."""
     if not tokens:
         return False
     lower = answer.lower()
@@ -69,6 +72,7 @@ def _token_hits(answer: str, tokens: list[str], *, min_hits: int = 2) -> bool:
 
 
 def parse(raw: dict[str, Any], *, aggregated_payload_path: str | Path | None = None) -> SummaryVsAggregateParsed:
+    """Compare one Fact Find summary trace with its expected payload facts."""
     test_case = raw.get("test_case", {})
     agent_output = raw.get("raw_output", {})
     expected = test_case.get("expected") or {}

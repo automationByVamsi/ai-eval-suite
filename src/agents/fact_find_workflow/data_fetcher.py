@@ -18,24 +18,30 @@ PartyId = str
 
 
 def _now() -> str:
+    """Return the current UTC timestamp in ISO format."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def _error_body(message: str) -> dict[str, Any]:
+    """Wrap an error message with a timestamp."""
     return {"message": message, "timestamp": _now()}
 
 
 def _holding_error_payload(message: str) -> dict[str, Any]:
+    """Match the customer-holding error shape used elsewhere in the payload."""
     return {"error": _error_body(message)}
 
 
 class DataFetcher:
+    """Fetch Fact Find backend data and normalize the results."""
     @staticmethod
     def normalize_account_key(account_number: Any) -> str:
+        """Trim an account number down to the 14-digit comparison key."""
         return str(account_number or "").strip()[:14]
 
     @staticmethod
     def is_eligible_product_type(product_type: Any) -> bool:
+        """Return True when the product type should get account details."""
         return str(product_type or "").strip() in config.ELIGIBLE_PRODUCT_TYPES
 
     @classmethod
@@ -44,6 +50,7 @@ class DataFetcher:
         customer_holdings_by_party: dict[str, Any],
         account_number_full: Any,
     ) -> list[PartyId]:
+        """Find parties linked to the given account within holding responses."""
         target = cls.normalize_account_key(account_number_full)
         if not target:
             return []
@@ -68,6 +75,7 @@ class DataFetcher:
         cls,
         customer_holdings_by_party: dict[str, Any],
     ) -> dict[str, str]:
+        """Collect eligible account numbers keyed by their normalized form."""
         account_numbers: dict[str, str] = {}
         for holding in customer_holdings_by_party.values():
             products = holding.get("product") if isinstance(holding, dict) else None
@@ -90,10 +98,12 @@ class DataFetcher:
         client: FactFindHttpClient,
         party_ids: list[PartyId],
     ) -> dict[str, Any]:
+        """Fetch customer-holding data for each party id in parallel."""
         if not party_ids:
             return {}
 
         def _one(party_id: str) -> tuple[str, Any]:
+            """Fetch one party's holdings and wrap errors in the payload shape."""
             try:
                 return party_id, get_customer_holding(client, party_id)
             except Exception as exc:  # noqa: BLE001
@@ -107,10 +117,12 @@ class DataFetcher:
         client: FactFindHttpClient,
         party_ids: list[PartyId],
     ) -> dict[str, Any]:
+        """Fetch contact notes for each party id in parallel."""
         if not party_ids:
             return {}
 
         def _one(party_id: str) -> tuple[str, Any]:
+            """Fetch one party's contact notes and preserve per-party failures."""
             try:
                 notes = get_contact_notes(client, party_id)
                 return party_id, {"notes": notes, "error": None}
@@ -128,10 +140,12 @@ class DataFetcher:
         client: FactFindHttpClient,
         party_ids: list[PartyId],
     ) -> dict[str, Any]:
+        """Fetch trusted-party data for each party id in parallel."""
         if not party_ids:
             return {}
 
         def _one(party_id: str) -> tuple[str, Any]:
+            """Fetch one party's trusted-party data with error details when needed."""
             try:
                 trusted = get_trusted_parties(client, party_id)
                 return party_id, {"trustedParties": trusted, "error": None}
@@ -150,6 +164,7 @@ class DataFetcher:
         customer_holdings_by_party: dict[str, Any],
         seed_map: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Fetch missing account details for eligible accounts only."""
         details_map = dict(seed_map or {})
         eligible = cls.extract_eligible_account_numbers(customer_holdings_by_party)
         to_fetch = {k: v for k, v in eligible.items() if k not in details_map}
@@ -157,6 +172,7 @@ class DataFetcher:
             return details_map
 
         def _one(item: tuple[str, str]) -> tuple[str, Any]:
+            """Fetch one account's details keyed by the normalized account id."""
             key, account_number_full = item
             try:
                 return key, get_account_details(client, account_number_full)
@@ -169,6 +185,7 @@ class DataFetcher:
 
     @staticmethod
     def _parallel_map(items: list[Any], fn) -> dict[str, Any]:
+        """Run a keyed worker function over items and collect the results."""
         if not items:
             return {}
         results: dict[str, Any] = {}

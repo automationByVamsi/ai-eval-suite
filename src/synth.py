@@ -18,6 +18,7 @@ from src.synthesizer.pipeline import KnowledgeAgentSynthesizer
 
 
 def main() -> None:
+    """Run the synthesizer CLI for Athena prep and golden generation."""
     parser = argparse.ArgumentParser(
         description="Prepare Athena source docs and/or generate KA goldens"
     )

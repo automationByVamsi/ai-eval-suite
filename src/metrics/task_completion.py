@@ -21,6 +21,7 @@ class TaskCompletionMetricAdapter(DeepEvalMetric):
         input_source: str = "complaint_ref",
         **kwargs,
     ):
+        """Set the task description and default input field for completion scoring."""
         super().__init__(*args, input_source=input_source, **kwargs)
         self.task = task or (
             "Given a complaint reference, gather customer facts and produce a "
@@ -28,6 +29,7 @@ class TaskCompletionMetricAdapter(DeepEvalMetric):
         )
 
     def build_deepeval_metric(self):
+        """Create the DeepEval task completion judge."""
         return TaskCompletionMetric(
             threshold=self.threshold,
             task=self.task,

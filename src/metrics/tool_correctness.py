@@ -22,6 +22,7 @@ class ToolCorrectnessMetricAdapter(DeepEvalMetric):
         should_exact_match: bool = False,
         **kwargs,
     ):
+        """Configure where actual and expected tool calls come from."""
         super().__init__(
             *args,
             tools_called_source=tools_called_source,
@@ -32,6 +33,7 @@ class ToolCorrectnessMetricAdapter(DeepEvalMetric):
         self.should_exact_match = should_exact_match
 
     def build_deepeval_metric(self):
+        """Create the DeepEval tool correctness judge."""
         return ToolCorrectnessMetric(
             threshold=self.threshold,
             model=self.cortex_llm,

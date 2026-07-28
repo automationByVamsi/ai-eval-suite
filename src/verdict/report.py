@@ -6,10 +6,12 @@ from src.verdict.models import VerdictReport
 
 
 def _pct(rate: float) -> str:
+    """Format a decimal rate as a right-aligned percentage."""
     return f"{rate * 100:5.1f}%"
 
 
 def print_report(report: VerdictReport) -> None:
+    """Print a readable terminal summary for a VERDICT report."""
     print("\n" + "=" * 72)
     print("VERDICT — reliability report")
     print("=" * 72)

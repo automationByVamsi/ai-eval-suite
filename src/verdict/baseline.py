@@ -9,6 +9,7 @@ from src.verdict.models import MetricAggregate
 
 
 def baseline_path(root: str | Path, profile: str, name: str = "latest") -> Path:
+    """Return the JSON path for a saved baseline."""
     return Path(root) / profile / f"{name}.json"
 
 
@@ -20,6 +21,7 @@ def save_baseline(
     name: str = "latest",
     meta: dict | None = None,
 ) -> Path:
+    """Save aggregate VERDICT metrics as a named baseline file."""
     path = baseline_path(root, profile, name)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -37,6 +39,7 @@ def load_baseline(
     profile: str,
     name: str = "latest",
 ) -> list[MetricAggregate]:
+    """Load aggregate VERDICT metrics from a named baseline file."""
     path = baseline_path(root, profile, name)
     if not path.is_file():
         raise FileNotFoundError(f"No baseline at {path}")

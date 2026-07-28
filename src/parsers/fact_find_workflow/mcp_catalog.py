@@ -49,6 +49,7 @@ FACTFIND_MCP_TOOLS: list[dict[str, Any]] = [
 
 
 def default_factfind_mcp_servers() -> list[MCPServer]:
+    """Return the default Fact Find MCP server catalog for evaluations."""
     return [
         MCPServer(
             server_name="fact_find_backends",

@@ -21,6 +21,7 @@ from src.synthesizer.goldens.styling import build_styling_config
 
 
 def load_cleaned_docs(docs_dir: Path) -> list[dict[str, Any]]:
+    """Load cleaned source-doc JSON files that have usable content."""
     docs: list[dict[str, Any]] = []
     for path in sorted(docs_dir.glob("*.json")):
         if path.name.startswith("_"):
@@ -39,6 +40,7 @@ def load_cleaned_docs(docs_dir: Path) -> list[dict[str, Any]]:
 
 
 def _resolve(agent_dir: Path, name: str) -> Path:
+    """Resolve a config-relative path, falling back to the agent directory."""
     path = Path(name)
     if path.is_file():
         return path

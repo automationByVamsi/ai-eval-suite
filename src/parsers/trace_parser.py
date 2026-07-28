@@ -8,6 +8,7 @@ from src.core.exceptions import TraceParseError
 
 
 def load_raw_trace(path: str | Path) -> dict[str, Any]:
+    """Load one saved trace file and validate that it contains JSON."""
     path = Path(path)
     if not path.exists():
         raise TraceParseError(f"Trace file not found: {path}")

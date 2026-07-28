@@ -17,12 +17,15 @@ class Registry:
     """Simple name → class map with a `.register()` decorator."""
 
     def __init__(self, kind: str, not_found_error: type[Exception] = KeyError):
+        """Store registry metadata and the backing name-to-class map."""
         self._kind = kind
         self._not_found_error = not_found_error
         self._classes: dict[str, type] = {}
 
     def register(self, name: str):
+        """Return a decorator that registers a class under `name`."""
         def decorator(cls: type) -> type:
+            """Register one class and reject conflicting duplicate names."""
             if name in self._classes and self._classes[name] is not cls:
                 raise ValueError(
                     f"{self._kind} '{name}' is already registered to {self._classes[name]}"
@@ -33,6 +36,7 @@ class Registry:
         return decorator
 
     def get(self, name: str) -> type:
+        """Look up a registered class by name."""
         if name not in self._classes:
             available = ", ".join(sorted(self._classes)) or "(none registered)"
             raise self._not_found_error(
@@ -41,6 +45,7 @@ class Registry:
         return self._classes[name]
 
     def is_registered(self, name: str) -> bool:
+        """Return whether a name is already registered."""
         return name in self._classes
 
 

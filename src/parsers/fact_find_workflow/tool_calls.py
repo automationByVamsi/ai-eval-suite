@@ -37,4 +37,5 @@ def extract_tools_called(raw: dict[str, Any]) -> list[ToolCall]:
 
 
 def tool_calls_from_expected(names: list[str] | None) -> list[ToolCall]:
+    """Build simple expected ToolCall objects from tool names only."""
     return [ToolCall(name=str(n)) for n in (names or []) if n]

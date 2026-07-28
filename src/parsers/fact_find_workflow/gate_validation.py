@@ -20,6 +20,7 @@ _INVALID_MARKERS = ("InvalidComplaintId", "valid complaint reference must begin"
 
 
 class GateValidationParsed(BaseModel):
+    """Structured view of the complaint-reference validation stage."""
     complaint_ref: str
     validation_failed: bool
     successful_run: Optional[bool] = None
@@ -51,6 +52,7 @@ _state_value = state_value
 
 
 def parse(raw: dict[str, Any]) -> GateValidationParsed:
+    """Extract validation-stage signals from a saved Fact Find run."""
     test_case = raw.get("test_case", {})
     agent_output = raw.get("raw_output", {})
     complaint_ref = (
@@ -83,4 +85,5 @@ def parse(raw: dict[str, Any]) -> GateValidationParsed:
 
 
 def is_valid_complaint_ref(value: str) -> bool:
+    """Return True when the value matches the expected NC######## format."""
     return bool(_COMPLAINT_REF_RE.match((value or "").strip()))

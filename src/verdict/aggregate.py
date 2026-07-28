@@ -9,6 +9,7 @@ from src.verdict.models import MetricAggregate, RepResult
 
 
 def _std(values: list[float]) -> float:
+    """Return the sample standard deviation for numeric scores."""
     if len(values) < 2:
         return 0.0
     mean = sum(values) / len(values)

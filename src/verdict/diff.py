@@ -12,6 +12,8 @@ def diff_against_baseline(
     drop_threshold: float = 0.15,
 ) -> list[DiffRow]:
     """
+    Compare current aggregates to baseline aggregates by pass rate.
+
     Flag a regression when pass_rate drops by more than drop_threshold
     (default 15pp). Ignores tiny noise from judge flakiness.
     """

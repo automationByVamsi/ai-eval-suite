@@ -8,6 +8,7 @@ from src.verdict.models import CheckObservation
 
 
 def from_deterministic(results: list[Any]) -> list[CheckObservation]:
+    """Convert deterministic check results into VERDICT observations."""
     return [
         CheckObservation(name=r.name, kind="deterministic", passed=r.passed, reason=r.reason or "")
         for r in results
@@ -15,6 +16,7 @@ def from_deterministic(results: list[Any]) -> list[CheckObservation]:
 
 
 def from_judges(results: list[Any]) -> list[CheckObservation]:
+    """Convert judge results into VERDICT observations with score fields."""
     return [
         CheckObservation(
             name=r.name,

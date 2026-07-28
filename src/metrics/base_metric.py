@@ -28,6 +28,7 @@ _RESPONSE_ATTR_ALIASES = {"retrieval_context": "context"}
 
 
 def resolve_field(source_name: Optional[str], test_case: TestCase, response: AgentResponse) -> Any:
+    """Resolve a configured source name from inputs, response data, or expected values."""
     if not source_name:
         return None
     if source_name in test_case.input:
@@ -44,6 +45,7 @@ def resolve_field(source_name: Optional[str], test_case: TestCase, response: Age
 
 
 def _as_tool_calls(value: Any) -> list[ToolCall] | None:
+    """Normalize supported tool-call shapes into DeepEval ToolCall objects."""
     if value is None:
         return None
     if isinstance(value, list) and (not value or isinstance(value[0], ToolCall)):
@@ -67,12 +69,15 @@ def _as_tool_calls(value: Any) -> list[ToolCall] | None:
 
 
 class BaseMetric(ABC):
+    """Common interface for all metrics in the suite."""
     def __init__(self, name: str, threshold: float = 0.7, **_kwargs: Any):
+        """Store the metric name and pass threshold."""
         self.name = name
         self.threshold = threshold
 
     @abstractmethod
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Score one response against one test case."""
         raise NotImplementedError
 
 
@@ -98,6 +103,7 @@ class DeepEvalMetric(BaseMetric):
         expected_tools_source: Optional[str] = None,
         **kwargs: Any,
     ):
+        """Store shared DeepEval wiring for input, output, and context sources."""
         super().__init__(name, threshold, **kwargs)
         self.cortex_llm = CortexDeepEvalLLM(cortex_client) if cortex_client else None
         self.evaluation_params = evaluation_params or ["input", "actual_output"]
@@ -110,6 +116,7 @@ class DeepEvalMetric(BaseMetric):
         self.expected_tools_source = expected_tools_source
 
     def build_llm_test_case(self, test_case: TestCase, response: AgentResponse) -> LLMTestCase:
+        """Build the DeepEval test-case object from configured source mappings."""
         retrieval = resolve_field(self.context_source, test_case, response) if self.context_source else None
         expected_output = resolve_field(self.expected_source, test_case, response) if self.expected_source else None
         ground_truth = (
@@ -142,6 +149,7 @@ class DeepEvalMetric(BaseMetric):
         raise NotImplementedError
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Run the DeepEval metric and convert its result into MetricResult."""
         try:
             llm_test_case = self.build_llm_test_case(test_case, response)
             deepeval_metric = self.build_deepeval_metric()

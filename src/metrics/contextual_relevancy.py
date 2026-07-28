@@ -12,14 +12,17 @@ class ContextualRelevancyMetricAdapter(DeepEvalMetric):
     """Is retrieval_context relevant to the input? (RAG retriever quality)."""
 
     def __init__(self, *args, context_source: str = "retrieval_context", **kwargs):
+        """Default this metric to the response retrieval context."""
         super().__init__(*args, context_source=context_source, **kwargs)
 
     def build_deepeval_metric(self):
+        """Create the DeepEval contextual relevancy judge."""
         return ContextualRelevancyMetric(
             threshold=self.threshold, model=self.cortex_llm, include_reason=True
         )
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Skip cleanly when no retrieval context is available."""
         context = resolve_field(self.context_source, test_case, response)
         if not isinstance(context, list) or not context:
             return MetricResult(

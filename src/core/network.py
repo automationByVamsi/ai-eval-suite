@@ -54,6 +54,7 @@ def split_host_path(url: str) -> tuple[str, str, str]:
 
 
 def _ssl_context(verify_tls: bool) -> ssl.SSLContext:
+    """Build an SSL context, optionally skipping certificate checks."""
     if verify_tls:
         return ssl.create_default_context()
     ctx = ssl._create_unverified_context()
@@ -63,6 +64,7 @@ def _ssl_context(verify_tls: bool) -> ssl.SSLContext:
 
 
 def _with_params(url: str, params: dict[str, str] | None) -> str:
+    """Add query params to a URL, preserving any existing query string."""
     if not params:
         return url
     parsed = urlparse(url)

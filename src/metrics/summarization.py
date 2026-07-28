@@ -14,9 +14,11 @@ class SummarizationMetricAdapter(DeepEvalMetric):
     """
 
     def __init__(self, *args, input_source: str = "source_document", **kwargs):
+        """Default this metric to the source document field."""
         super().__init__(*args, input_source=input_source, **kwargs)
 
     def build_deepeval_metric(self):
+        """Create the DeepEval summarization judge."""
         return SummarizationMetric(
             threshold=self.threshold, model=self.cortex_llm, include_reason=True
         )

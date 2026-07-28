@@ -16,10 +16,12 @@ class KeywordMatchMetric(BaseMetric):
     """threshold = minimum fraction of expected.keywords that must appear in the answer."""
 
     def __init__(self, name: str, threshold: float = 1.0, keywords_source: str = "keywords", **kwargs):
+        """Configure which expected keyword list to check against the answer."""
         super().__init__(name, threshold, **kwargs)
         self.keywords_source = keywords_source
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        """Score the answer by how many required keywords it contains."""
         keywords = test_case.expected.get(self.keywords_source, [])
         if not keywords:
             return MetricResult(name=self.name, score=1.0, threshold=self.threshold, passed=True, reason="No keywords configured")

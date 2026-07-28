@@ -9,4 +9,5 @@ class RelevanceMetric(DeepEvalMetric):
     """Is the answer relevant to the question? Scored by DeepEval's AnswerRelevancyMetric."""
 
     def build_deepeval_metric(self):
+        """Create the DeepEval answer relevancy judge."""
         return AnswerRelevancyMetric(threshold=self.threshold, model=self.cortex_llm, include_reason=True)
