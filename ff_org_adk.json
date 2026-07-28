@@ -1,0 +1,1042 @@
+{
+    "complaintRef": "NC10010556",
+    "sessionId": "9fc9b16c-444a-4754-9e66-18baf9ac1b2a",
+    "capturedAt": "2026-07-26T09:17:16.902866Z",
+    "agentOutput": "# Customer FactFind Summary:\n\n## Complaint Reference: NC10010556\n\n## Customer Profile: Mrs Monica Gabi Adaeze Geller \u2705 Primary Customer\n- **Party ID**: 68905187\n- **Current address details**: 1 Bonaly Brae, Blackburn, Aberdeen, AB21 0EP\n- **Date of birth and age**: 19/08/1990 (35)\n- **Marital status**: SINGLE\n- **Party ID Created**: 01/02/2024\n\n## Recent change to contact details (last 30 days): Mrs Monica Gabi Adaeze Geller\n- **Recent change of address**: No recent change of address\n- **Recent change of telephone number**: No recent change of telephone number\n\n## Support Needs: Mrs Monica Gabi Adaeze Geller\n#### Support Need: 3P - 3rd Party Mandate\n- **Date recorded**: 13/03/2025\n- **Valid from date**: 13/03/2025\n- **Review date**: Ongoing (no date set)\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: dfbn\n\n#### Support Need: DO NOT USE - Need for Quiet\n- **Date recorded**: 13/03/2025\n- **Valid from date**: 13/03/2025\n- **Review date**: Ongoing (no date set)\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: dfsbeb\n\n#### Support Need: Adapt - Longer Appointment\n- **Date recorded**: 11/11/2025\n- **Valid from date**: 11/11/2025\n- **Review date**: 11/12/2025\n- **Consent status**: Notified by 3rd Party - CARERS Drill\n- **Further information**: added for expiry test\n\n#### Support Need: Domestic/Financial Abuse\n- **Date recorded**: 29/10/2025\n- **Valid from date**: 29/10/2025\n- **Review date**: 23/10/2026\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: code 40\n\n#### Support Need: Life Event - Flexibility\n- **Date recorded**: 23/04/2026\n- **Valid from date**: 23/04/2026\n- **Review date**: 23/07/2026\n- **Consent status**: Consent not possible - see DPM approval\n- **Further information**: for notificaion order\n\n## Account Holdings\n### Classic: 77110361403060 \u2705 Associated with complaint\n- **Account status**: OPEN\n- **Parties on account**:\n  - Party ID: 68905187 | Primary role: True\n- **Customer role on the product**: HOLDER_OF_PRODUCT\n- **Account opened date**: 03/10/2023\n- **Product indicators**:\n  - No product indicators\n- **Current balance**: \u00a30.00\n- **Balance after pending transactions**: \u00a30.00\n- **Overdraft amount**: \u00a30.00\n- **Final available balance**: \u00a30.00\n\n## Warnings\n## Related Parties for Mrs Monica Gabi Adaeze Geller (Party ID: 68905187)\n### Trusted Party (linked to Support Need)\n- **No Trusted Party identified**\n\n### Trusted Relationships (can view customer account(s))\n- **No Relationships identified**\n\n### Other Related Party\n#### Attorney / Receiver to\n- **Name**: Mr M Kerch\n- **Related Party ID**: 158010138\n- **Party Type**: INDIVIDUAL\n\n## Contact Notes\n### 23/07/2026 13:16\n- **Contact date**: 23/07/2026\n- **Contact time**: 13:16\n- **Direction of contact**: Internal In\n- **Outcome of contact**: From 3rd Party\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Cash Withdrawal for \u00a310,000.00 in Bolton Hotel Street (770201) . Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present, Signature Check & CVP. Colleague declaration: Confirmed. Completed by 5616954\n\n### 11/06/2026 10:38\n- **Contact date**: 11/06/2026\n- **Contact time**: 10:38\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away\n\n### 01/06/2026 05:42\n- **Contact date**: 01/06/2026\n- **Contact time**: 05:42\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Colleague declaration: Confirmed. Terminated due to navigated away. Actions taken: Interviewed customer in a private room. Invoked Banking protocol\n\n### 28/05/2026 07:14\n- **Contact date**: 28/05/2026\n- **Contact time**: 07:14\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Terminated due to navigated away\n\n### 28/05/2026 06:55\n- **Contact date**: 28/05/2026\n- **Contact time**: 06:55\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away\n",
+    "raw_events": [
+      {
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "initialized": true,
+            "interaction_count": 1,
+            "successful_run": false
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "ea797cb5-d0fe-4f29-be42-2c6bc203011d",
+        "timestamp": 1785057372.9164765
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "functionCall": {
+                "id": "call_93747a0bbd6f46a5b8145534a4dc__thought__CowCAY89a18OF/nHGxowz0tVDUMJC8SX6OivYQAN7dauvmSKK0ROeSAQFwEKjUI+BzwJSbB911VJmllevRLWJb4+MgmdpGmrOONn9AACAtIEz1u3kh9JkoX9RnCc0OGUzFRLGsKwUoDqFpdG0nQt+1Rl4S2MMhYjXFztfzyg9xkjBjpajQAvaj/7Ndmk+KfKxD/DdTdpRQUJLN5cotwU2IdNJMXRjIemoMilGqr/wBS3ffFI0TiQT3TJ2ut+YbeqVP93zCRGyGa28/A3UpgGBZhX+FiwOIGR+kdp5x+rEDFsFj6eBz4Z4CTXpqRNPWYhT4JjWv5d1H/nzWcz+/IBrN1k7vKKBhASqByS10qi2A==",
+                "args": {
+                  "complaintReference": "NC10010556"
+                },
+                "name": "getCustomerSummary"
+              },
+              "thoughtSignature": "CowCAY89a18OF_nHGxowz0tVDUMJC8SX6OivYQAN7dauvmSKK0ROeSAQFwEKjUI-BzwJSbB911VJmllevRLWJb4-MgmdpGmrOONn9AACAtIEz1u3kh9JkoX9RnCc0OGUzFRLGsKwUoDqFpdG0nQt-1Rl4S2MMhYjXFztfzyg9xkjBjpajQAvaj_7Ndmk-KfKxD_DdTdpRQUJLN5cotwU2IdNJMXRjIemoMilGqr_wBS3ffFI0TiQT3TJ2ut-YbeqVP93zCRGyGa28_A3UpgGBZhX-FiwOIGR-kdp5x-rEDFsFj6eBz4Z4CTXpqRNPWYhT4JjWv5d1H_nzWcz-_IBrN1k7vKKBhASqByS10qi2A=="
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 0,
+          "candidatesTokenCount": 59,
+          "promptTokenCount": 8507,
+          "thoughtsTokenCount": 45,
+          "totalTokenCount": 8566
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "complaint_validation_failed": false,
+            "complaint_id": "NC10010556",
+            "session_cost_summary": {
+              "total_prompt_tokens": 8507,
+              "total_cached_tokens": 0,
+              "total_completion_tokens": 59,
+              "total_thinking_tokens": 45,
+              "total_tokens": 8566,
+              "total_cost_usd": 0.0027446,
+              "call_count": 1
+            }
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "longRunningToolIds": [],
+        "id": "9866afab-2426-47d9-bfeb-36e3d895a9b0",
+        "timestamp": 1785057372.9834015
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "functionResponse": {
+                "id": "call_93747a0bbd6f46a5b8145534a4dc__thought__CowCAY89a18OF/nHGxowz0tVDUMJC8SX6OivYQAN7dauvmSKK0ROeSAQFwEKjUI+BzwJSbB911VJmllevRLWJb4+MgmdpGmrOONn9AACAtIEz1u3kh9JkoX9RnCc0OGUzFRLGsKwUoDqFpdG0nQt+1Rl4S2MMhYjXFztfzyg9xkjBjpajQAvaj/7Ndmk+KfKxD/DdTdpRQUJLN5cotwU2IdNJMXRjIemoMilGqr/wBS3ffFI0TiQT3TJ2ut+YbeqVP93zCRGyGa28/A3UpgGBZhX+FiwOIGR+kdp5x+rEDFsFj6eBz4Z4CTXpqRNPWYhT4JjWv5d1H/nzWcz+/IBrN1k7vKKBhASqByS10qi2A==",
+                "name": "getCustomerSummary",
+                "response": {
+                  "structuredContent": {
+                    "result": {
+                      "value": {
+                        "complaint": {
+                          "item": {
+                            "accountNumber": 77110361403060
+                          },
+                          "dateComplaintWasRaised": "23/03/2026",
+                          "customers": [
+                            {
+                              "partyId": 68905187,
+                              "customerPrimaryIndicator": true
+                            }
+                          ]
+                        },
+                        "customerSummaries": [
+                          {
+                            "party": {
+                              "id": 68905187,
+                              "title": "Mrs",
+                              "foreName": "Monica Gabi Adaeze",
+                              "lastName": "Geller",
+                              "dateOfBirth": "19/08/1990",
+                              "dateOfDeath": null,
+                              "dateOfDeathNotified": null,
+                              "age": 35,
+                              "gender": "FEMALE",
+                              "maritalStatus": "SINGLE",
+                              "partyIdCreatedDate": "01/02/2024",
+                              "supportNeeds": [
+                                {
+                                  "code": 17,
+                                  "description": "3P - 3rd Party Mandate",
+                                  "display": "",
+                                  "dateForReview": "Ongoing (no date set)",
+                                  "dateEdited": "13/03/2025 11:19:50",
+                                  "dateRecorded": "13/03/2025 11:19:50",
+                                  "dateValidFrom": "13/03/2025",
+                                  "consentCode": "006",
+                                  "consentStatus": "Explicit Consent gained by Group process",
+                                  "furtherInformation": "dfbn"
+                                },
+                                {
+                                  "code": 26,
+                                  "description": "DO NOT USE - Need for Quiet",
+                                  "display": "",
+                                  "dateForReview": "Ongoing (no date set)",
+                                  "dateEdited": "13/03/2025 11:19:50",
+                                  "dateRecorded": "13/03/2025 11:19:50",
+                                  "dateValidFrom": "13/03/2025",
+                                  "consentCode": "006",
+                                  "consentStatus": "Explicit Consent gained by Group process",
+                                  "furtherInformation": "dfsbeb"
+                                },
+                                {
+                                  "code": 31,
+                                  "description": "Adapt - Longer Appointment",
+                                  "display": "",
+                                  "dateForReview": "11/12/2025",
+                                  "dateEdited": "11/11/2025 14:20:39",
+                                  "dateRecorded": "11/11/2025 14:20:39",
+                                  "dateValidFrom": "11/11/2025",
+                                  "consentCode": "009",
+                                  "consentStatus": "Notified by 3rd Party - CARERS Drill",
+                                  "furtherInformation": "added for expiry test"
+                                },
+                                {
+                                  "code": 40,
+                                  "description": "Domestic/Financial Abuse",
+                                  "display": "",
+                                  "dateForReview": "23/10/2026",
+                                  "dateEdited": "23/04/2026 11:41:13",
+                                  "dateRecorded": "29/10/2025 10:48:26",
+                                  "dateValidFrom": "29/10/2025",
+                                  "consentCode": "006",
+                                  "consentStatus": "Explicit Consent gained by Group process",
+                                  "furtherInformation": "code 40"
+                                },
+                                {
+                                  "code": 43,
+                                  "description": "Life Event - Flexibility",
+                                  "display": "",
+                                  "dateForReview": "23/07/2026",
+                                  "dateEdited": "23/04/2026 11:41:10",
+                                  "dateRecorded": "23/04/2026 11:41:10",
+                                  "dateValidFrom": "23/04/2026",
+                                  "consentCode": "008",
+                                  "consentStatus": "Consent not possible - see DPM approval",
+                                  "furtherInformation": "for notificaion order"
+                                }
+                              ],
+                              "categorizedRelatedParties": {
+                                "trustedRelationships": [],
+                                "otherRelatedParties": [
+                                  {
+                                    "relatedPartyId": 158010138,
+                                    "relatedPartyType": "INDIVIDUAL",
+                                    "relationshipDescription": "Attorney / Receiver to",
+                                    "relatedPartyRelationshipCode": "007",
+                                    "notificationText": "Attorney / Receiver to Mr M Kerch"
+                                  }
+                                ]
+                              },
+                              "address": {
+                                "addressLines": [
+                                  "1 Bonaly Brae",
+                                  "Blackburn",
+                                  "Aberdeen"
+                                ],
+                                "postcode": "AB21 0EP",
+                                "addressType": "RESIDENTIAL"
+                              },
+                              "relationshipNotifications": [
+                                {
+                                  "notificationText": "Attorney / Receiver to Mr M Kerch"
+                                }
+                              ],
+                              "addressNotifications": [],
+                              "telephoneNotifications": null
+                            },
+                            "accounts": [
+                              {
+                                "id": "1488479736",
+                                "accountNumber": "77110361403060",
+                                "validAccount": true,
+                                "name": "Classic",
+                                "marketSector": 0,
+                                "productType": "CURRENT_ACCOUNT",
+                                "accountCategory": "Cheque",
+                                "status": "OPEN",
+                                "openedDate": "03/10/2023",
+                                "closedDate": null,
+                                "isPrimaryRole": true,
+                                "productHeldRole": "HOLDER_OF_PRODUCT",
+                                "balance": {
+                                  "currentBalance": 0,
+                                  "balanceAfterPendingTransactions": 0,
+                                  "finalAvailableBalance": 0,
+                                  "overdraftAmount": 0,
+                                  "overdraftCurrencyCode": "GBP",
+                                  "overdraftType": "Pre-Agreed"
+                                },
+                                "partyIdentifiers": [
+                                  {
+                                    "partyId": 68905187,
+                                    "cidPrsId": 810851686
+                                  }
+                                ],
+                                "productIndicators": null,
+                                "partyList": [
+                                  {
+                                    "partyId": "68905187",
+                                    "isPrimaryRole": true,
+                                    "partyResourceType": "IndividualSummary",
+                                    "foreNames": [
+                                      "Monica",
+                                      "Gabi",
+                                      "Adaeze"
+                                    ],
+                                    "lastName": "Geller",
+                                    "initials": [
+                                      "M",
+                                      "G",
+                                      "A"
+                                    ],
+                                    "partyType": "INDIVIDUAL"
+                                  }
+                                ]
+                              }
+                            ],
+                            "accountCategoryWarnings": [],
+                            "trustedParties": {
+                              "errors": [
+                                {
+                                  "code": 404,
+                                  "message": "Trusted Party record with Id: 68905187 not found.",
+                                  "reasonCode": "Not Found"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "sources": [
+                        "NUCLEUS",
+                        "COUNTER",
+                        "OCIS"
+                      ]
+                    }
+                  },
+                  "content": [],
+                  "isError": false
+                }
+              }
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "_ff_ledger_shard.getCustomerSummary.1785057400362600877": {
+              "strings": [
+                "\"05/01/2026\n14:25:27\nstaff only - 646/659/623 added to *halifax* acc  acct to be closed, please advise as per the t&c's. we use information from credit & fraud agencies to help make our decision and the application has not been successful. if customer has further questions please call 0345 835 8020 quoting ref 180070485\n31/12/2025\n04:10:52\n*app fraud team*  declined & all facilities withdrawn. ref 179736026. branch to remove blocks 646,659,623 for withdrawal of any bgcs, credit balances less than \u00a3100 or cash deposits under \u00a32500 and close account. please refer fpi, chq balances over \u00a3100 or cash deposit over \u00a32500 forfurther review on 03458358020, mon - fri 8.30-5.30, sat 9-12*\n\n30/12/2025\ndeb\nskybet cd 7312\n10.00\n02/01/2026\npay\ndebitcard payment\n-10.00\"",
+                "\"pca - fraud - debit card - card not present (cnp)\npca - fraud - debit card - gambling\"",
+                "0",
+                "0.00",
+                "006",
+                "007",
+                "008",
+                "009",
+                "01/02/2024",
+                "03/10/2023",
+                "1 bonaly brae",
+                "11/11/2025",
+                "11/11/2025 14:20:39",
+                "11/12/2025",
+                "13/03/2025",
+                "13/03/2025 11:19:50",
+                "1488479736",
+                "158010138",
+                "158010138.00",
+                "17",
+                "17.00",
+                "19/08/1990",
+                "1990-08-19",
+                "2023-10-03",
+                "2024-02-01",
+                "2025-03-13",
+                "2025-10-29",
+                "2025-11-11",
+                "2025-12-11",
+                "2026-03-23",
+                "2026-04-23",
+                "2026-07-23",
+                "2026-10-23",
+                "23/03/2026",
+                "23/04/2026",
+                "23/04/2026 11:41:10",
+                "23/04/2026 11:41:13",
+                "23/07/2026",
+                "23/10/2026",
+                "26",
+                "26.00",
+                "29/10/2025",
+                "29/10/2025 10:48:26",
+                "31",
+                "31.00",
+                "35",
+                "35.00",
+                "3p - 3rd party mandate",
+                "40",
+                "40.00",
+                "404",
+                "404.00",
+                "43",
+                "43.00",
+                "68905187",
+                "68905187.00",
+                "77110361403060",
+                "77110361403060.00",
+                "810851686",
+                "810851686.00",
+                "a",
+                "ab21 0ep",
+                "aberdeen",
+                "adaeze",
+                "adapt - longer appointment",
+                "added for expiry test",
+                "attorney / receiver to",
+                "attorney / receiver to mr m kerch",
+                "blackburn",
+                "cheque",
+                "classic",
+                "code 40",
+                "complaints undertaken\nthere had been a \u00a310 payment via my debit card today 02.01.2026. i havent used or been able to access my money since 30.12.2025. i want to know how on earth you tbink its acceptable to take \u00a310 out of my account while i have no access to it! this was my beneifts money from dwp. i owe nothing to you, so why has \u00a310 been taken out? i was threatened to be evicted from the bank from saying this was fraud and not sky bet. i was waiting for nearly an hour for my own benefits money in the bank. embarrassing having to beg for my own benefits back. i think this is fraud that \u00a310 has been taken. in all my years of being an adult no bank has ever taken a random \u00a310 out.",
+                "consent not possible - see dpm approval",
+                "counter",
+                "current_account",
+                "dfbn",
+                "dfsbeb",
+                "do not use - need for quiet",
+                "domestic/financial abuse",
+                "explicit consent gained by group process",
+                "female",
+                "for notificaion order",
+                "g",
+                "gabi",
+                "gbp",
+                "geller",
+                "holder_of_product",
+                "individual",
+                "individualsummary",
+                "life event - flexibility",
+                "m",
+                "monica",
+                "monica gabi adaeze",
+                "monica gabi adaeze geller",
+                "mrs",
+                "mrs geller",
+                "mrs monica gabi adaeze geller",
+                "no recent change of address",
+                "no recent change of telephone number",
+                "not found",
+                "notified by 3rd party - carers drill",
+                "nucleus",
+                "ocis",
+                "ongoing (no date set)",
+                "open",
+                "pre-agreed",
+                "residential",
+                "single",
+                "trusted party record with id: 68905187 not found.",
+                "\u00a30",
+                "\u00a30.00",
+                "\u00a3158010138",
+                "\u00a3158010138.00",
+                "\u00a317",
+                "\u00a317.00",
+                "\u00a326",
+                "\u00a326.00",
+                "\u00a331",
+                "\u00a331.00",
+                "\u00a335",
+                "\u00a335.00",
+                "\u00a340",
+                "\u00a340.00",
+                "\u00a3404",
+                "\u00a3404.00",
+                "\u00a343",
+                "\u00a343.00",
+                "\u00a368905187",
+                "\u00a368905187.00",
+                "\u00a377110361403060",
+                "\u00a377110361403060.00",
+                "\u00a3810851686",
+                "\u00a3810851686.00"
+              ],
+              "amounts": [
+                0.0,
+                17.0,
+                26.0,
+                31.0,
+                35.0,
+                40.0,
+                43.0,
+                404.0,
+                68905187.0,
+                158010138.0,
+                810851686.0,
+                77110361403060.0
+              ],
+              "boolean_facts": {
+                "customerPrimaryIndicator": true,
+                "validAccount": true,
+                "isPrimaryRole": true
+              }
+            },
+            "_ff_tool_used.getCustomerSummary": true,
+            "complaint_verbatim": "Listen:\nComplaints Undertaken\nThere had been a \u00a310 payment via my debit card today 02.01.2026. I havent used or been able to access my money since 30.12.2025. I want to know how on earth you tbink its acceptable to take \u00a310 out of my account while I have no access to it! This was my beneifts money from DWP. I owe nothing to you, so why has \u00a310 been taken out? I was threatened to be evicted from the bank from saying this was fraud and not sky bet. I was waiting for nearly an hour for my OWN benefits money in the bank. Embarrassing having to beg for my own benefits back. I think this is fraud that \u00a310 has been taken. In all my years of being an adult no bank has ever taken a random \u00a310 out.\n\nUnderstand:\n\"05/01/2026\n14:25:27\nStaff only - 646/659/623 added to *halifax* Acc  Acct to be closed, please advise as per the T&C's. We use information from credit & fraud agencies to help make our decision and the application has not been successful. If customer has further questions please call 0345 835 8020 quoting Ref 180070485\n31/12/2025\n04:10:52\n*App Fraud Team*  declined & all facilities withdrawn. Ref 179736026. Branch to remove blocks 646,659,623 for withdrawal of any BGCs, credit balances less than \u00a3100 or cash deposits under \u00a32500 and CLOSE ACCOUNT. Please refer FPI, CHQ balances over \u00a3100 or cash deposit over \u00a32500 forfurther review on 03458358020, Mon - Fri 8.30-5.30, Sat 9-12*\n\n30/12/2025\nDEB\nSKYBET CD 7312\n10.00\n02/01/2026\nPAY\nDEBITCARD PAYMENT\n-10.00\"\n\nFix:\n\"PCA - Fraud - Debit Card - Card Not Present (CNP)\nPCA - Fraud - Debit Card - Gambling\"",
+            "date_complaint_was_raised": "23/03/2026",
+            "account_number": "77110361403060"
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "32af2846-c9ae-427e-b833-c52f7bc7c9ea",
+        "timestamp": 1785057400.362865
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "functionCall": {
+                "id": "call_06b699f155f04272b91e3a52793e__thought__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",
+                "args": {
+                  "partyId": "68905187"
+                },
+                "name": "getContactNotes"
+              },
+              "thoughtSignature": "Ct0kAY89a1-CyejLh-pJLkh8R5NsDnU4GUdc1UlzTpJE1GqCPu_suFNgsK8xreKEV25g3WK5HNbewVoa2VtYQ9gmC7s9SoYyB_VlixWa72cKarivds6_VX74zrV8fcr1OSDZKnQ_fTEKwlb3fqFt6wPpj45_dEWgvea8UfCTZRhh4JrSVG21ezzADhHIIz_Z--ZMc4rV-kW4anro7U43buHQgdOowHGAxizzHEWquZkwkIDoa_RssUwCQSOXn4tjLvfWOCW7_Ut0WnvAMPrnPOspIhZIfQNUInDVqHXKrTIffqd67110VZt8NvYqKHOuamug5oW2so-cwDaUFVx0n4nGMpofwcDSdhziq_2aXsUBnrRv3qx7_gvqRavqTDOmsnUrPe6VOZOoC_ACOMyr_HEdmeFq3w9MZ398G4AFD3hTiqDWj3Br0X0h4gKGl6AyvtSMg4bPmx89JkOB3d4_nWudGNyPTwirfK5zTaqcNSlf7aYeDa6APRKobRsIWJAsbQ55MExyJD1N8DNG_LV0witdRJlnGNOanTfCsHIT_7F_-dz4JtY07Gst7iMpWiAwnWePj3K7SpWbLlyQmQ636nGL5pM0N0kQOiHhMMIzAPwcUiDCTdMNXq_FeTDg_Qj49WMIS32GiUv9UydG7XGybD1Ujsu9gP2cokLY75g2HpsMqPBQ-XtjVvHzoiUCo7nM6cCm-6YxvZy1l7thk9qDOPLiePUJP2HSJuAuB5c8cj2dpE4VNvM7q8K5iaiG5rLwcapdWWGuudshAiymLu7MXLmHUcUwkWauFJyo4J8jpuuHpYEQOHfzGZu3_ZX1BCTLGhBXoTYeYTczQdrFUgdc4EFSdOzTAdvgGmwHnzMwep0fDrCUuOLZ1ib7NVTfbsy5bd0s05aKXwT7FU_UIGzbFlIB5HFYxtcUyF7TlL64gzTVrUzCUH0nrD7MIsMYvpq9mzUs6JwS01dYM2WVqUugQRy7Mz8UQR65VWgzhchEKEWGEWTYqnzvR_te7cQ2BPfN2HojI2xqVRRPTmFsCStCewM2oq4UpIJ7hNLx1P4E0DIEZIeREL4RtpFWU4DNMibgwQvpy5nmNR1ugYnJNPuKFBp0HaqN6tikAG6qXL4NSvukHOAnXPIucTGoe2LKLPR2VjpCMkkpQRquisWJ4rjOrqM38NdsGDAACqAFSwCU1MR-mccqSepVNnlAnTtL0QmRZMzFaN9tsf_8yRVzBVXVBwt2p6lDNglAz9lxbBSzJ-90mtA1I9PlbEFos-hIdS0Qz-WyzRWg9j8qELRolceTPM7hpH6G8lvFiWjWnF52ZjstLK7zd7RJ6UcwhmpOKroDGOtIaAtgbrjdysqlVopT9I5fDLixz5_7Fcm4viT0Qv5fMKfdzmm8SLSkHlVaj8O7DkXBcUESkj2N4t496GPLJ9la9f_Gpli0kGLV82wADcOKSLDczynRsp_HDYDlMNQQLrb4hsHpDP9XT8SpTbxhT9_htypvOdvFrNZWlZo_Y4sPZ_XZ19ArBlVhnaretj4FrIb5zi8_dHCFbDJ___lIP4gunO5eOnWVps7AuA_fnNYElcBTj-a-I8gqoYQW0qVMaFuHntXHbB3m-VJardKSmL0yt1knek1KuqYLEEzSjPgpGexFBKhj815fB3N6rS-RMxYn1gP0rDVPMIj5OnsQJx3Dd0BoNEFYbthyAc4quKqo8ivWtuICN6eYCFviwNalsu0hXQ6UyRN_NiPF36aYDr7ddL84vwcNmYuyPjItuBhHtaoYIpOwvQ08Lx7nL-104XPLOyoJEv64kh_fqh5wgOk75gsKR6d9jrsWmU5byAiHVZVxp0eoFivqY69P9DJtP6dYmug8HpVwB8PkXWOIXcsfxp11qCwSlCG3C7yHTs4cqdYRroT_YW6C53xlLhci3qPPN3URnXhhVL20C5t9tK3mTj5OiUfNvv8N3YsUvbGup0JADkz_MSV6Zx9qkzcD4EU4tqEKa7JQxAKM50qY21RiQnvO6kn84T31AGlbmOEWYwFZ-iAhZ-nlP3ST8jp5uIGlm9uO0tLVzp_SbyYaHAtC2svq7_iRWoWZxdHxmTfhnDG6PYH6GCn99cKWo0VJOIAwHBm6-Vr7jiEbQh6xQo882xd2D94_lowLWJAP8m1GjGb6phCvNd6Cd9RrACPltcD7LNoKtf15Dprvc0dMlxmH3HUDtxEN_9qzvc8cNprrsf_RJsrGOqV3pTTpj2lPvDvWZJTlYFztM5bhpoe0UT1qPLMDd4vr2S7hkKEefxsGl74pKDGdTmw2EBuEKdbO_rbTLx9yGk750XQBslFEAa3Vf29QzORl0tIlaxU3hfqAytSvnBdZcqkyDq6xh8Vk4vURGUjdUjAbycR7jJaMyJzYPNFmCmDROTFmz8s0rPAGw3u1g9TI01baiKWztKsvwLo9vJ3aC775uGl7UpoDgV8s3fso4h6mRhzWyTWRxVaJsZ3v0li9VvupTLW1-eXBbpufP-fo0iOoS4RsU7WawUGcbYh3uZZvgCxloCgPAiQxW1g6EaBZ988M9TDZM0hWZOXyhP1Rt4X4pRS28kOSs5463_ml0ai4cPhiSG-9ijY8y5oBd5_xuiw7Yl3xAwktFH6SYBVKd4XYimkYlAbnNQrZbHRK4m4DJG06lUL2AkhUiusul0S4ciR09Duokqnc2P9srYDe9_neHhCpvdP21tNmK7HW5FZSqvgdNDZHEzvKogZqnm_-PBQn3mJMKRvwVGcznJITSYV4UieovKWoD_MW_CAoCCjaafwqPFaGa9NRIV2wcodrnyGfY6aIqEX2jCc4fWTq_f7jIj23Mfd-6ax7ksSMMjpzgXGCpIsC7f3vgXUVTYyscOY3AIt3hLLLZ1ezS4uiBtW-Bt9dUDBXcYdbf0joymDReuDLtbRsEOR_-SRwRVpr8RN7Ewo1L4d6YgVoJnWB8ODfuRDxFEpL-9qjOpgznXANFWdQyZ0v75gmsiKkjIFyyZeNJ9Sp5ImgpKPTbxywFuCmM9zHcfGvvbstvs87sBAeiukuK8qko40CmeEF3SG0BtkWjWC7CFEwf8Dj0aqgyjN1GccZrU-F6TnNIhsHVX7MFGNXUvtPP5I_zpjCmh96WnwavKdx51Xjho4TQnhoEWH2u67N1wjhtn-Npx3SY_AVAsu4HALYn0fEn91K_y4Qk6r7FRlASVpLtiwt120UIwpqBh6NaaU7Rh0I1eTV3-QP8zlPqi5Jl_xSVR7ya1djZpkM1mFtHtebZWyd8GDJ5UarLx_WTbbQU3WZUxOEIlDoKjSb2bZN0bAzCwz9PMznjcU3fhvd7HZxonUMLtA55dIFbG1mGH4H-xPHeWu20Ua1GRfDAtFF08I28RCGNAMOlBLyt09NN1inCtZHLjyyUJMvMPhW03lp9fRI7QH5C92Ev0DC4IyciV-SQCUHGXZ2io0WwbVLIN6p11LqTJVfWnOPjOganqn83IfAVPuSLgc3wCsHYi13ZUUpbMpSn9kICZOLvmDYRj8TprTkke9UJZIgX-dP3x1_RWjqH9NCLEb0IcrGOpIksRl9YR8mkpERYotgxgeu4WwBH_vEOl7GEiW__9hyArRF3FgioTnRdqMVfrFhEhrH-JKs0iSAZv3daorhV2qGgo3oJBnWcxkp9C3up1oWe8oWuncTC8EC537PWh2s3ci47I9z5Bmg3QUOl0UJFr7dybJtGl59MSzSNRA8qVaukJDZsuPqIXjN_SXrH4u5dupQMNBrAEumIqxWfZs6aorcQmpBeqUl76SNRTOq6QTh6lLbF8SN9-n3sZ_Ftikyb36Cx5xXRINtWWFlRnLm_FflgRHPzXV7zYSucKLA7NQz7NUPiqv4X9w0Dvj0iAPETTocStHo4Y_CkuWxoS6siOD_qpaA5jkYV1Ym87LDnHPkzc80TnLKBWcj9beIPE3huAQxx79UpnOl7c9Yhy3ktA-mapWhBcepSICY832s6JGRoq59iFzukvkAibllC1kCCH2mkhEyk5M7YVWErAlscaQ_4QCM00hudY12RYIEksGAzsELoDL7A4CtpU7ZXQtNe4g10a9LqMVelVNr7V7GH695QcCJzIt4T6jl_RRPfbxTLuOkJERgi0jBnDCKUQ-xmnZ5AQnn9lxsz3k7K5F8YLoAWEdKYvf4XrpWRV0PGbPQ7CyVtn642mKi_AxVYWrHeQHB69NBJTeocebVPS_nswUKU083FRiGtYylaUukZB1jo-9jwAql-Y-xHLGHGt7QHOYqJepGvtbEm7HIFmPImrqqmTdbW7faOiJvZnh3OAdKhwVCzzQXuMdAYGPURXTOVI3y6nJ2siBw77liE1us7sf5V-EYQXFax_W_5mdRDBjTyFPtMNgsVZgOIgfWkvu5tVc7NLNaIDhYRxAVQGO4Z4UzzzADhLcgJizzA1-or9MJPVjOig50Rzf51GcJEQMQL_yPvOcJ8qYGS8ZzeNMHUAw-8y5HXVLP7YDDHdDHKBE8IwfJ6AjncA_VjS1BeQQZuvq539u02ww5F38GzxmDfsdsabNdkT0kenswC0d7Rrcg7Or4KPCVCDVYiL5DD7ntMMKdnN5KSEe_kASob8F7HrZadYb0WoOjMjAXtISFdXTN9CYpLbOU5MMCr8shVaOim1V9BGOIldFDx3dK8MqwQAzSTJUpMPhvWn2FXVCeVbhy_xxi9BToVxT4Oy1h_ssqVQGEtByhcL_4K9p06jtTo9c06gtV7MBY8CHzQdLqJifbAqVA1FyarYXG6Gmb9dSs1tSB4lvsZf6We93xLOM0vuUhRRN260pfmu5qaEkSI1HP08N9iq3kvHfpt6trrc47nqosGauZZdxhn1vUWwmL1r5nyKQ4CUNxN0YGLpO0MIDLjCnC9uxjZoGuA768JsXAYJrpqMR55TkFvwivr7ZSvFJBXNkj0lQqU2SrxUKz66OD6Pm9jx4wOme7EAcAuknv_5aDStvvXPpWSXsmo7mlUQJNTpVn0D0LYrXGh2eBeFoh5EU1ZZpxy79LVLsvKrJTcaLGbASar2IW0_hS0L2P9LTWe72-Q7_qn6Iqip9GD9ftC1FNSk3IRYft-PesCMty1KKzsBJHqg3TqGeg0AcvDRqkcwEotOTQeI27-7DMpYszJMsRkYYxdGjUVcXcQjtuNb7AM6x9K8BPP6bmTD25GUNve7qz2mUpQYkPneW7DOSBIM8ff0nKZ9zMxsc6Q2KxcEjeYlhnMlt4YXMhJujl4ncMguT9hgLrNFDz0prPHQ0zl3RMsdG_ZA9ZZSH5GRVKIuFpBR-GiFcC4WoNMKsf2QihE-wwQaSygzWvsip3S8hURi844su2aH957s_z4LOfynzVb3rv_bjHmEW9T-RlmjwnNM0jlmTULedRInkpGfy9MQBSQBSL3FoDoHB-nK59xThnsxBkhJCu33L94aNqrh4F9gLI6YOHV8T0e9Ljuq2lZEorhWnxZ4isVEr9K6TCzp5HEY_mtbQ815KlU2Tte7JOD4u7Jbx3SNQc8sqj7cl5OEez2DwPMeJ2bd6GLx3eY8H7oG-Z32aT51iV_AnGH0ueTxkhsdnYV_DA--1GBqP_kWeP9keSYT2lY4afB3-cjmHw5Qijcl7b3r6RRrN6c4x2ztvL9c3tNI6n7E7qt4dtK_tL44RIGjBv1DuOsWLSXNOLXeJ9CI9C_Wqy7E_D4Jwhkauf9wrz5Ng5Z1T8kMVAnXtO2HNIgzLvxXzPUQDxjMhk3VGwYC5RiXZ6kEDa0vpz6hw1wp0dEN2kCnSqgxSfwxDcA_TJ7ZV6y96xkCvjhl8jYDo1sgX6XqxHvTHn7Kg7IhBMjXcgx1kK6lFamSo8p7oHVaEN02czaAPlq2Hho8VHDrdSIMriL6JxQcni602FyzIPnnygw4PR4uj1iHSNlN08Z7sKxPDTqJYRlydwVdkiOAlvv-qzwTrZ3VPCfcdhB9qC3Q3vpY4YuiYAeEh1I0xydPVILD-lpWkgcX8_wuDf1vyLkGxFVGSGZ61AD4XjPZA_k03uym_Lh2xelPTqVg9t5JtUcDTIV4Obc95DoZNLKFkQxQPR64vKI_xI5ixPKf8xnfu9GLhuq7fAVLLjC7HrOZvd8fnjhQ37CGMpp45fZuR_SGMUIv44QZo9NUSP66GfUUC1jCT1hII9HUIT6fkQf-lMVbMyzRmOcH3TF2gPnjMlkMdynptFDSuO4q8VSre--pkRpHz12lVjiuiiN1dlL7OetB_BmyO4ECq7UCuk1s6aI7vDxbzO30BDWiEv8b-j"
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 0,
+          "candidatesTokenCount": 1390,
+          "promptTokenCount": 9425,
+          "thoughtsTokenCount": 1377,
+          "totalTokenCount": 10815
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "complaint_validation_failed": false,
+            "session_cost_summary": {
+              "total_prompt_tokens": 17932,
+              "total_cached_tokens": 0,
+              "total_completion_tokens": 1449,
+              "total_thinking_tokens": 1422,
+              "total_tokens": 19381,
+              "total_cost_usd": 0.010424099999999999,
+              "call_count": 2
+            }
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "longRunningToolIds": [],
+        "id": "b4552ddb-a1c1-42f2-ab15-2cec1d41d963",
+        "timestamp": 1785057400.4035535
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "functionResponse": {
+                "id": "call_06b699f155f04272b91e3a52793e__thought__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",
+                "name": "getContactNotes",
+                "response": {
+                  "content": [],
+                  "structuredContent": {
+                    "result": {
+                      "value": [
+                        {
+                          "partyId": 68905187,
+                          "interactionId": 1111111111113392300,
+                          "contactDate": "23/07/2026",
+                          "contactTime": "13:16:00",
+                          "directionCode": "008",
+                          "directionCodeNarrative": "Internal In",
+                          "outcomeCode": "005",
+                          "outcomeCodeNarrative": "From 3rd Party",
+                          "contactMediumCode": "006",
+                          "contactMediumCodeNarrative": "In Person",
+                          "locationCode": "004",
+                          "locationCodeNarrative": "LTSB Premises",
+                          "classificationCode": "007",
+                          "classificationCodeNarrative": "Complaints and Disputes",
+                          "caseId": 0,
+                          "companyCode": "LTB",
+                          "companyCodeNarrative": "Lloyds Bank plc",
+                          "interactionText": "Cash Withdrawal for \u00a310,000.00 in Bolton Hotel Street (770201) . Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present, Signature Check & CVP. Colleague declaration: Confirmed. Completed by 5616954"
+                        },
+                        {
+                          "partyId": 68905187,
+                          "interactionId": 1111111111113223800,
+                          "contactDate": "11/06/2026",
+                          "contactTime": "10:38:00",
+                          "directionCode": "008",
+                          "directionCodeNarrative": "Internal In",
+                          "outcomeCode": "008",
+                          "outcomeCodeNarrative": "Internal In",
+                          "contactMediumCode": "006",
+                          "contactMediumCodeNarrative": "In Person",
+                          "locationCode": "004",
+                          "locationCodeNarrative": "LTSB Premises",
+                          "classificationCode": "007",
+                          "classificationCodeNarrative": "Complaints and Disputes",
+                          "caseId": 0,
+                          "companyCode": "LTB",
+                          "companyCodeNarrative": "Lloyds Bank plc",
+                          "interactionText": "Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away"
+                        },
+                        {
+                          "partyId": 68905187,
+                          "interactionId": 1111111111113215900,
+                          "contactDate": "01/06/2026",
+                          "contactTime": "05:42:00",
+                          "directionCode": "008",
+                          "directionCodeNarrative": "Internal In",
+                          "outcomeCode": "008",
+                          "outcomeCodeNarrative": "Internal In",
+                          "contactMediumCode": "006",
+                          "contactMediumCodeNarrative": "In Person",
+                          "locationCode": "004",
+                          "locationCodeNarrative": "LTSB Premises",
+                          "classificationCode": "007",
+                          "classificationCodeNarrative": "Complaints and Disputes",
+                          "caseId": 0,
+                          "companyCode": "LTB",
+                          "companyCodeNarrative": "Lloyds Bank plc",
+                          "interactionText": "Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Colleague declaration: Confirmed. Terminated due to navigated away. Actions taken: Interviewed customer in a private room. Invoked Banking protocol"
+                        },
+                        {
+                          "partyId": 68905187,
+                          "interactionId": 1111111111113214000,
+                          "contactDate": "28/05/2026",
+                          "contactTime": "07:14:00",
+                          "directionCode": "008",
+                          "directionCodeNarrative": "Internal In",
+                          "outcomeCode": "008",
+                          "outcomeCodeNarrative": "Internal In",
+                          "contactMediumCode": "006",
+                          "contactMediumCodeNarrative": "In Person",
+                          "locationCode": "004",
+                          "locationCodeNarrative": "LTSB Premises",
+                          "classificationCode": "007",
+                          "classificationCodeNarrative": "Complaints and Disputes",
+                          "caseId": 0,
+                          "companyCode": "LTB",
+                          "companyCodeNarrative": "Lloyds Bank plc",
+                          "interactionText": "Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Terminated due to navigated away"
+                        },
+                        {
+                          "partyId": 68905187,
+                          "interactionId": 1111111111113214000,
+                          "contactDate": "28/05/2026",
+                          "contactTime": "06:55:00",
+                          "directionCode": "008",
+                          "directionCodeNarrative": "Internal In",
+                          "outcomeCode": "008",
+                          "outcomeCodeNarrative": "Internal In",
+                          "contactMediumCode": "006",
+                          "contactMediumCodeNarrative": "In Person",
+                          "locationCode": "004",
+                          "locationCodeNarrative": "LTSB Premises",
+                          "classificationCode": "007",
+                          "classificationCodeNarrative": "Complaints and Disputes",
+                          "caseId": 0,
+                          "companyCode": "LTB",
+                          "companyCodeNarrative": "Lloyds Bank plc",
+                          "interactionText": "Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away"
+                        }
+                      ],
+                      "sources": [
+                        "OCIS"
+                      ]
+                    }
+                  },
+                  "isError": false
+                }
+              }
+            }
+          ],
+          "role": "user"
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "_ff_ledger_shard.getContactNotes.1785057411506602371": {
+              "strings": [
+                "0",
+                "0.00",
+                "004",
+                "005",
+                "006",
+                "007",
+                "008",
+                "01/06/2026",
+                "05:42",
+                "05:42:00",
+                "06:55",
+                "06:55:00",
+                "07:14",
+                "07:14:00",
+                "10:38",
+                "10:38:00",
+                "11/06/2026",
+                "1111111111113213952",
+                "1111111111113213952.00",
+                "1111111111113215872",
+                "1111111111113215872.00",
+                "1111111111113223808",
+                "1111111111113223808.00",
+                "1111111111113392256",
+                "1111111111113392256.00",
+                "13:16",
+                "13:16:00",
+                "2026-05-28",
+                "2026-06-01",
+                "2026-06-11",
+                "2026-07-23",
+                "23/07/2026",
+                "28/05/2026",
+                "68905187",
+                "68905187.00",
+                "cash withdrawal for \u00a310,000.00 in bolton hotel street (770201) . profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present, signature check & cvp. colleague declaration: confirmed. completed by 5616954",
+                "complaints and disputes",
+                "faster payment for \u00a310,000.00 in lloyds. evidence given: no evidence given. verified by customer present. terminated due to navigated away",
+                "faster payment for \u00a310,000.00 in lloyds. profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present. colleague declaration: confirmed. terminated due to navigated away. actions taken: interviewed customer in a private room. invoked banking protocol",
+                "faster payment for \u00a310,000.00 in lloyds. profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present. terminated due to navigated away",
+                "from 3rd party",
+                "in person",
+                "internal in",
+                "lloyds bank plc",
+                "ltb",
+                "ltsb premises",
+                "ocis",
+                "\u00a30",
+                "\u00a30.00",
+                "\u00a31111111111113213952",
+                "\u00a31111111111113213952.00",
+                "\u00a31111111111113215872",
+                "\u00a31111111111113215872.00",
+                "\u00a31111111111113223808",
+                "\u00a31111111111113223808.00",
+                "\u00a31111111111113392256",
+                "\u00a31111111111113392256.00",
+                "\u00a368905187",
+                "\u00a368905187.00"
+              ],
+              "amounts": [
+                0.0,
+                68905187.0,
+                1.111111111113214e+18,
+                1.1111111111132159e+18,
+                1.1111111111132238e+18,
+                1.1111111111133923e+18
+              ],
+              "boolean_facts": {}
+            },
+            "_ff_tool_used.getContactNotes": true
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "63c6cc40-4381-4dfc-ba10-bb4a82a5c91e",
+        "timestamp": 1785057411.5067205
+      },
+      {
+        "modelVersion": "gemini-2.5-flash",
+        "content": {
+          "parts": [
+            {
+              "text": "# Customer FactFind Summary:\n\n## Complaint Reference: NC10010556\n\n## Customer Profile: Mrs Monica Gabi Adaeze Geller \u2705 Primary Customer\n- **Party ID**: 68905187\n- **Current address details**: 1 Bonaly Brae, Blackburn, Aberdeen, AB21 0EP\n- **Date of birth and age**: 19/08/1990 (35)\n- **Marital status**: SINGLE\n- **Party ID Created**: 01/02/2024\n\n## Recent change to contact details (last 30 days): Mrs Monica Gabi Adaeze Geller\n- **Recent change of address**: No recent change of address\n- **Recent change of telephone number**: No recent change of telephone number\n\n## Support Needs: Mrs Monica Gabi Adaeze Geller\n#### Support Need: 3P - 3rd Party Mandate\n- **Date recorded**: 13/03/2025\n- **Valid from date**: 13/03/2025\n- **Review date**: Ongoing (no date set)\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: dfbn\n\n#### Support Need: DO NOT USE - Need for Quiet\n- **Date recorded**: 13/03/2025\n- **Valid from date**: 13/03/2025\n- **Review date**: Ongoing (no date set)\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: dfsbeb\n\n#### Support Need: Adapt - Longer Appointment\n- **Date recorded**: 11/11/2025\n- **Valid from date**: 11/11/2025\n- **Review date**: 11/12/2025\n- **Consent status**: Notified by 3rd Party - CARERS Drill\n- **Further information**: added for expiry test\n\n#### Support Need: Domestic/Financial Abuse\n- **Date recorded**: 29/10/2025\n- **Valid from date**: 29/10/2025\n- **Review date**: 23/10/2026\n- **Consent status**: Explicit Consent gained by Group process\n- **Further information**: code 40\n\n#### Support Need: Life Event - Flexibility\n- **Date recorded**: 23/04/2026\n- **Valid from date**: 23/04/2026\n- **Review date**: 23/07/2026\n- **Consent status**: Consent not possible - see DPM approval\n- **Further information**: for notificaion order\n\n## Account Holdings\n### Classic: 77110361403060 \u2705 Associated with complaint\n- **Account status**: OPEN\n- **Parties on account**:\n  - Party ID: 68905187 | Primary role: True\n- **Customer role on the product**: HOLDER_OF_PRODUCT\n- **Account opened date**: 03/10/2023\n- **Product indicators**:\n  - No product indicators\n- **Current balance**: \u00a30.00\n- **Balance after pending transactions**: \u00a30.00\n- **Overdraft amount**: \u00a30.00\n- **Final available balance**: \u00a30.00\n\n## Warnings\n## Related Parties for Mrs Monica Gabi Adaeze Geller (Party ID: 68905187)\n### Trusted Party (linked to Support Need)\n- **No Trusted Party identified**\n\n### Trusted Relationships (can view customer account(s))\n- **No Relationships identified**\n\n### Other Related Party\n#### Attorney / Receiver to\n- **Name**: Mr M Kerch\n- **Related Party ID**: 158010138\n- **Party Type**: INDIVIDUAL\n\n## Contact Notes\n### 23/07/2026 13:16\n- **Contact date**: 23/07/2026\n- **Contact time**: 13:16\n- **Direction of contact**: Internal In\n- **Outcome of contact**: From 3rd Party\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Cash Withdrawal for \u00a310,000.00 in Bolton Hotel Street (770201) . Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present, Signature Check & CVP. Colleague declaration: Confirmed. Completed by 5616954\n\n### 11/06/2026 10:38\n- **Contact date**: 11/06/2026\n- **Contact time**: 10:38\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away\n\n### 01/06/2026 05:42\n- **Contact date**: 01/06/2026\n- **Contact time**: 05:42\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Colleague declaration: Confirmed. Terminated due to navigated away. Actions taken: Interviewed customer in a private room. Invoked Banking protocol\n\n### 28/05/2026 07:14\n- **Contact date**: 28/05/2026\n- **Contact time**: 07:14\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Profile confirmed as a match. Transaction reason: Payment to Friend or Partner. Evidence given: Supporting messages or emails. Customer happy to proceed: Yes. Verified by Customer Present. Terminated due to navigated away\n\n### 28/05/2026 06:55\n- **Contact date**: 28/05/2026\n- **Contact time**: 06:55\n- **Direction of contact**: Internal In\n- **Outcome of contact**: Internal In\n- **Method of contact**: In Person\n- **Location**: LTSB Premises\n- **Classification**: Complaints and Disputes\n- **Associated case ID**: 0\n- **Brand**: Lloyds Bank plc\n- **Contact details**: Faster Payment for \u00a310,000.00 in lloyds. Evidence given: No evidence given. Verified by Customer Present. Terminated due to navigated away\n"
+            }
+          ],
+          "role": "model"
+        },
+        "partial": false,
+        "finishReason": "STOP",
+        "usageMetadata": {
+          "cachedContentTokenCount": 8819,
+          "candidatesTokenCount": 1784,
+          "promptTokenCount": 11659,
+          "thoughtsTokenCount": 36,
+          "totalTokenCount": 13443
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "complaint_validation_failed": false,
+            "session_cost_summary": {
+              "total_prompt_tokens": 29591,
+              "total_cached_tokens": 8819,
+              "total_completion_tokens": 3233,
+              "total_thinking_tokens": 1458,
+              "total_tokens": 32824,
+              "total_cost_usd": 0.016433525,
+              "call_count": 3
+            },
+            "cost_summary": {
+              "prompt_tokens": 11659,
+              "cached_tokens": 8819,
+              "completion_tokens": 1784,
+              "thinking_tokens": 36,
+              "total_tokens": 13443,
+              "prompt_cost_usd": 0.000852,
+              "cached_cost_usd": 0.000661425,
+              "completion_cost_usd": 0.004370000000000001,
+              "thinking_cost_usd": 0.000126,
+              "total_cost_usd": 0.006009425000000001
+            }
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "1a0da431-a821-4062-ad74-176f5b5a9300",
+        "timestamp": 1785057411.5454545
+      },
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "**Passed groundedness check** \u2705\n\nAll complaint information matches source system information."
+            }
+          ],
+          "role": "system"
+        },
+        "invocationId": "e-ea1c250b-a8c3-4a62-9d0e-3c0daaf93436",
+        "author": "fact_find_workflow",
+        "actions": {
+          "stateDelta": {
+            "moderation_result": {
+              "id": "modr-fee66c9768f54cf0b5de1ff340cbed33",
+              "model": "custom-guardrails-v1",
+              "flagged": true,
+              "categories": {
+                "hallucination": false,
+                "misalignment": true,
+                "bias": false,
+                "advice": false
+              },
+              "scores": {
+                "hallucination": 1.0,
+                "misalignment": 4.0,
+                "bias": 1.0,
+                "advice": 1.0
+              },
+              "reasons": {
+                "hallucination": "The LLM response accurately extracts and presents all relevant information from the provided context. All details, including customer profile, support needs, account holdings, and contact notes, are correctly represented without any hallucinations.",
+                "misalignment": "The response is highly factual and structured, which aligns with the 'Purposeful' and 'Inclusive' aspects of the tone of voice. However, it lacks the 'Bold' element, such as warmth or intelligent wit, and doesn't actively try to 'raise a smile' or build a connection beyond presenting data. The language is very direct and functional, missing opportunities for more engaging or empowering phrasing.",
+                "bias": "The response is a factual summary of customer information and does not contain any biased language or stereotypes. It neutrally presents details such as age, marital status, and support needs without prejudice.",
+                "advice": "The response is a factual summary of a customer's profile and account information, including support needs and contact notes. It does not offer any financial recommendations or guidance, making it purely informational and well within the boundaries of general guidance."
+              }
+            },
+            "facts_ledger_snapshot": {
+              "strings": [
+                "\"05/01/2026\n14:25:27\nstaff only - 646/659/623 added to *halifax* acc  acct to be closed, please advise as per the t&c's. we use information from credit & fraud agencies to help make our decision and the application has not been successful. if customer has further questions please call 0345 835 8020 quoting ref 180070485\n31/12/2025\n04:10:52\n*app fraud team*  declined & all facilities withdrawn. ref 179736026. branch to remove blocks 646,659,623 for withdrawal of any bgcs, credit balances less than \u00a3100 or cash deposits under \u00a32500 and close account. please refer fpi, chq balances over \u00a3100 or cash deposit over \u00a32500 forfurther review on 03458358020, mon - fri 8.30-5.30, sat 9-12*\n\n30/12/2025\ndeb\nskybet cd 7312\n10.00\n02/01/2026\npay\ndebitcard payment\n-10.00\"",
+                "\"pca - fraud - debit card - card not present (cnp)\npca - fraud - debit card - gambling\"",
+                "0",
+                "0.00",
+                "004",
+                "005",
+                "006",
+                "007",
+                "008",
+                "009",
+                "01/02/2024",
+                "01/06/2026",
+                "03/10/2023",
+                "05:42",
+                "05:42:00",
+                "06:55",
+                "06:55:00",
+                "07:14",
+                "07:14:00",
+                "1 bonaly brae",
+                "10:38",
+                "10:38:00",
+                "11/06/2026",
+                "11/11/2025",
+                "11/11/2025 14:20:39",
+                "11/12/2025",
+                "1111111111113213952",
+                "1111111111113213952.00",
+                "1111111111113215872",
+                "1111111111113215872.00",
+                "1111111111113223808",
+                "1111111111113223808.00",
+                "1111111111113392256",
+                "1111111111113392256.00",
+                "13/03/2025",
+                "13/03/2025 11:19:50",
+                "13:16",
+                "13:16:00",
+                "1488479736",
+                "158010138",
+                "158010138.00",
+                "17",
+                "17.00",
+                "19/08/1990",
+                "1990-08-19",
+                "2023-10-03",
+                "2024-02-01",
+                "2025-03-13",
+                "2025-10-29",
+                "2025-11-11",
+                "2025-12-11",
+                "2026-03-23",
+                "2026-04-23",
+                "2026-05-28",
+                "2026-06-01",
+                "2026-06-11",
+                "2026-07-23",
+                "2026-10-23",
+                "23/03/2026",
+                "23/04/2026",
+                "23/04/2026 11:41:10",
+                "23/04/2026 11:41:13",
+                "23/07/2026",
+                "23/10/2026",
+                "26",
+                "26.00",
+                "28/05/2026",
+                "29/10/2025",
+                "29/10/2025 10:48:26",
+                "31",
+                "31.00",
+                "35",
+                "35.00",
+                "3p - 3rd party mandate",
+                "40",
+                "40.00",
+                "404",
+                "404.00",
+                "43",
+                "43.00",
+                "68905187",
+                "68905187.00",
+                "77110361403060",
+                "77110361403060.00",
+                "810851686",
+                "810851686.00",
+                "a",
+                "ab21 0ep",
+                "aberdeen",
+                "adaeze",
+                "adapt - longer appointment",
+                "added for expiry test",
+                "attorney / receiver to",
+                "attorney / receiver to mr m kerch",
+                "blackburn",
+                "cash withdrawal for \u00a310,000.00 in bolton hotel street (770201) . profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present, signature check & cvp. colleague declaration: confirmed. completed by 5616954",
+                "cheque",
+                "classic",
+                "code 40",
+                "complaints and disputes",
+                "complaints undertaken\nthere had been a \u00a310 payment via my debit card today 02.01.2026. i havent used or been able to access my money since 30.12.2025. i want to know how on earth you tbink its acceptable to take \u00a310 out of my account while i have no access to it! this was my beneifts money from dwp. i owe nothing to you, so why has \u00a310 been taken out? i was threatened to be evicted from the bank from saying this was fraud and not sky bet. i was waiting for nearly an hour for my own benefits money in the bank. embarrassing having to beg for my own benefits back. i think this is fraud that \u00a310 has been taken. in all my years of being an adult no bank has ever taken a random \u00a310 out.",
+                "consent not possible - see dpm approval",
+                "counter",
+                "current_account",
+                "dfbn",
+                "dfsbeb",
+                "do not use - need for quiet",
+                "domestic/financial abuse",
+                "explicit consent gained by group process",
+                "faster payment for \u00a310,000.00 in lloyds. evidence given: no evidence given. verified by customer present. terminated due to navigated away",
+                "faster payment for \u00a310,000.00 in lloyds. profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present. colleague declaration: confirmed. terminated due to navigated away. actions taken: interviewed customer in a private room. invoked banking protocol",
+                "faster payment for \u00a310,000.00 in lloyds. profile confirmed as a match. transaction reason: payment to friend or partner. evidence given: supporting messages or emails. customer happy to proceed: yes. verified by customer present. terminated due to navigated away",
+                "female",
+                "for notificaion order",
+                "from 3rd party",
+                "g",
+                "gabi",
+                "gbp",
+                "geller",
+                "holder_of_product",
+                "in person",
+                "individual",
+                "individualsummary",
+                "internal in",
+                "life event - flexibility",
+                "lloyds bank plc",
+                "ltb",
+                "ltsb premises",
+                "m",
+                "monica",
+                "monica gabi adaeze",
+                "monica gabi adaeze geller",
+                "mrs",
+                "mrs geller",
+                "mrs monica gabi adaeze geller",
+                "no recent change of address",
+                "no recent change of telephone number",
+                "not found",
+                "notified by 3rd party - carers drill",
+                "nucleus",
+                "ocis",
+                "ongoing (no date set)",
+                "open",
+                "pre-agreed",
+                "residential",
+                "single",
+                "trusted party record with id: 68905187 not found.",
+                "\u00a30",
+                "\u00a30.00",
+                "\u00a31111111111113213952",
+                "\u00a31111111111113213952.00",
+                "\u00a31111111111113215872",
+                "\u00a31111111111113215872.00",
+                "\u00a31111111111113223808",
+                "\u00a31111111111113223808.00",
+                "\u00a31111111111113392256",
+                "\u00a31111111111113392256.00",
+                "\u00a3158010138",
+                "\u00a3158010138.00",
+                "\u00a317",
+                "\u00a317.00",
+                "\u00a326",
+                "\u00a326.00",
+                "\u00a331",
+                "\u00a331.00",
+                "\u00a335",
+                "\u00a335.00",
+                "\u00a340",
+                "\u00a340.00",
+                "\u00a3404",
+                "\u00a3404.00",
+                "\u00a343",
+                "\u00a343.00",
+                "\u00a368905187",
+                "\u00a368905187.00",
+                "\u00a377110361403060",
+                "\u00a377110361403060.00",
+                "\u00a3810851686",
+                "\u00a3810851686.00"
+              ],
+              "amounts": [
+                0.0,
+                17.0,
+                26.0,
+                31.0,
+                35.0,
+                40.0,
+                43.0,
+                404.0,
+                68905187.0,
+                158010138.0,
+                810851686.0,
+                77110361403060.0,
+                1.111111111113214e+18,
+                1.1111111111132159e+18,
+                1.1111111111132238e+18,
+                1.1111111111133923e+18
+              ],
+              "boolean_facts": {
+                "customerPrimaryIndicator": true,
+                "validAccount": true,
+                "isPrimaryRole": true
+              }
+            },
+            "_ff_ledger_shard.getCustomerSummary.1785057400362600877": null,
+            "_ff_ledger_shard.getContactNotes.1785057411506602371": null,
+            "session_cost_summary": {
+              "total_prompt_tokens": 35670,
+              "total_cached_tokens": 8819,
+              "total_completion_tokens": 11501,
+              "total_thinking_tokens": 9650,
+              "total_tokens": 47171,
+              "total_cost_usd": 0.017891025,
+              "call_count": 4
+            },
+            "judge_groundedness": {
+              "reason": "All factual claims made in the agent's answer are supported by the provided tool responses.",
+              "evaluated": true,
+              "failed": false,
+              "model": "vertex_ai/gemini-2.5-flash-lite",
+              "metrics": {
+                "claim_verification": {
+                  "total_claims": 67,
+                  "verified_claims": 67,
+                  "unverified": []
+                }
+              },
+              "score": 1.0
+            },
+            "guardrails_complete": true,
+            "successful_run": true
+          },
+          "artifactDelta": {},
+          "requestedAuthConfigs": {},
+          "requestedToolConfirmations": {}
+        },
+        "id": "7b309f8c-78d0-408f-a5ab-8d84803759e0",
+        "timestamp": 1785057436.6494215
+      }
+    ]
+  }

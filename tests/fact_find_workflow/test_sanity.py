@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from src.core.exceptions import AgentInvocationError
+from src.parsers.fact_find_workflow import enrich
 from src.runners.case_runner import eval_mode, judges_enabled, load_cases, run_case
 from src.runners.evaluate import evaluate
 from tests.fact_find_workflow.ff_eval import prepare_for_judges, suite_for_case
@@ -84,14 +85,26 @@ class TestFactFindWorkflowSanity:
         assert result.test_case_id == case["test_case_id"]
         assert result.saved_path and result.saved_path.exists()
         assert result.mode == mode
-        assert result.response.answer, "empty agent answer"
+
+        complaint_ref = case["input"]["complaint_ref"]
+        response = enrich(result.response, complaint_ref=complaint_ref)
+        assert response.answer, "empty agent answer"
         for kw in case.get("expected", {}).get("keywords") or []:
-            assert kw.lower() in result.response.answer.lower(), (
+            assert kw.lower() in response.answer.lower(), (
                 f"expected keyword {kw!r} not found in answer"
             )
 
+        # Path-shaped deterministic hints from the parser
+        path = (case.get("expected") or {}).get("path")
+        if path == "invalid_complaint":
+            assert response.metadata.get("validation_failed") or response.metadata.get(
+                "is_invalid_complaint_message"
+            )
+        if path == "success":
+            assert response.metadata.get("looks_like_summary")
+
         if judges_enabled():
-            response = prepare_for_judges(case, result.response)
+            response = prepare_for_judges(case, response)
             suite = suite_for_case(case)
             judges = evaluate(AGENT, suite, case, response)
             failed = [(j.name, j.score, j.reason) for j in judges.failed]

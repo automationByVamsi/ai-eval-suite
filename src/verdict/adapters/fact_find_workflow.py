@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.models.agent_response import AgentResponse
+from src.parsers.fact_find_workflow import enrich
 from src.runners.evaluate import evaluate
 from src.verdict import obs
 from src.verdict.adapters.common import answer_and_keyword_checks
@@ -21,6 +22,8 @@ def _eval_sanity(
     response: AgentResponse,
     run_judges: bool,
 ) -> list[CheckObservation]:
+    complaint_ref = (case.get("input") or {}).get("complaint_ref") or ""
+    response = enrich(response, complaint_ref=complaint_ref)
     checks = obs.from_deterministic(answer_and_keyword_checks(case, response))
     if run_judges:
         enriched = prepare_for_judges(case, response)
