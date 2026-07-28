@@ -28,7 +28,7 @@ from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
 from src.reporting.persist import publish_suite_result
 from src.runners.factories import MetricFactory
-from src.runners.pegasus_judge import run_pegasus_faithfulness
+from src.runners.pegasus_judge import run_pegasus_metric
 
 
 @dataclass
@@ -128,8 +128,7 @@ def evaluate(
             continue
         mode = str(cfg.get("mode") or "deepeval").strip().lower()
         if mode.startswith("pegasus"):
-            # Same call pattern as evaluations/evaluate_Faithfulness.py
-            result = run_pegasus_faithfulness(
+            result = run_pegasus_metric(
                 cfg,
                 test_case,
                 response,
@@ -174,7 +173,10 @@ def _should_run_metric(cfg: dict[str, Any], test_case: TestCase) -> bool:
     if mtype == "keyword_match" or name == "keyword_match":
         keywords = test_case.expected.get(cfg.get("keywords_source") or "keywords")
         return bool(keywords)
-    if mtype == "correctness" or name == "correctness":
+    if (
+        mtype in {"correctness", "answer_correctness"}
+        or name in {"correctness", "correctness_pegasus"}
+    ):
         src = cfg.get("expected_source") or "expected_answer"
         golden = test_case.expected.get(src) or test_case.expected.get("answer")
         return bool(golden and str(golden).strip())

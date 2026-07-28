@@ -2,8 +2,13 @@
 # Same test file as sanity: tests/knowledge_agent/test_sanity.py
 #
 # Select: METRICS_SUITE=sanity_pegasus
-# Mode (catalog): METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
+# Mode: METRIC_MODE=pegasus|pegasus_ragas
+#   (Answer Correctness has no deepeval method — pegasus_deepeval coerces to pegasus)
+#
+# faithfulness_pegasus  → answer vs retrieved_contexts
+# correctness_pegasus   → answer vs expected_answer  ← use this to test golden edits
 suite: sanity_pegasus
 
 judges:
   - faithfulness_pegasus
+  - correctness_pegasus

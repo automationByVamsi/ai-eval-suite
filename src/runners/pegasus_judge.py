@@ -1,4 +1,4 @@
-"""Minimal Pegasus judge call — same shape as evaluations/evaluate_Faithfulness.py."""
+"""Minimal Pegasus judge calls — same pattern as evaluations/evaluate_Faithfulness.py."""
 
 from __future__ import annotations
 
@@ -12,12 +12,35 @@ from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
 
-# Catalog mode → Faithfulness(method=...)
+# Catalog mode → Pegasus metric method=
 _MODE_TO_METHOD = {
     "pegasus": "pegasus",
     "pegasus_ragas": "ragas",
     "pegasus_deepeval": "deepeval",
 }
+
+# AnswerCorrectness supports ragas + pegasus only (no deepeval).
+_ANSWER_CORRECTNESS_METHODS = frozenset({"pegasus", "ragas"})
+
+
+def run_pegasus_metric(
+    cfg: dict[str, Any],
+    test_case: TestCase,
+    response: AgentResponse,
+    *,
+    cortex_client: Any = None,
+) -> MetricResult:
+    """Dispatch to the right Pegasus RAG metric based on catalog type/name."""
+    mtype = str(cfg.get("type") or cfg.get("name") or "").strip().lower()
+    name = str(cfg.get("name") or "").strip().lower()
+
+    if mtype in {"answer_correctness", "correctness"} or "correctness" in name:
+        return run_pegasus_answer_correctness(
+            cfg, test_case, response, cortex_client=cortex_client
+        )
+    return run_pegasus_faithfulness(
+        cfg, test_case, response, cortex_client=cortex_client
+    )
 
 
 def run_pegasus_faithfulness(
@@ -27,12 +50,7 @@ def run_pegasus_faithfulness(
     *,
     cortex_client: Any = None,
 ) -> MetricResult:
-    """
-    Build a 1-row Pegasus DataFrame and call Faithfulness.evaluate(...).
-
-    Expects prepare_for_judges (or equivalent) to have set Pegasus columns on
-    response: question / answer / retrieved_contexts (or response.context).
-    """
+    """answer vs retrieved_contexts (does not use expected_answer)."""
     name = str(cfg.get("name") or "faithfulness")
     threshold = float(cfg.get("threshold", 0.7))
     mode = str(cfg.get("mode") or "pegasus").strip().lower()
@@ -72,20 +90,7 @@ def run_pegasus_faithfulness(
                 }
             ]
         )
-        results = metric.evaluate(data)
-        score = float(results.get("score") or 0.0)
-        return MetricResult(
-            name=name,
-            score=score,
-            threshold=threshold,
-            passed=bool(results.get("passed", score >= threshold)),
-            reason=str(
-                results.get("details")
-                or (results.get("reasons") or [""])[0]
-                or results.get("score_details")
-                or ""
-            ),
-        )
+        return _result_from_pegasus(name, threshold, metric.evaluate(data))
     except Exception as exc:  # noqa: BLE001
         return MetricResult(
             name=name,
@@ -94,6 +99,89 @@ def run_pegasus_faithfulness(
             passed=False,
             reason=f"Pegasus metric errored: {exc}",
         )
+
+
+def run_pegasus_answer_correctness(
+    cfg: dict[str, Any],
+    test_case: TestCase,
+    response: AgentResponse,
+    *,
+    cortex_client: Any = None,
+) -> MetricResult:
+    """
+    Agent answer vs ground-truth reference_answer.
+
+    Pegasus AnswerCorrectness supports method=pegasus|ragas only (not deepeval).
+    Dataset columns: answer, reference_answer.
+    """
+    name = str(cfg.get("name") or "answer_correctness")
+    threshold = float(cfg.get("threshold", 0.7))
+    mode = str(cfg.get("mode") or "pegasus").strip().lower()
+    method = _MODE_TO_METHOD.get(mode, "pegasus")
+    if method not in _ANSWER_CORRECTNESS_METHODS:
+        # Docs: no deepeval method for Answer Correctness — coerce to pegasus.
+        method = "pegasus"
+
+    answer = str(
+        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
+    )
+    reference = resolve_field(
+        cfg.get("expected_source") or "expected_answer", test_case, response
+    )
+    if not reference:
+        reference = (response.metadata or {}).get("reference_answer") or (
+            response.metadata or {}
+        ).get("expected_answer")
+    reference = str(reference or "").strip()
+    if not reference:
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no reference_answer / expected_answer for Answer Correctness.",
+        )
+
+    try:
+        from pegasus.metrics.rag import AnswerCorrectness  # type: ignore
+
+        llm = _build_llm(cortex_client)
+        metric = AnswerCorrectness(llm=llm, method=method, threshold=threshold)
+        data = pd.DataFrame(
+            [
+                {
+                    "answer": answer,
+                    "reference_answer": reference,
+                }
+            ]
+        )
+        return _result_from_pegasus(name, threshold, metric.evaluate(data))
+    except Exception as exc:  # noqa: BLE001
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason=f"Pegasus metric errored: {exc}",
+        )
+
+
+def _result_from_pegasus(
+    name: str, threshold: float, results: dict[str, Any]
+) -> MetricResult:
+    score = float(results.get("score") or 0.0)
+    return MetricResult(
+        name=name,
+        score=score,
+        threshold=threshold,
+        passed=bool(results.get("passed", score >= threshold)),
+        reason=str(
+            results.get("details")
+            or (results.get("reasons") or [""])[0]
+            or results.get("score_details")
+            or ""
+        ),
+    )
 
 
 def _build_llm(cortex_client: Any):

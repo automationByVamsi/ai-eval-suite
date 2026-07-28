@@ -80,7 +80,8 @@ metrics:
     actual_source: answer
     context_source: retrieval_context
 
-  # Pegasus path: evaluate() switches on mode and calls lbg-pegasus Faithfulness.
+  # Pegasus path: evaluate() switches on mode and calls lbg-pegasus.
+  # Faithfulness = answer vs retrieved_contexts (ignores expected_answer).
   faithfulness_pegasus:
     type: faithfulness
     mode: ${METRIC_MODE:-pegasus}
@@ -88,6 +89,14 @@ metrics:
     input_source: question
     actual_source: answer
     context_source: retrieval_context
+
+  # Answer Correctness = answer vs expected_answer (methods: pegasus|ragas only).
+  correctness_pegasus:
+    type: answer_correctness
+    mode: ${METRIC_MODE:-pegasus}
+    threshold: 0.7
+    actual_source: answer
+    expected_source: expected_answer
 
   keyword_match:
     type: keyword_match
