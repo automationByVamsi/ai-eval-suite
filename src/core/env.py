@@ -27,10 +27,13 @@ _DEFAULT_ENV_CANDIDATES = (
 _CORTEX_KEYS = frozenset(
     {
         "CORTEX_HOST",
+        "CORTEX_BASE_URL",
         "CORTEX_CLIENT_ID",
         "CORTEX_CLIENT_SECRET",
+        "CORTEX_API_KEY",
         "CORTEX_MODEL",
         "CORTEX_PATH",
+        "PEGASUS_CORTEX_MODEL",
     }
 )
 
