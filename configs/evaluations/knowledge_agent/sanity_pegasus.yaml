@@ -1,5 +1,8 @@
 # Knowledge Agent — Pegasus-backed sanity suite.
-# Uses the same test file as sanity; select via METRICS_SUITE="sanity_pegasus".
+# Same test file as sanity: tests/knowledge_agent/test_sanity.py
+#
+# Select: METRICS_SUITE=sanity_pegasus
+# Mode (catalog): METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
 suite: sanity_pegasus
 
 judges:

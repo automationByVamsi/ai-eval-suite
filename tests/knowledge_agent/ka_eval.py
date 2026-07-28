@@ -1,5 +1,5 @@
 """
-Knowledge Agent helpers: deterministic checks + SME golden for judges.
+Knowledge Agent helpers: deterministic checks + judge prep.
 
 Shared judge scoring stays in src.runners.evaluate.evaluate(...).
 """
@@ -62,25 +62,84 @@ def run_deterministic(
     return checks, fields
 
 
+def to_pegasus_row(
+    case: dict[str, Any],
+    response: AgentResponse,
+    *,
+    question: str = "",
+) -> dict[str, Any]:
+    """
+    Map KA case/response into Pegasus RAG column names.
+
+    Pegasus expects: question, answer, retrieved_contexts [, reference_answer]
+    """
+    expected = case.get("expected") or {}
+    meta = response.metadata or {}
+
+    q = (
+        question
+        or str((case.get("input") or {}).get("question") or "")
+        or str(meta.get("question") or "")
+    )
+    answer = response.answer or ""
+    reference = (
+        expected.get("expected_answer")
+        or expected.get("answer")
+        or meta.get("expected_answer")
+        or ""
+    )
+
+    contexts: list[str] = []
+    if isinstance(response.context, list):
+        contexts.extend(str(c) for c in response.context if str(c).strip())
+    anchor = str(meta.get("anchor_page_content") or "").strip()
+    if anchor and anchor not in contexts:
+        contexts.append(anchor)
+    existing = meta.get("retrieved_contexts")
+    if isinstance(existing, list):
+        for c in existing:
+            text = str(c).strip()
+            if text and text not in contexts:
+                contexts.append(text)
+
+    return {
+        "question": q,
+        "answer": answer,
+        "retrieved_contexts": contexts,
+        "reference_answer": str(reference) if reference else "",
+    }
+
+
 def prepare_for_judges(
     case: dict[str, Any],
     response: AgentResponse,
 ) -> AgentResponse:
     """
-    Copy expected.expected_answer (or legacy expected.answer) onto
-    response.metadata so correctness judges can resolve expected_source.
-    """
-    expected = case.get("expected") or {}
-    golden = expected.get("expected_answer") or expected.get("answer")
-    articles = expected.get("expected_source_articles")
+    Attach SME golden + Pegasus-standard fields so both backends can score.
 
-    if not golden and not articles:
-        return response
+    DeepEval path: expected_answer / existing *_source fields
+    Pegasus path: question, answer, retrieved_contexts, reference_answer
+    """
+    question = str((case.get("input") or {}).get("question") or "")
+    row = to_pegasus_row(case, response, question=question)
 
     meta = dict(response.metadata or {})
-    if golden:
-        meta["expected_answer"] = str(golden)
+    if row["reference_answer"]:
+        meta["expected_answer"] = row["reference_answer"]
+        meta["reference_answer"] = row["reference_answer"]
+
+    articles = (case.get("expected") or {}).get("expected_source_articles")
     if articles:
         meta["expected_source_articles"] = articles
 
-    return response.model_copy(update={"metadata": meta})
+    # Pegasus RAG columns (also useful as shared retrieval_context for DeepEval).
+    meta["question"] = row["question"]
+    meta["retrieved_contexts"] = row["retrieved_contexts"]
+
+    return response.model_copy(
+        update={
+            "answer": row["answer"] or response.answer,
+            "context": row["retrieved_contexts"],
+            "metadata": meta,
+        }
+    )

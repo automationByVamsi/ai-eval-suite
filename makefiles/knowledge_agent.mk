@@ -16,12 +16,14 @@ test-ka-sanity-cache:
 test-ka-sanity-judges:
 	RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
-# Live ADK with Pegasus-backed judges selected via METRICS_SUITE.
+# Same test_sanity.py, Pegasus judges. METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
+METRIC_MODE ?= pegasus
+
 test-ka-sanity-pegasus:
-	METRICS_SUITE=sanity_pegasus EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
+	METRICS_SUITE=sanity_pegasus METRIC_MODE=$(METRIC_MODE) EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
 test-ka-sanity-pegasus-judges:
-	METRICS_SUITE=sanity_pegasus RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
+	METRICS_SUITE=sanity_pegasus METRIC_MODE=$(METRIC_MODE) RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
 test-ka:
 	pytest tests/knowledge_agent/test_sanity.py -v

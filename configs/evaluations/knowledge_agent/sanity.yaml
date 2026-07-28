@@ -1,7 +1,8 @@
-# Knowledge Agent — sanity suite (final-answer DeepEval judges only).
+# Knowledge Agent — sanity suite (final-answer DeepEval judges).
 # Definitions: configs/metrics/knowledge_agent/catalog.yaml
 #
-# Select explicitly via METRICS_SUITE="sanity" (tests/conftest) or Verdict pack.
+# mode: deepeval (see catalog). For Pegasus use suite sanity_pegasus.
+# Select via METRICS_SUITE="sanity" (default) or Verdict pack.
 # correctness needs expected.expected_answer (skipped when absent).
 suite: sanity
 

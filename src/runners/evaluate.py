@@ -1,7 +1,11 @@
 """
-Run suite judges (DeepEval / GEval via CORTEX) for any agent.
+Run suite judges for any agent.
 
   evaluate(agent_name, suite, case, response) → EvalResult
+
+Catalog `mode:` selects scoring backend:
+  - deepeval (default) → existing MetricFactory / DeepEval path
+  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus Faithfulness
 
 Always publishes to outputs/dashboard (Streamlit) unless publish=False or
 DASHBOARD_DISABLE=1. Callers do not need to touch persist themselves.
@@ -24,6 +28,7 @@ from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
 from src.reporting.persist import publish_suite_result
 from src.runners.factories import MetricFactory
+from src.runners.pegasus_judge import run_pegasus_faithfulness
 
 
 @dataclass
@@ -121,7 +126,17 @@ def evaluate(
     for cfg in metric_cfgs:
         if not _should_run_metric(cfg, test_case):
             continue
-        result: MetricResult = factory.create(cfg).evaluate(test_case, response)
+        mode = str(cfg.get("mode") or "deepeval").strip().lower()
+        if mode.startswith("pegasus"):
+            # Same call pattern as evaluations/evaluate_Faithfulness.py
+            result = run_pegasus_faithfulness(
+                cfg,
+                test_case,
+                response,
+                cortex_client=factory._cortex_client,
+            )
+        else:
+            result = factory.create(cfg).evaluate(test_case, response)
         judges.append(
             CheckResult(
                 name=result.name,

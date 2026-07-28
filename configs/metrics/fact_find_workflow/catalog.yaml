@@ -20,9 +20,9 @@ metrics:
     context_source: retrieval_context
 
   faithfulness_pegasus:
-    type: pegasus_faithfulness
+    type: faithfulness
+    mode: ${METRIC_MODE:-pegasus}
     threshold: 0.7
-    method: ${PEGASUS_METHOD:-pegasus}
     input_source: complaint_ref
     actual_source: answer
     context_source: retrieval_context

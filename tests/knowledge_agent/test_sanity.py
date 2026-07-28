@@ -4,10 +4,14 @@ Knowledge Agent — run + evaluate only.
 Setup (cases / input checks) lives in conftest.py.
 
   EVAL_MODE=live|cache
-  RUN_JUDGES=true   → also run CORTEX suite judges
+  RUN_JUDGES=true   → also run suite judges
 
-  make test-ka-sanity
-  make test-ka-sanity-judges
+  DeepEval (default):
+    make test-ka-sanity-judges
+
+  Pegasus (same test file; data transformed in ka_eval.prepare_for_judges):
+    make test-ka-sanity-pegasus-judges
+    METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
 """
 
 from __future__ import annotations

@@ -56,14 +56,17 @@ metrics:
     actual_source: anchor_page_content
 
   # --- Final-answer / e2e ---
+  # mode: deepeval | pegasus | pegasus_ragas | pegasus_deepeval
   relevance:
     type: relevance
+    mode: deepeval
     threshold: 0.7
     input_source: question
     actual_source: answer
 
   correctness:
     type: correctness
+    mode: deepeval
     threshold: 0.7
     input_source: question
     actual_source: answer
@@ -71,15 +74,17 @@ metrics:
 
   faithfulness:
     type: faithfulness
+    mode: deepeval
     threshold: 0.7
     input_source: question
     actual_source: answer
     context_source: retrieval_context
 
+  # Pegasus path: evaluate() switches on mode and calls lbg-pegasus Faithfulness.
   faithfulness_pegasus:
-    type: pegasus_faithfulness
+    type: faithfulness
+    mode: ${METRIC_MODE:-pegasus}
     threshold: 0.7
-    method: ${PEGASUS_METHOD:-pegasus}
     input_source: question
     actual_source: answer
     context_source: retrieval_context
