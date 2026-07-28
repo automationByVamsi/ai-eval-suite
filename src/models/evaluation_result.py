@@ -50,7 +50,10 @@ class CaseEvaluationResult(BaseModel):
     agent_name: str = ""
     question: str = ""
     answer: str = ""
+    # Ground truth for judges / dashboard: FF = aggregate chunks; KA may leave empty.
     context: list[str] = Field(default_factory=list)
+    # SME / case golden text (e.g. KA expected_answer).
+    expected_output: str = ""
     latency_ms: Optional[float] = None
     deterministic_results: list[DeterministicCheckResult] = Field(default_factory=list)
     metric_results: list[MetricResult] = Field(default_factory=list)

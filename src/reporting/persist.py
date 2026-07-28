@@ -141,6 +141,17 @@ def _question_from_case(case: dict[str, Any]) -> str:
     return ""
 
 
+def _expected_output(case: dict[str, Any], response: AgentResponse) -> str:
+    """SME golden text when present (KA); FF relies on response.context chunks."""
+    meta = response.metadata or {}
+    if meta.get("expected_answer"):
+        return str(meta["expected_answer"])
+    expected = case.get("expected") or {}
+    if not isinstance(expected, dict):
+        return ""
+    return str(expected.get("expected_answer") or expected.get("answer") or "")
+
+
 def publish_suite_result(
     *,
     agent_name: str,
@@ -186,6 +197,7 @@ def publish_suite_result(
         question=_question_from_case(case),
         answer=response.answer or "",
         context=list(response.context or []),
+        expected_output=_expected_output(case, response),
         latency_ms=response.latency_ms,
         deterministic_results=det_results,
         metric_results=metric_results,

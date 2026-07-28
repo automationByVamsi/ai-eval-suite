@@ -39,9 +39,10 @@ def test_run_case(case: dict) -> None:
     det, fields = run_deterministic(case, raw, question)
 
     response = enrich(result.response, question=question)
+    # Attach SME golden for dashboard (+ correctness) when the case has expected_answer.
+    response = prepare_for_judges(case, response)
     judges: list = []
     if judges_enabled():
-        response = prepare_for_judges(case, response)
         judges = evaluate(AGENT, METRICS_SUITE, case, response, publish=False).judges
 
     publish_case(

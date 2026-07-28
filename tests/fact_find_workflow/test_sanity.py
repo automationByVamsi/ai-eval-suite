@@ -39,9 +39,10 @@ def test_run_case(case: dict) -> None:
     det, fields = run_deterministic(case, raw, complaint_ref)
 
     response = enrich(result.response, complaint_ref=complaint_ref)
+    # Attach aggregate ground truth for dashboard (+ judges) when the case has a payload.
+    response = prepare_for_judges(case, response)
     judges: list = []
     if judges_enabled():
-        response = prepare_for_judges(case, response)
         judges = evaluate(AGENT, METRICS_SUITE, case, response, publish=False).judges
 
     publish_case(

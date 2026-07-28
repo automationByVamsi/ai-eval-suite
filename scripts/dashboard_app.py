@@ -9,8 +9,8 @@ Scope (sidebar):
   - Single run: one timestamped folder (default — current per-pytest flow)
   - All runs: union across runs/*/ so KA + Fact Find show together
 
-Publish path: sanity tests call publish_case() (det + judges);
-evaluate(..., publish=True) still works for judge-only publishes.
+Publish path: sanity tests call publish_case() (actual output, expected/ground
+truth, det + judges); evaluate(..., publish=True) still works for judge-only.
 
     streamlit run scripts/dashboard_app.py
 """
@@ -241,7 +241,7 @@ def _stat_tiles(tiles: list[tuple[str, str, str]]) -> None:
 
 
 def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
-    """Shared det/judge panels + answer/context/trace expanders."""
+    """Shared det/judge panels + actual / expected / eval-details expanders."""
     det_rows = "".join(_det_row_html(c) for c in r.deterministic_results)
     judge_rows = "".join(_judge_row_html(m) for m in r.metric_results)
     det_passed_n = sum(c.passed for c in r.deterministic_results)
@@ -271,24 +271,30 @@ def _render_stage_body(r: CaseEvaluationResult, *, key_prefix: str) -> None:
     """
     st.markdown(card_html, unsafe_allow_html=True)
 
-    with st.expander("Agent answer"):
+    with st.expander("Actual output"):
         st.markdown(r.answer or "_(empty)_")
 
-    with st.expander("Retrieved context"):
-        if r.context:
-            for i, ctx in enumerate(r.context, start=1):
+    with st.expander("Expected / ground truth"):
+        expected_text = (getattr(r, "expected_output", None) or "").strip()
+        chunks = list(r.context or [])
+        if expected_text:
+            st.markdown(expected_text)
+        if chunks:
+            if expected_text:
+                st.caption("Context chunks (e.g. aggregated payload)")
+            for i, ctx in enumerate(chunks, start=1):
                 st.text_area(
-                    f"Context {i}",
+                    f"Ground truth {i}",
                     ctx,
                     height=120,
                     disabled=True,
                     label_visibility="collapsed",
-                    key=f"{key_prefix}_ctx_{r.agent_name}_{r.eval_name}_{r.test_case_id}_{i}",
+                    key=f"{key_prefix}_gt_{r.agent_name}_{r.eval_name}_{r.test_case_id}_{i}",
                 )
-        else:
-            st.caption("No retrieved context recorded.")
+        if not expected_text and not chunks:
+            st.caption("No expected / ground truth recorded for this case.")
 
-    with st.expander("Agent trace"):
+    with st.expander("Eval details"):
         st.json(r.model_dump())
 
 
