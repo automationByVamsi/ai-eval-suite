@@ -184,17 +184,54 @@ def _result_from_pegasus(
     name: str, threshold: float, results: dict[str, Any]
 ) -> MetricResult:
     score = float(results.get("score") or 0.0)
+    passed = bool(results.get("passed", score >= threshold))
+    reason = _reason_from_pegasus_results(results)
+    if not reason or _is_score_only_reason(reason):
+        # Prefer LLM reasoning; if missing, still explain pass/fail vs threshold.
+        if passed:
+            reason = f"{reason + ' — ' if reason else ''}score {score:.2f} ≥ threshold {threshold:.2f}"
+        else:
+            reason = (
+                f"{reason + ' — ' if reason else ''}"
+                f"score {score:.2f} < threshold {threshold:.2f} "
+                f"(answer did not match reference_answer closely enough)"
+            )
     return MetricResult(
         name=name,
         score=score,
         threshold=threshold,
-        passed=bool(results.get("passed", score >= threshold)),
-        reason=str(
-            results.get("details")
-            or (results.get("reasons") or [""])[0]
-            or results.get("score_details")
-            or ""
-        ),
+        passed=passed,
+        reason=reason.strip(),
+    )
+
+
+def _reason_from_pegasus_results(results: dict[str, Any]) -> str:
+    """Pull the best human-readable explanation from a Pegasus evaluate() dict."""
+    # Faithfulness / AnswerCorrectness demos usually return reasoning: [str, ...]
+    for key in ("reasoning", "reasons"):
+        value = results.get(key)
+        if isinstance(value, list) and value:
+            first = value[0]
+            if first and str(first).strip():
+                return str(first).strip()
+        elif isinstance(value, str) and value.strip():
+            return value.strip()
+
+    for key in ("details", "score_details"):
+        value = results.get(key)
+        if value and str(value).strip():
+            return str(value).strip()
+    return ""
+
+
+def _is_score_only_reason(text: str) -> bool:
+    """True when the string is just a score banner with no explanation."""
+    lowered = text.strip().lower()
+    return (
+        "score:" in lowered
+        and "because" not in lowered
+        and "reason" not in lowered
+        and len(lowered) < 80
     )
 
 
