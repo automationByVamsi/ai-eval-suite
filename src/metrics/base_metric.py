@@ -6,10 +6,10 @@ onto a DeepEval LLMTestCase) so each concrete metric only has to say which
 DeepEval metric class to build.
 
 Source mapping: a `<field>_source` config value is a name that gets resolved
-against, in order: test_case.input, test_case.expected, response.metadata,
-then a couple of well-known AgentResponse attributes (answer, context). This
-is what lets configs/metrics/.../catalog.yaml wire "input_source: question" or
-"actual_source: rewritten_query" without any Python.
+against, in order: test_case.input, response.metadata, well-known
+AgentResponse attributes (answer, context), then test_case.expected.
+Live response fields win over expected.* with the same name so a golden
+`expected.answer` cannot shadow the agent answer used by actual_source.
 """
 
 from abc import ABC, abstractmethod
@@ -32,14 +32,14 @@ def resolve_field(source_name: Optional[str], test_case: TestCase, response: Age
         return None
     if source_name in test_case.input:
         return test_case.input[source_name]
-    if source_name in test_case.expected:
-        return test_case.expected[source_name]
     if source_name in response.metadata:
         return response.metadata[source_name]
     if source_name in _RESPONSE_ATTRS:
         return getattr(response, source_name)
     if source_name in _RESPONSE_ATTR_ALIASES:
         return getattr(response, _RESPONSE_ATTR_ALIASES[source_name])
+    if source_name in test_case.expected:
+        return test_case.expected[source_name]
     return None
 
 

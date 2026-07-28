@@ -17,6 +17,7 @@ from src.parsers.knowledge_agent import enrich, extract
 from src.runners.case_runner import eval_mode, judges_enabled, run_case
 from src.runners.evaluate import evaluate
 from tests.knowledge_agent.conftest import AGENT, METRICS_SUITE
+from tests.knowledge_agent.ka_eval import prepare_for_judges
 from tests.support.sanity import DATA_SUITE, OUTPUT_DIR
 
 
@@ -61,6 +62,7 @@ def test_run_case(case: dict) -> None:
     response = enrich(result.response, question=question)
 
     if judges_enabled():
+        response = prepare_for_judges(case, response)
         judges = evaluate(AGENT, METRICS_SUITE, case, response)
         failed = [(j.name, j.score, j.reason) for j in judges.failed]
         assert not failed, failed

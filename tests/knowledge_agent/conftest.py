@@ -1,4 +1,8 @@
-"""Knowledge Agent fixtures — case loading / validation lives here."""
+"""Knowledge Agent fixtures — case loading / validation lives here.
+
+METRICS_SUITE selects configs/evaluations/knowledge_agent/<suite>.yaml
+explicitly (e.g. "sanity" or "e2e").
+"""
 
 from __future__ import annotations
 

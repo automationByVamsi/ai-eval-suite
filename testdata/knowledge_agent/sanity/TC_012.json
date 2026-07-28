@@ -1,0 +1,14 @@
+{
+  "test_case_id": "TC_012",
+  "description": "Third party reports a support need when the customer is not present",
+  "agent_name": "knowledge_agent",
+  "input": {
+    "question": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?"
+  },
+  "expected": {
+    "expected_answer": "Always balance data privacy with our responsibility to treat customers fairly. Don't ignore information from a third party if doing so could disadvantage the customer.\n\nAdding a support need when the customer isn't present, for instance CARERs Drill. Verification level is - Non-verifiable.\nFollow the When a Carer or Family Member Share a Customers Vulnerability - Customer Not Present process and use the 'Notified by a Third Party' option on Multi-channel Processes (MCP).\n\nIf a carer or family member tells you either verbally, about a customer's vulnerability or support need, and the customer isn't present, follow the CARERS framework to handle these disclosures. This could happen because:\nThe customer can't contact us, for instance, they are in hospital.\nThe third party believes the customer may be at risk of harm, disadvantage, distress, or financial loss.\n\nWhen speaking to the customer on the phone, see Consent Needed for Adding Support Needs. Follow these steps using the CARERS framework below:",
+    "expected_source_articles": [
+      "https://lloyds-banking-test.eu1prod.expert.nicexone.com/Customer_Vulnerability_Hub/Support_Needs/How_To_Process_Support_Needs/Third-Party_Consent_for_Customer_Vulnerability_Support_Needs"
+    ]
+  }
+}

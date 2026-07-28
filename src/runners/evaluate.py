@@ -155,4 +155,8 @@ def _should_run_metric(cfg: dict[str, Any], test_case: TestCase) -> bool:
     if mtype == "keyword_match" or name == "keyword_match":
         keywords = test_case.expected.get(cfg.get("keywords_source") or "keywords")
         return bool(keywords)
+    if mtype == "correctness" or name == "correctness":
+        src = cfg.get("expected_source") or "expected_answer"
+        golden = test_case.expected.get(src) or test_case.expected.get("answer")
+        return bool(golden and str(golden).strip())
     return True

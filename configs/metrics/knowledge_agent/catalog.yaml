@@ -62,6 +62,13 @@ metrics:
     input_source: question
     actual_source: answer
 
+  correctness:
+    type: correctness
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+    expected_source: expected_answer
+
   faithfulness:
     type: faithfulness
     threshold: 0.7

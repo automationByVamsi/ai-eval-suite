@@ -1,6 +1,10 @@
 # Knowledge Agent — sanity suite (final-answer DeepEval judges only).
 # Definitions: configs/metrics/knowledge_agent/catalog.yaml
+#
+# Select explicitly via METRICS_SUITE="sanity" (tests/conftest) or Verdict pack.
+# correctness needs expected.expected_answer (skipped when absent).
 suite: sanity
 
 judges:
   - relevance
+  - correctness
