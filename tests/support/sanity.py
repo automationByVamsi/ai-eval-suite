@@ -15,18 +15,7 @@ OUTPUT_DIR = Path("outputs/traces")
 DATA_SUITE = "sanity"
 
 
-def load_sanity_cases(
-    agent: str,
-    *,
-    required_input_keys: list[str],
-) -> list[dict[str, Any]]:
-    """
-    Load testdata/<agent>/sanity and fail fast if envelopes are wrong.
-    Call from agent conftest — not as pytest test methods.
-    """
-    cases = load_cases(agent, DATA_SUITE)
-    assert cases, f"expected sanity cases under testdata/{agent}/{DATA_SUITE}"
-
+def _validate_loaded_cases(cases: list[dict[str, Any]], *, required_input_keys: list[str]) -> None:
     for case in cases:
         cid = case.get("test_case_id", "?")
         validate_case_envelope(case, source=cid)
@@ -41,8 +30,45 @@ def load_sanity_cases(
             path = Path(rel)
             assert path.is_file(), f"{cid}: aggregated payload missing: {path}"
 
+
+def load_suite_cases(
+    agent: str,
+    data_suite: str,
+    *,
+    required_input_keys: list[str],
+    require_cases: bool = True,
+) -> list[dict[str, Any]]:
+    """
+    Load testdata/<agent>/<data_suite> and fail fast if envelopes are wrong.
+    """
+    try:
+        cases = load_cases(agent, data_suite)
+    except FileNotFoundError:
+        if not require_cases:
+            return []
+        raise
+    if require_cases:
+        assert cases, f"expected cases under testdata/{agent}/{data_suite}"
+    _validate_loaded_cases(cases, required_input_keys=required_input_keys)
     return cases
 
+
+def load_sanity_cases(
+    agent: str,
+    *,
+    required_input_keys: list[str],
+) -> list[dict[str, Any]]:
+    """
+    Load testdata/<agent>/sanity and fail fast if envelopes are wrong.
+    Call from agent conftest — not as pytest test methods.
+    """
+    cases = load_suite_cases(
+        agent,
+        DATA_SUITE,
+        required_input_keys=required_input_keys,
+        require_cases=True,
+    )
+    return cases
 
 def check(name: str, passed: bool, reason: str = "") -> CheckResult:
     """One named deterministic check for dashboard + pytest."""
