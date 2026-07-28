@@ -1,4 +1,5 @@
-# Fact Find e2e = gate + summary suites.
+# Fact Find e2e = full judge pack (gate + summary).
+# Select explicitly: METRICS_SUITE=e2e / evaluate(..., "e2e", ...).
 suite: e2e
 
 include:

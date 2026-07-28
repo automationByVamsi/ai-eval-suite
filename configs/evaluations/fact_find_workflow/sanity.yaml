@@ -1,6 +1,7 @@
-# Fact Find — sanity suite (final-answer judges that need no aggregate context).
+# Fact Find — sanity suite (light smoke judges).
 # Definitions: configs/metrics/fact_find_workflow/catalog.yaml
 #
+# Select explicitly via METRICS_SUITE="sanity" (tests/conftest) or Verdict pack.
 # Works on live run_case AgentResponse for both success and invalid-ref cases.
 suite: sanity
 

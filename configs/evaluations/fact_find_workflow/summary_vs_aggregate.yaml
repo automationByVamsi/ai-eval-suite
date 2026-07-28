@@ -1,4 +1,5 @@
 # Summary vs aggregate = Customer FactFind Summary quality vs aggregated payload.
+# Building block; usually selected via e2e include, or evaluate(..., "summary_vs_aggregate", ...).
 # Definitions: configs/metrics/fact_find_workflow/catalog.yaml
 #
 # Needs response.context (+ source_document) from aggregated payload.

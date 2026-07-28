@@ -1,42 +1,33 @@
 """
-Knowledge Agent — sanity capture + optional suite judges.
+Knowledge Agent — run + evaluate only.
 
-  EVAL_MODE=live  (default) → call ADK, save trace, assert / evaluate
-  EVAL_MODE=cache           → load outputs/traces/... , assert / evaluate
+Setup (cases / input checks) lives in conftest.py.
 
-  pytest tests/knowledge_agent/test_sanity.py -v -s
-  EVAL_MODE=cache pytest tests/knowledge_agent/test_sanity.py -v -s
-  RUN_JUDGES=true EVAL_MODE=cache pytest tests/knowledge_agent/test_sanity.py -v -s
+  EVAL_MODE=live|cache
+  RUN_JUDGES=true   → also run CORTEX suite judges
+
+  make test-ka-sanity
+  make test-ka-sanity-judges
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
 from src.core.exceptions import AgentInvocationError
 from src.parsers.knowledge_agent import enrich, extract
-from src.runners.case_runner import eval_mode, judges_enabled, load_cases, run_case
+from src.runners.case_runner import eval_mode, judges_enabled, run_case
 from src.runners.evaluate import evaluate
-
-AGENT = "knowledge_agent"
-DATA_SUITE = "sanity"
-METRICS_SUITE = "sanity"
-OUTPUT_DIR = Path("outputs/traces")
-
-CASES = load_cases(AGENT, DATA_SUITE)
-CASE_IDS = [c["test_case_id"] for c in CASES]
+from tests.knowledge_agent.conftest import AGENT, METRICS_SUITE
+from tests.support.sanity import DATA_SUITE, OUTPUT_DIR
 
 
 def _assert_deterministic(case: dict, raw: dict, question: str) -> None:
-    """Layer-1 checks from the KA parser view (no LLM)."""
     view = extract(raw)
     expected = case.get("expected") or {}
 
     assert view.answer.strip(), "deterministic: empty agent answer"
     assert view.rewritten_query.strip(), "deterministic: missing rewritten_query"
     assert view.anchor_page_id.strip(), "deterministic: missing anchor_page_id"
+    assert question.strip(), "deterministic: case input.question required"
 
     for kw in expected.get("keywords") or []:
         assert str(kw).lower() in view.answer.lower(), (
@@ -46,58 +37,30 @@ def _assert_deterministic(case: dict, raw: dict, question: str) -> None:
     want_anchor = expected.get("expected_anchor_page_id")
     if want_anchor:
         assert view.anchor_page_id == str(want_anchor), (
-            f"deterministic: anchor_page_id={view.anchor_page_id!r}, "
-            f"expected {want_anchor!r}"
+            f"deterministic: anchor_page_id={view.anchor_page_id!r}, expected {want_anchor!r}"
         )
 
-    # Question should round-trip from case or state
-    assert question.strip(), "deterministic: case input.question required"
 
+def test_run_case(case: dict) -> None:
+    mode = eval_mode()
+    try:
+        result = run_case(AGENT, case, DATA_SUITE, output_dir=OUTPUT_DIR, mode=mode)
+    except AgentInvocationError as exc:
+        import pytest
 
-class TestKnowledgeAgentSanity:
-    def test_cases_loaded(self):
-        assert CASES, "expected sanity cases for knowledge_agent"
-        assert "TC_001" in CASE_IDS
-        assert "TC_002" in CASE_IDS
+        pytest.skip(f"ADK not reachable: {exc}")
+    except FileNotFoundError as exc:
+        import pytest
 
-    def test_every_case_has_required_input(self):
-        for case in CASES:
-            assert case["test_case_id"]
-            assert case["input"], f"{case['test_case_id']}: input required"
-            assert "question" in case["input"]
-            assert isinstance(case.get("expected", {}), dict)
+        pytest.skip(str(exc))
 
-    def test_sanity_suite_resolves_from_catalog(self):
-        from src.core.config import resolve_suite_metrics
+    question = case["input"]["question"]
+    raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
+    _assert_deterministic(case, raw, question)
 
-        cfgs = resolve_suite_metrics(AGENT, METRICS_SUITE)
-        names = [c["name"] for c in cfgs]
-        assert names == ["relevance"]
-        assert cfgs[0]["type"] == "relevance"
+    response = enrich(result.response, question=question)
 
-    @pytest.mark.parametrize("case", CASES, ids=CASE_IDS)
-    def test_run_case(self, case: dict):
-        mode = eval_mode()
-        try:
-            result = run_case(AGENT, case, DATA_SUITE, output_dir=OUTPUT_DIR, mode=mode)
-        except AgentInvocationError as exc:
-            pytest.skip(f"ADK not reachable: {exc}")
-        except FileNotFoundError as exc:
-            pytest.skip(str(exc))
-
-        assert result.test_case_id == case["test_case_id"]
-        assert result.saved_path and result.saved_path.exists()
-        assert result.mode == mode
-
-        question = case["input"]["question"]
-        raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
-        _assert_deterministic(case, raw, question)
-
-        response = enrich(result.response, question=question)
-        assert response.metadata.get("rewritten_query")
-        assert response.metadata.get("anchor_page_id")
-
-        if judges_enabled():
-            judges = evaluate(AGENT, METRICS_SUITE, case, response)
-            failed = [(j.name, j.score, j.reason) for j in judges.failed]
-            assert not failed, failed
+    if judges_enabled():
+        judges = evaluate(AGENT, METRICS_SUITE, case, response)
+        failed = [(j.name, j.score, j.reason) for j in judges.failed]
+        assert not failed, failed

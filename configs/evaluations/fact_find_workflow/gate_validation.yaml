@@ -1,4 +1,5 @@
 # Gate validation = complaint reference accept / InvalidComplaintId reject.
+# Building block; usually selected via e2e include, or evaluate(..., "gate_validation", ...).
 # Definitions: configs/metrics/fact_find_workflow/catalog.yaml
 suite: gate_validation
 

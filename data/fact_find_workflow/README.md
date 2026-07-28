@@ -11,11 +11,13 @@
 #      → data/fact_find_workflow/aggregated_payloads/{complaintRef}.json
 #   Code: src/agents/fact_find_workflow/ (payload generation helpers)
 #
-# Eval packages (not Knowledge-Agent pipeline stages):
-#   gate_validation       — complaint ref format / InvalidComplaintId
-#   summary_vs_aggregate  — Customer FactFind Summary vs aggregated payload
+# Metrics suites (pick explicitly — not derived from case path):
+#   sanity                — light smoke judges
+#   e2e                   — gate_validation + summary_vs_aggregate
+#   gate_validation       — building block / InvalidComplaintId
+#   summary_vs_aggregate  — building block / summary vs aggregate
 #
-# Make targets: test-ff-gate, test-ff-summary, test-ff, demo-ff-e2e, generate-ff-payloads
+# Make targets: test-ff-sanity, test-ff-sanity-judges, test-ff, demo-ff-e2e, generate-ff-payloads
 # Metrics: configs/evaluations/fact_find_workflow/METRICS.md
 #
 # Agent: configs/agents.yaml → fact_find_workflow (live ADK via AdkClient)

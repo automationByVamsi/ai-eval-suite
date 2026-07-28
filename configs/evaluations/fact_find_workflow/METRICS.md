@@ -13,14 +13,18 @@ via `tests/fact_find_workflow/ff_eval.prepare_for_judges`.
 
 ## Suites
 
+Pick the metrics suite explicitly at the call site (`METRICS_SUITE` / Verdict pack).
+Do **not** derive it from `case.expected.path`.
+
 | Suite | When | Judges |
 |-------|------|--------|
-| **sanity** | Smoke / any case | `relevance` |
-| **gate_validation** | `expected.path: invalid_complaint` | `validation_message_clarity`, `relevance` |
-| **summary_vs_aggregate** | `expected.path: success` + aggregate | faithfulness, relevance, summarization, task_completion + 4 domain GEval |
-| **e2e** | `include:` gate + summary | union of the above |
+| **sanity** | Smoke / `test_sanity` | `relevance` |
+| **e2e** | Full judge pack | `include:` gate + summary |
+| **gate_validation** | Building block (also via e2e) | `validation_message_clarity`, `relevance` |
+| **summary_vs_aggregate** | Building block (also via e2e) | faithfulness, relevance, summarization, task_completion + 4 domain GEval |
 
-`RUN_JUDGES=true` on sanity tests picks **gate** or **summary** from `case.expected.path`.
+Example: `evaluate("fact_find_workflow", "sanity", case, response)` or set
+`METRICS_SUITE = "e2e"` for the heavier pack.
 
 ---
 

@@ -47,13 +47,3 @@ def prepare_for_judges(
     meta["ground_truth_context"] = chunks
 
     return response.model_copy(update={"context": chunks, "metadata": meta})
-
-
-def suite_for_case(case: dict[str, Any]) -> str:
-    """Pick the metrics suite from case.expected.path (fallback: sanity)."""
-    path = (case.get("expected") or {}).get("path")
-    if path == "invalid_complaint":
-        return "gate_validation"
-    if path == "success":
-        return "summary_vs_aggregate"
-    return "sanity"
