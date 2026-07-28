@@ -11,8 +11,6 @@ from src.metrics import (  # noqa: F401
     faithfulness,
     hallucination,
     keyword_match,
-    mcp_task_completion,
-    mcp_use,
     relevance,
     summarization,
     task_completion,

@@ -1,7 +1,7 @@
 from deepeval.metrics import HallucinationMetric
 
 from src.core.registry import METRIC_REGISTRY
-from src.metrics.base_metric import DeepEvalMetric
+from src.metrics.base_metric import DeepEvalMetric, resolve_field
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
@@ -25,6 +25,15 @@ class HallucinationMetricAdapter(DeepEvalMetric):
         )
 
     def evaluate(self, test_case: TestCase, response: AgentResponse) -> MetricResult:
+        ground_truth = resolve_field(self.ground_truth_context_source, test_case, response)
+        if not isinstance(ground_truth, list) or not ground_truth:
+            return MetricResult(
+                name=self.name,
+                score=1.0,
+                threshold=self.threshold,
+                passed=False,
+                reason="Skipped: no ground_truth_context available for hallucination.",
+            )
         try:
             llm_test_case = self.build_llm_test_case(test_case, response)
             deepeval_metric = self.build_deepeval_metric()

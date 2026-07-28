@@ -33,6 +33,11 @@ class CustomGEval(DeepEvalMetric):
         self.criteria = rubric_path.read_text().strip()
 
     def build_deepeval_metric(self):
+        unknown = [p for p in self.evaluation_params if p not in _PARAM_MAP]
+        if unknown:
+            raise ConfigError(
+                f"Unknown GEval evaluation_params {unknown}. Allowed: {sorted(_PARAM_MAP)}"
+            )
         params = [_PARAM_MAP[p] for p in self.evaluation_params]
         return GEval(
             name=self.name,

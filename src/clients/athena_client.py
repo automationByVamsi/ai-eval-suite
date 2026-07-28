@@ -2,7 +2,7 @@
 Athena Control Plane — fetch page HTML/JSON by page id.
 
   GET {base_url}/control-plane/v1/pages/{page_id}/contents?format=json
-  Header: x-lbg-origin-client-id: <CORTEX_CLIENT_ID>
+  Header: x-lbg-origin-client-id: <ATHEN_ID>
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ class AthenaClient:
         verify_tls: bool = False,
         timeout_s: float = 60,
         retries: int = 1,
-        client_id_env: str = "CORTEX_CLIENT_ID",
+        client_id_env: str = "ATHEN_ID",
     ):
         self.base_url = base_url.rstrip("/")
         self.verify_tls = verify_tls

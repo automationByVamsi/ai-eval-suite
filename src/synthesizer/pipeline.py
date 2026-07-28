@@ -67,7 +67,7 @@ class KnowledgeAgentSynthesizer:
             verify_tls=False,
             timeout_s=60,
             retries=1,
-            client_id_env="CORTEX_CLIENT_ID",
+            client_id_env="ATHEN_ID",
         )
 
     def fetch_content_from_athena(self, page_id: str) -> dict[str, Any]:
