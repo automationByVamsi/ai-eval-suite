@@ -74,7 +74,8 @@ VERDICT is not another thing that produces answers. It is the layer that decides
 Agent-agnostic: pick any registered agent (`knowledge_agent`, `fact_find_workflow`, …).
 **Live-only:** each of the N reps invokes ADK for that case, then scores the fresh response
 (traces are still written under `outputs/traces/` as a side effect).
-Deterministic sanity checks (answer / keywords) by default; optional judges with `--judges`.
+By default Make targets pass `--judges` so each rep runs **deterministic + CORTEX judges**.
+Skip judges with `make verdict-check JUDGES=`.
 
 ```bash
 # Knowledge Agent demo
