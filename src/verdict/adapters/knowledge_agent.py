@@ -8,10 +8,9 @@ from src.models.agent_response import AgentResponse
 from src.parsers.knowledge_agent import enrich
 from src.runners.evaluate import evaluate
 from src.verdict import obs
-from src.verdict.adapters.common import answer_and_keyword_checks
 from src.verdict.models import CheckObservation
 from src.verdict.registry import AgentPack, register
-from tests.knowledge_agent.ka_eval import prepare_for_judges
+from tests.knowledge_agent.ka_eval import prepare_for_judges, run_deterministic
 
 PACK = "sanity"
 
@@ -23,9 +22,11 @@ def _eval_sanity(
     run_judges: bool,
 ) -> list[CheckObservation]:
     question = (case.get("input") or {}).get("question") or ""
+    raw = response.raw_output if isinstance(response.raw_output, dict) else {}
+    det, _fields = run_deterministic(case, raw, question)
     response = enrich(response, question=question)
 
-    checks = obs.from_deterministic(answer_and_keyword_checks(case, response))
+    checks = obs.from_deterministic(det)
     if run_judges:
         enriched = prepare_for_judges(case, response)
         judges = evaluate(agent, PACK, case, enriched, publish=False)

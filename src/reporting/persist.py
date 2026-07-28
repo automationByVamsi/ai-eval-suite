@@ -27,7 +27,11 @@ from threading import Lock
 from typing import Any
 
 from src.models.agent_response import AgentResponse
-from src.models.evaluation_result import CaseEvaluationResult, E2ECaseResult
+from src.models.evaluation_result import (
+    CaseEvaluationResult,
+    DeterministicCheckResult,
+    E2ECaseResult,
+)
 from src.models.metric_result import MetricResult
 
 _lock = Lock()
@@ -143,15 +147,20 @@ def publish_suite_result(
     suite: str,
     case: dict[str, Any],
     response: AgentResponse,
-    judges: list[Any],
+    judges: list[Any] | None = None,
+    deterministic: list[Any] | None = None,
+    result_fields: dict[str, Any] | None = None,
     dashboard_root: str | Path = DEFAULT_DASHBOARD_ROOT,
 ) -> Path:
     """
     Write one suite × case result for Streamlit (pass or fail).
 
-    `judges` items need .name/.passed/.reason and optional .score/.threshold
-    (CheckResult from evaluate() works).
+    `judges` / `deterministic` items need .name/.passed/.reason;
+    judges may also have .score/.threshold (CheckResult from evaluate() works).
     """
+    judges = judges or []
+    deterministic = deterministic or []
+
     metric_results = [
         MetricResult(
             name=j.name,
@@ -162,6 +171,14 @@ def publish_suite_result(
         )
         for j in judges
     ]
+    det_results = [
+        DeterministicCheckResult(
+            name=str(c.name),
+            passed=bool(c.passed),
+            reason=str(getattr(c, "reason", "") or ""),
+        )
+        for c in deterministic
+    ]
     result = CaseEvaluationResult(
         eval_name=suite,
         test_case_id=str(case.get("test_case_id") or "unknown"),
@@ -170,7 +187,9 @@ def publish_suite_result(
         answer=response.answer or "",
         context=list(response.context or []),
         latency_ms=response.latency_ms,
+        deterministic_results=det_results,
         metric_results=metric_results,
+        result_fields=dict(result_fields or {}),
     )
     run_dir = ensure_run_dir(dashboard_root)
     return save_eval_result(result, str(run_dir))

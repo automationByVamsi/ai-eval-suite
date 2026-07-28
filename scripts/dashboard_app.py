@@ -9,8 +9,8 @@ Scope (sidebar):
   - Single run: one timestamped folder (default — current per-pytest flow)
   - All runs: union across runs/*/ so KA + Fact Find show together
 
-Publish path is unchanged: each evaluate() still writes under
-outputs/dashboard/runs/<stamp>/<agent>/....json
+Publish path: sanity tests call publish_case() (det + judges);
+evaluate(..., publish=True) still works for judge-only publishes.
 
     streamlit run scripts/dashboard_app.py
 """
