@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from src.core.exceptions import AgentInvocationError
-from src.parsers.knowledge_agent import enrich
+from src.parsers.knowledge_agent import enrich, extract
 from src.runners.case_runner import eval_mode, judges_enabled, load_cases, run_case
 from src.runners.evaluate import evaluate
 
@@ -27,6 +27,31 @@ OUTPUT_DIR = Path("outputs/traces")
 
 CASES = load_cases(AGENT, DATA_SUITE)
 CASE_IDS = [c["test_case_id"] for c in CASES]
+
+
+def _assert_deterministic(case: dict, raw: dict, question: str) -> None:
+    """Layer-1 checks from the KA parser view (no LLM)."""
+    view = extract(raw)
+    expected = case.get("expected") or {}
+
+    assert view.answer.strip(), "deterministic: empty agent answer"
+    assert view.rewritten_query.strip(), "deterministic: missing rewritten_query"
+    assert view.anchor_page_id.strip(), "deterministic: missing anchor_page_id"
+
+    for kw in expected.get("keywords") or []:
+        assert str(kw).lower() in view.answer.lower(), (
+            f"deterministic: keyword {kw!r} not found in answer"
+        )
+
+    want_anchor = expected.get("expected_anchor_page_id")
+    if want_anchor:
+        assert view.anchor_page_id == str(want_anchor), (
+            f"deterministic: anchor_page_id={view.anchor_page_id!r}, "
+            f"expected {want_anchor!r}"
+        )
+
+    # Question should round-trip from case or state
+    assert question.strip(), "deterministic: case input.question required"
 
 
 class TestKnowledgeAgentSanity:
@@ -65,13 +90,12 @@ class TestKnowledgeAgentSanity:
         assert result.mode == mode
 
         question = case["input"]["question"]
-        response = enrich(result.response, question=question)
-        assert response.answer, "empty agent answer"
+        raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
+        _assert_deterministic(case, raw, question)
 
-        for kw in case.get("expected", {}).get("keywords") or []:
-            assert kw.lower() in response.answer.lower(), (
-                f"expected keyword {kw!r} not found in answer"
-            )
+        response = enrich(result.response, question=question)
+        assert response.metadata.get("rewritten_query")
+        assert response.metadata.get("anchor_page_id")
 
         if judges_enabled():
             judges = evaluate(AGENT, METRICS_SUITE, case, response)

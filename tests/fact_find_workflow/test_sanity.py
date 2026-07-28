@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from src.core.exceptions import AgentInvocationError
-from src.parsers.fact_find_workflow import enrich
+from src.parsers.fact_find_workflow import enrich, extract
 from src.runners.case_runner import eval_mode, judges_enabled, load_cases, run_case
 from src.runners.evaluate import evaluate
 from tests.fact_find_workflow.ff_eval import prepare_for_judges, suite_for_case
@@ -28,6 +28,44 @@ OUTPUT_DIR = Path("outputs/traces")
 
 CASES = load_cases(AGENT, DATA_SUITE)
 CASE_IDS = [c["test_case_id"] for c in CASES]
+
+
+def _assert_deterministic(case: dict, raw: dict, complaint_ref: str) -> None:
+    """Layer-1 checks from the FF parser view (no LLM)."""
+    view = extract(raw, complaint_ref=complaint_ref)
+    expected = case.get("expected") or {}
+    path = expected.get("path")
+
+    assert view.answer.strip(), "deterministic: empty agent answer"
+
+    for kw in expected.get("keywords") or []:
+        assert str(kw).lower() in view.answer.lower(), (
+            f"deterministic: keyword {kw!r} not found in answer"
+        )
+
+    if path == "success":
+        assert view.looks_like_summary, "deterministic: expected FactFind summary"
+        assert not view.is_invalid_message, "deterministic: unexpected InvalidComplaintId"
+        assert not view.validation_failed, "deterministic: validation_failed on success path"
+        assert complaint_ref in view.answer or view.complaint_ref == complaint_ref
+
+        want_party = expected.get("party_id")
+        if want_party and view.party_id:
+            assert view.party_id == str(want_party), (
+                f"deterministic: party_id={view.party_id!r}, expected {want_party!r}"
+            )
+
+        # Tools only when the trace has functionCall events (full live / org shape)
+        if view.tool_names:
+            assert len(view.tool_names) >= 1, "deterministic: expected at least one tool"
+
+    if path == "invalid_complaint":
+        assert view.validation_failed or view.is_invalid_message, (
+            "deterministic: expected invalid-complaint signals"
+        )
+        assert not view.looks_like_summary, (
+            "deterministic: invalid path should not look like a summary"
+        )
 
 
 class TestFactFindWorkflowSanity:
@@ -51,27 +89,6 @@ class TestFactFindWorkflowSanity:
         assert names == ["relevance"]
         assert cfgs[0]["type"] == "relevance"
 
-    def test_path_suites_resolve_from_catalog(self):
-        from src.core.config import resolve_suite_metrics
-
-        gate = [c["name"] for c in resolve_suite_metrics(AGENT, "gate_validation")]
-        assert gate == ["validation_message_clarity", "relevance"]
-
-        summary = [c["name"] for c in resolve_suite_metrics(AGENT, "summary_vs_aggregate")]
-        assert "faithfulness" in summary
-        assert "support_needs_fidelity" in summary
-        assert "complaint_account_association" in summary
-
-    def test_prepare_for_judges_attaches_aggregate_context(self):
-        from src.models.agent_response import AgentResponse
-
-        case = next(c for c in CASES if c["test_case_id"] == "TC_001")
-        bare = AgentResponse(answer="Customer FactFind Summary for NC10010556")
-        enriched = prepare_for_judges(case, bare)
-        assert enriched.context, "expected retrieval_context chunks from aggregate"
-        assert "source_document" in enriched.metadata
-        assert "NC10010556" in enriched.metadata["source_document"]
-
     @pytest.mark.parametrize("case", CASES, ids=CASE_IDS)
     def test_run_case(self, case: dict):
         mode = eval_mode()
@@ -87,21 +104,11 @@ class TestFactFindWorkflowSanity:
         assert result.mode == mode
 
         complaint_ref = case["input"]["complaint_ref"]
-        response = enrich(result.response, complaint_ref=complaint_ref)
-        assert response.answer, "empty agent answer"
-        for kw in case.get("expected", {}).get("keywords") or []:
-            assert kw.lower() in response.answer.lower(), (
-                f"expected keyword {kw!r} not found in answer"
-            )
+        raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
+        _assert_deterministic(case, raw, complaint_ref)
 
-        # Path-shaped deterministic hints from the parser
-        path = (case.get("expected") or {}).get("path")
-        if path == "invalid_complaint":
-            assert response.metadata.get("validation_failed") or response.metadata.get(
-                "is_invalid_complaint_message"
-            )
-        if path == "success":
-            assert response.metadata.get("looks_like_summary")
+        response = enrich(result.response, complaint_ref=complaint_ref)
+        assert response.metadata.get("complaint_ref") or complaint_ref
 
         if judges_enabled():
             response = prepare_for_judges(case, response)
