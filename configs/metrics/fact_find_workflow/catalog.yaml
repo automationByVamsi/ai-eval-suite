@@ -2,7 +2,7 @@
 # Suites under configs/evaluations/fact_find_workflow/ only *select* names from here.
 #
 # default_suite: used when a case has no suite/metrics.
-default_suite: sanity
+default_suite: e2e
 
 metrics:
   # --- Built-in DeepEval (final answer) ---
