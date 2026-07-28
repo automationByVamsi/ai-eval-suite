@@ -1,5 +1,5 @@
-# VERDICT — multi-run reliability + baseline regression (any registered agent).
-# Capture live ADK outputs first (pytest tests/<agent>/test_sanity.py).
+# VERDICT — live multi-run reliability + baseline regression (any registered agent).
+# Each rep invokes ADK (needs network + creds). Traces land under outputs/traces/.
 #
 #   make verdict-demo AGENT=knowledge_agent
 #   make verdict-check AGENT=fact_find_workflow

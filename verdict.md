@@ -72,7 +72,8 @@ VERDICT is not another thing that produces answers. It is the layer that decides
 ## Try it (v0 in this repo)
 
 Agent-agnostic: pick any registered agent (`knowledge_agent`, `fact_find_workflow`, …).
-Uses that agent’s **sanity** suite + saved traces under `outputs/traces/<agent>/sanity/`.
+**Live-only:** each of the N reps invokes ADK for that case, then scores the fresh response
+(traces are still written under `outputs/traces/` as a side effect).
 Deterministic sanity checks (answer / keywords) by default; optional judges with `--judges`.
 
 ```bash

@@ -7,13 +7,13 @@ Add a new agent: write a small adapter, then register() it here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Callable
 
+from src.models.agent_response import AgentResponse
 from src.verdict.models import CheckObservation
 
-# (agent, case, trace_path, run_judges) -> list of check observations
-EvalFn = Callable[[str, dict[str, Any], Path, bool], list[CheckObservation]]
+# (agent, case, live_response, run_judges) -> check observations
+EvalFn = Callable[[str, dict[str, Any], AgentResponse, bool], list[CheckObservation]]
 
 
 @dataclass(frozen=True)

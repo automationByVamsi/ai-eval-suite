@@ -1,13 +1,13 @@
-"""Knowledge Agent — sanity pack for VERDICT (no stage parsers)."""
+"""Knowledge Agent — sanity pack for VERDICT (live responses)."""
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
+from src.models.agent_response import AgentResponse
 from src.runners.evaluate import evaluate
 from src.verdict import obs
-from src.verdict.adapters.common import answer_and_keyword_checks, response_from_trace
+from src.verdict.adapters.common import answer_and_keyword_checks
 from src.verdict.models import CheckObservation
 from src.verdict.registry import AgentPack, register
 
@@ -17,11 +17,9 @@ PACK = "sanity"
 def _eval_sanity(
     agent: str,
     case: dict[str, Any],
-    trace_path: Path,
+    response: AgentResponse,
     run_judges: bool,
 ) -> list[CheckObservation]:
-    response = response_from_trace(trace_path, case)
-    # Attach question so relevance judges can read input_source=question
     meta = dict(response.metadata or {})
     meta.setdefault("question", (case.get("input") or {}).get("question") or "")
     response = response.model_copy(update={"metadata": meta})

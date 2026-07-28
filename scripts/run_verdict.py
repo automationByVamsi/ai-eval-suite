@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-VERDICT CLI — multi-run reliability + baseline regression (any registered agent).
+VERDICT CLI — live multi-run reliability + baseline regression.
+
+Each --n repetition live-invokes the agent (ADK), then scores the response.
 
 Examples:
   python -m scripts.run_verdict --agent knowledge_agent --n 5 --save-baseline
@@ -21,7 +23,9 @@ def main() -> int:
     load_builtin_packs()
     agents = list_agents()
 
-    parser = argparse.ArgumentParser(description="Run VERDICT reliability checks")
+    parser = argparse.ArgumentParser(
+        description="Run VERDICT reliability checks (live ADK each rep)"
+    )
     parser.add_argument(
         "--agent",
         default="knowledge_agent",
@@ -31,9 +35,9 @@ def main() -> int:
     parser.add_argument(
         "--suite",
         default=None,
-        help="Testdata / traces suite (default: agent pack default, usually sanity)",
+        help="Testdata suite (default: agent pack default, usually sanity)",
     )
-    parser.add_argument("--n", type=int, default=5, help="Repetitions per case×pack (default 5)")
+    parser.add_argument("--n", type=int, default=5, help="Live repetitions per case×pack (default 5)")
     parser.add_argument(
         "--cases",
         nargs="*",

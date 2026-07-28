@@ -2,25 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from src.models.agent_response import AgentResponse
-from src.parsers import adk_parser
-from src.runners.evaluate import CheckResult, load_trace
-
-
-def response_from_trace(trace_path: Path, case: dict[str, Any]) -> AgentResponse:
-    wrapped = load_trace(trace_path, case)
-    raw = wrapped.get("raw_output") or {}
-    return AgentResponse(
-        answer=adk_parser.extract_answer(raw),
-        raw_output=raw if isinstance(raw, dict) else {},
-        context=adk_parser.extract_context(raw),
-        events=adk_parser.extract_events(raw),
-        session_id=adk_parser.extract_session_id(raw),
-        latency_ms=adk_parser.extract_latency_ms(raw),
-    )
+from src.runners.evaluate import CheckResult
 
 
 def answer_and_keyword_checks(

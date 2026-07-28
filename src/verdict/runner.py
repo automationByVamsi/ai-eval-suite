@@ -1,7 +1,8 @@
 """
-VERDICT — multi-run reliability + baseline regression for any registered agent.
+VERDICT — live multi-run reliability + baseline regression for any agent.
 
-Capture traces first (pytest test_sanity), then:
+Each repetition invokes ADK (run_case), then scores the fresh response.
+Traces are still saved under outputs/traces/ as a side effect.
 
   python -m scripts.run_verdict --agent knowledge_agent --n 5
   python -m scripts.run_verdict --agent fact_find_workflow --n 5
@@ -11,14 +12,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.runners.case_runner import load_cases
+from src.runners.case_runner import load_cases, run_case
 from src.verdict.aggregate import aggregate_reps
 from src.verdict.baseline import load_baseline, save_baseline
 from src.verdict.diff import diff_against_baseline
 from src.verdict.models import CheckObservation, RepResult, VerdictReport
 from src.verdict.registry import get_pack, load_builtin_packs
 from src.verdict.report import print_report
-from src.verdict.traces import resolve_trace_path
 
 
 def _inject_regression(
@@ -30,7 +30,6 @@ def _inject_regression(
 ) -> list[CheckObservation]:
     """Fail selected checks on most reps (lucky first rep can still look green)."""
     if not fail_names:
-        # Generic demo: flip the first check when nothing is configured.
         fail_names = frozenset({checks[0].name}) if checks else frozenset()
     if not fail_names:
         return checks
@@ -77,7 +76,7 @@ def run_verdict(
     tag: str | None = None,
     stages: list[str] | None = None,
 ) -> VerdictReport:
-    """Score saved traces N times for one agent/suite; optionally diff a baseline."""
+    """Live-invoke each case N times; aggregate; optionally diff a baseline."""
     load_builtin_packs()
 
     agent = profile or agent
@@ -100,13 +99,12 @@ def run_verdict(
         if case_id not in cases:
             raise KeyError(f"Unknown case id {case_id!r}; have {sorted(cases)}")
         case = cases[case_id]
-        trace_path = resolve_trace_path(
-            case_id, agent=agent, suite=suite, traces_root=traces_root
-        )
         for pack_name in selected_packs:
             eval_fn = pack.packs[pack_name]
             for rep in range(n_reps):
-                checks = eval_fn(agent, case, trace_path, run_judges)
+                print(f"[verdict] live {agent}/{case_id} pack={pack_name} rep={rep + 1}/{n_reps}")
+                live = run_case(agent, case, suite, output_dir=traces_root)
+                checks = eval_fn(agent, case, live.response, run_judges)
                 if simulate_regression:
                     checks = _inject_regression(
                         checks,
@@ -160,6 +158,7 @@ def run_verdict(
                 "run_judges": run_judges,
                 "simulate_regression": simulate_regression,
                 "suite": suite,
+                "mode": "live",
             },
         )
 
