@@ -1,23 +1,22 @@
 """
 Fact Find Workflow — sanity capture + optional suite judges.
 
-  load_cases → run_case → assert answer
-  RUN_JUDGES=1 → prepare_for_judges + evaluate(path suite) → dashboard
+  EVAL_MODE=live  (default) → call ADK, save trace, assert / evaluate
+  EVAL_MODE=cache           → load outputs/traces/... , assert / evaluate
 
   pytest tests/fact_find_workflow/test_sanity.py -v -s
-  RUN_JUDGES=1 pytest tests/fact_find_workflow/test_sanity.py -v -s
-  streamlit run scripts/dashboard_app.py
+  EVAL_MODE=cache pytest tests/fact_find_workflow/test_sanity.py -v -s
+  RUN_JUDGES=true EVAL_MODE=cache pytest tests/fact_find_workflow/test_sanity.py -v -s
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
 
 from src.core.exceptions import AgentInvocationError
-from src.runners.case_runner import load_cases, run_case
+from src.runners.case_runner import eval_mode, judges_enabled, load_cases, run_case
 from src.runners.evaluate import evaluate
 from tests.fact_find_workflow.ff_eval import prepare_for_judges, suite_for_case
 
@@ -73,21 +72,25 @@ class TestFactFindWorkflowSanity:
         assert "NC10010556" in enriched.metadata["source_document"]
 
     @pytest.mark.parametrize("case", CASES, ids=CASE_IDS)
-    def test_run_case_live(self, case: dict):
+    def test_run_case(self, case: dict):
+        mode = eval_mode()
         try:
-            result = run_case(AGENT, case, DATA_SUITE, output_dir=OUTPUT_DIR)
+            result = run_case(AGENT, case, DATA_SUITE, output_dir=OUTPUT_DIR, mode=mode)
         except AgentInvocationError as exc:
             pytest.skip(f"ADK not reachable: {exc}")
+        except FileNotFoundError as exc:
+            pytest.skip(str(exc))
 
         assert result.test_case_id == case["test_case_id"]
         assert result.saved_path and result.saved_path.exists()
+        assert result.mode == mode
         assert result.response.answer, "empty agent answer"
         for kw in case.get("expected", {}).get("keywords") or []:
             assert kw.lower() in result.response.answer.lower(), (
                 f"expected keyword {kw!r} not found in answer"
             )
 
-        if os.environ.get("RUN_JUDGES") == "1":
+        if judges_enabled():
             response = prepare_for_judges(case, result.response)
             suite = suite_for_case(case)
             judges = evaluate(AGENT, suite, case, response)

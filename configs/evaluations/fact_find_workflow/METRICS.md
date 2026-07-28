@@ -20,7 +20,7 @@ via `tests/fact_find_workflow/ff_eval.prepare_for_judges`.
 | **summary_vs_aggregate** | `expected.path: success` + aggregate | faithfulness, relevance, summarization, task_completion + 4 domain GEval |
 | **e2e** | `include:` gate + summary | union of the above |
 
-`RUN_JUDGES=1` on sanity tests picks **gate** or **summary** from `case.expected.path`.
+`RUN_JUDGES=true` on sanity tests picks **gate** or **summary** from `case.expected.path`.
 
 ---
 

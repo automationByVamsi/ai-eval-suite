@@ -532,7 +532,7 @@ else:
             f"""
             <div class="empty-state">
               <p>No results found under <code>{_esc(output_dir)}</code>.</p>
-              <p>Run agent pytest with <code>RUN_JUDGES=1</code> first —
+              <p>Run agent pytest with <code>RUN_JUDGES=true</code> first —
               it writes one JSON file per suite × case there.</p>
             </div>
             """,

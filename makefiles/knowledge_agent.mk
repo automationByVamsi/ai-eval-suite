@@ -1,14 +1,19 @@
-# knowledge_agent test targets (live ADK).
+# knowledge_agent test targets.
 
-.PHONY: test-ka-sanity test-ka-sanity-judges test-ka demo-e2e dashboard \
-	synth-ka-prepare synth-ka-prepare-fixture synth-ka-generate
+.PHONY: test-ka-sanity test-ka-sanity-cache test-ka-sanity-judges test-ka \
+	demo-e2e dashboard synth-ka-prepare synth-ka-prepare-fixture synth-ka-generate
 
+# Live ADK (default)
 test-ka-sanity:
-	pytest tests/knowledge_agent/test_sanity.py -v -s
+	EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
-# Live capture + CORTEX DeepEval judges (relevance) → outputs/dashboard
+# Reuse traces under outputs/traces/knowledge_agent/sanity/
+test-ka-sanity-cache:
+	EVAL_MODE=cache pytest tests/knowledge_agent/test_sanity.py -v -s
+
+# Live (or set EVAL_MODE=cache) + CORTEX judges → outputs/dashboard
 test-ka-sanity-judges:
-	RUN_JUDGES=1 pytest tests/knowledge_agent/test_sanity.py -v -s
+	RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
 test-ka:
 	pytest tests/knowledge_agent/test_sanity.py -v
