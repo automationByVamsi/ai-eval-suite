@@ -8,11 +8,11 @@ configs/evaluations/<agent>/<suite>.yaml and a rubric under configs/criteria/.
 from pathlib import Path
 
 from deepeval.metrics import GEval
-from deepeval.test_case import SingleTurnParams
 
 from src.core.exceptions import ConfigError
 from src.core.registry import METRIC_REGISTRY
 from src.metrics.base_metric import DeepEvalMetric
+from src.metrics.deepeval_params import SingleTurnParams
 
 _PARAM_MAP = {
     "input": SingleTurnParams.INPUT,

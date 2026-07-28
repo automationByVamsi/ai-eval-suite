@@ -1,8 +1,8 @@
 from deepeval.metrics import GEval
-from deepeval.test_case import SingleTurnParams
 
 from src.core.registry import METRIC_REGISTRY
 from src.metrics.base_metric import DeepEvalMetric, resolve_field
+from src.metrics.deepeval_params import SingleTurnParams
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
