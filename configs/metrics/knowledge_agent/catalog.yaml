@@ -76,6 +76,14 @@ metrics:
     actual_source: answer
     context_source: retrieval_context
 
+  faithfulness_pegasus:
+    type: pegasus_faithfulness
+    threshold: 0.7
+    method: ${PEGASUS_METHOD:-pegasus}
+    input_source: question
+    actual_source: answer
+    context_source: retrieval_context
+
   keyword_match:
     type: keyword_match
     threshold: 1.0

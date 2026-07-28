@@ -1,0 +1,6 @@
+# Fact Find — Pegasus-backed sanity suite.
+# Uses the same test file as sanity; select via METRICS_SUITE="sanity_pegasus".
+suite: sanity_pegasus
+
+judges:
+  - faithfulness_pegasus

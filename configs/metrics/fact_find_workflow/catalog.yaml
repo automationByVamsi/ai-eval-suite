@@ -19,6 +19,14 @@ metrics:
     actual_source: answer
     context_source: retrieval_context
 
+  faithfulness_pegasus:
+    type: pegasus_faithfulness
+    threshold: 0.7
+    method: ${PEGASUS_METHOD:-pegasus}
+    input_source: complaint_ref
+    actual_source: answer
+    context_source: retrieval_context
+
   summarization:
     type: summarization
     threshold: 0.7

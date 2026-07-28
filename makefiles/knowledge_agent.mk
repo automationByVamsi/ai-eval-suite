@@ -1,6 +1,7 @@
 # knowledge_agent test targets.
 
-.PHONY: test-ka-sanity test-ka-sanity-cache test-ka-sanity-judges test-ka \
+.PHONY: test-ka-sanity test-ka-sanity-cache test-ka-sanity-judges \
+	test-ka-sanity-pegasus test-ka-sanity-pegasus-judges test-ka \
 	demo-e2e dashboard synth-ka-prepare synth-ka-prepare-fixture synth-ka-generate
 
 # Live ADK (default)
@@ -14,6 +15,13 @@ test-ka-sanity-cache:
 # Live (or set EVAL_MODE=cache) + CORTEX judges → outputs/dashboard
 test-ka-sanity-judges:
 	RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
+
+# Live ADK with Pegasus-backed judges selected via METRICS_SUITE.
+test-ka-sanity-pegasus:
+	METRICS_SUITE=sanity_pegasus EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
+
+test-ka-sanity-pegasus-judges:
+	METRICS_SUITE=sanity_pegasus RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
 test-ka:
 	pytest tests/knowledge_agent/test_sanity.py -v
