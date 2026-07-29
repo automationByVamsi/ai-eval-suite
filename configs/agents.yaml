@@ -34,3 +34,4 @@ agents:
       x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
     headers_from_env:
       x-lbg-origin-client-id: CORTEX_CLIENT_ID
+
