@@ -1,18 +1,10 @@
 """
-Importing this package registers every built-in metric with METRIC_REGISTRY.
-MetricFactory imports this package once, on startup, so it never has to
-import a concrete metric class by name.
+Metric packages:
+
+  src/metrics/deepeval/  — our DeepEval wrappers (METRIC_REGISTRY)
+  src/metrics/pegasus/   — Pegasus RAG strategies (Factory + shared runner)
+
+Importing this package registers DeepEval metrics for MetricFactory.
 """
 
-from src.metrics import (  # noqa: F401
-    contextual_relevancy,
-    correctness,
-    custom_geval,
-    faithfulness,
-    hallucination,
-    keyword_match,
-    relevance,
-    summarization,
-    task_completion,
-    tool_correctness,
-)
+import src.metrics.deepeval  # noqa: F401
