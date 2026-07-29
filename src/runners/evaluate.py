@@ -5,7 +5,7 @@ Run suite judges for any agent.
 
 Catalog `mode:` selects scoring backend:
   - deepeval (default) → existing MetricFactory / DeepEval path
-  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus (faithfulness / relevancy / correctness)
+  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus (faithfulness / relevancy / correctness / context_precision)
 
 Always publishes to outputs/dashboard (Streamlit) unless publish=False or
 DASHBOARD_DISABLE=1. Callers do not need to touch persist themselves.
@@ -174,8 +174,14 @@ def _should_run_metric(cfg: dict[str, Any], test_case: TestCase) -> bool:
         keywords = test_case.expected.get(cfg.get("keywords_source") or "keywords")
         return bool(keywords)
     if (
-        mtype in {"correctness", "answer_correctness"}
-        or name in {"correctness", "correctness_pegasus"}
+        mtype in {"correctness", "answer_correctness", "context_precision"}
+        or name
+        in {
+            "correctness",
+            "correctness_pegasus",
+            "context_precision_pegasus",
+        }
+        or "context_precision" in str(name or "")
     ):
         src = cfg.get("expected_source") or "expected_answer"
         golden = test_case.expected.get(src) or test_case.expected.get("answer")

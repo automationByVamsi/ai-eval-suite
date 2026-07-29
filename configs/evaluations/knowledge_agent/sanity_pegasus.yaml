@@ -5,10 +5,12 @@
 # Mode: METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
 #   (Answer Correctness: pegasus|ragas only — deepeval coerces to pegasus)
 #
-# relevance_pegasus   → does answer address the question?
-# correctness_pegasus → answer vs expected_answer
+# relevance_pegasus          → does answer address the question?
+# correctness_pegasus        → answer vs expected_answer
+# context_precision_pegasus  → are retrieved contexts precise? (needs golden + contexts)
 suite: sanity_pegasus
 
 judges:
   - relevance_pegasus
   - correctness_pegasus
+  - context_precision_pegasus

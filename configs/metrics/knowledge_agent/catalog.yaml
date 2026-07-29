@@ -110,6 +110,17 @@ metrics:
     actual_source: answer
     context_source: retrieval_context
 
+  # Context Precision = are retrieved contexts precise for the question?
+  # methods: pegasus | deepeval | ragas
+  # needs: question, expected_answer (→ reference_answer), retrieved_contexts
+  context_precision_pegasus:
+    type: context_precision
+    mode: ${METRIC_MODE:-pegasus}
+    threshold: 0.7
+    input_source: question
+    expected_source: expected_answer
+    context_source: retrieval_context
+
   keyword_match:
     type: keyword_match
     threshold: 1.0

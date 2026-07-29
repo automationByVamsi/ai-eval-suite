@@ -38,6 +38,10 @@ def run_pegasus_metric(
         return run_pegasus_answer_correctness(
             cfg, test_case, response, cortex_client=cortex_client
         )
+    if mtype == "context_precision" or "context_precision" in name:
+        return run_pegasus_context_precision(
+            cfg, test_case, response, cortex_client=cortex_client
+        )
     if mtype in {"relevance", "answer_relevancy"} or "relevanc" in name:
         return run_pegasus_answer_relevancy(
             cfg, test_case, response, cortex_client=cortex_client
@@ -90,6 +94,92 @@ def run_pegasus_faithfulness(
                 {
                     "question": question,
                     "answer": answer,
+                    "retrieved_contexts": [str(c) for c in contexts if str(c).strip()],
+                }
+            ]
+        )
+        return _result_from_pegasus(name, threshold, metric.evaluate(data))
+    except Exception as exc:  # noqa: BLE001
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason=f"Pegasus metric errored: {exc}",
+        )
+
+
+def run_pegasus_context_precision(
+    cfg: dict[str, Any],
+    test_case: TestCase,
+    response: AgentResponse,
+    *,
+    cortex_client: Any = None,
+) -> MetricResult:
+    """
+    Are retrieved contexts precise/relevant for the question?
+
+    Methods: pegasus | deepeval | ragas
+    Required columns: question, reference_answer, retrieved_contexts
+    """
+    name = str(cfg.get("name") or "context_precision")
+    threshold = float(cfg.get("threshold", 0.7))
+    mode = str(cfg.get("mode") or "pegasus").strip().lower()
+    method = _MODE_TO_METHOD.get(mode, "pegasus")
+
+    question = str(
+        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
+    )
+    reference = resolve_field(
+        cfg.get("expected_source") or "expected_answer", test_case, response
+    )
+    if not reference:
+        reference = (response.metadata or {}).get("reference_answer") or (
+            response.metadata or {}
+        ).get("expected_answer")
+    reference = str(reference or "").strip()
+
+    contexts = resolve_field(
+        cfg.get("context_source") or "retrieval_context", test_case, response
+    )
+    if not isinstance(contexts, list) or not contexts:
+        contexts = (response.metadata or {}).get("retrieved_contexts")
+
+    if not question.strip():
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no question for Context Precision.",
+        )
+    if not reference:
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no reference_answer / expected_answer for Context Precision.",
+        )
+    if not isinstance(contexts, list) or not contexts:
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no retrieved_contexts for Context Precision.",
+        )
+
+    try:
+        from pegasus.metrics.rag import ContextPrecision  # type: ignore
+
+        llm = _build_llm(cortex_client)
+        metric = ContextPrecision(llm=llm, method=method, threshold=threshold)
+        data = pd.DataFrame(
+            [
+                {
+                    "question": question,
+                    "reference_answer": reference,
                     "retrieved_contexts": [str(c) for c in contexts if str(c).strip()],
                 }
             ]
