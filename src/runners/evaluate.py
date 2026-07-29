@@ -5,7 +5,7 @@ Run suite judges for any agent.
 
 Catalog `mode:` selects scoring backend:
   - deepeval (default) → existing MetricFactory / DeepEval path
-  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus Faithfulness
+  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus (faithfulness / relevancy / correctness)
 
 Always publishes to outputs/dashboard (Streamlit) unless publish=False or
 DASHBOARD_DISABLE=1. Callers do not need to touch persist themselves.

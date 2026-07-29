@@ -100,6 +100,16 @@ metrics:
     actual_source: answer
     expected_source: expected_answer
 
+  # Answer Relevancy = does answer address the question? (not factual correctness).
+  # methods: pegasus | deepeval | ragas (ragas also needs retrieved_contexts)
+  relevance_pegasus:
+    type: relevance
+    mode: ${METRIC_MODE:-pegasus}
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+    context_source: retrieval_context
+
   keyword_match:
     type: keyword_match
     threshold: 1.0

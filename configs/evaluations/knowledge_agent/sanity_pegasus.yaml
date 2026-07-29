@@ -2,11 +2,13 @@
 # Same test file as sanity: tests/knowledge_agent/test_sanity.py
 #
 # Select: METRICS_SUITE=sanity_pegasus
-# Mode: METRIC_MODE=pegasus|pegasus_ragas
-#   (Answer Correctness has no deepeval method)
+# Mode: METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
+#   (Answer Correctness: pegasus|ragas only — deepeval coerces to pegasus)
 #
-# correctness_pegasus → agent answer vs expected_answer
+# relevance_pegasus   → does answer address the question?
+# correctness_pegasus → answer vs expected_answer
 suite: sanity_pegasus
 
 judges:
+  - relevance_pegasus
   - correctness_pegasus

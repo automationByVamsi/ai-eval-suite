@@ -38,6 +38,10 @@ def run_pegasus_metric(
         return run_pegasus_answer_correctness(
             cfg, test_case, response, cortex_client=cortex_client
         )
+    if mtype in {"relevance", "answer_relevancy"} or "relevanc" in name:
+        return run_pegasus_answer_relevancy(
+            cfg, test_case, response, cortex_client=cortex_client
+        )
     return run_pegasus_faithfulness(
         cfg, test_case, response, cortex_client=cortex_client
     )
@@ -91,6 +95,81 @@ def run_pegasus_faithfulness(
             ]
         )
         return _result_from_pegasus(name, threshold, metric.evaluate(data))
+    except Exception as exc:  # noqa: BLE001
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason=f"Pegasus metric errored: {exc}",
+        )
+
+
+def run_pegasus_answer_relevancy(
+    cfg: dict[str, Any],
+    test_case: TestCase,
+    response: AgentResponse,
+    *,
+    cortex_client: Any = None,
+) -> MetricResult:
+    """
+    Does the answer address the question? (not factual correctness).
+
+    Methods: pegasus | deepeval | ragas
+      - pegasus / deepeval → columns: question, answer
+      - ragas → also needs retrieved_contexts
+    """
+    name = str(cfg.get("name") or "answer_relevancy")
+    threshold = float(cfg.get("threshold", 0.7))
+    mode = str(cfg.get("mode") or "pegasus").strip().lower()
+    method = _MODE_TO_METHOD.get(mode, "pegasus")
+
+    question = str(
+        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
+    )
+    answer = str(
+        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
+    )
+    if not question.strip():
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no question for Answer Relevancy.",
+        )
+    if not answer.strip():
+        return MetricResult(
+            name=name,
+            score=0.0,
+            threshold=threshold,
+            passed=False,
+            reason="Skipped: no answer for Answer Relevancy.",
+        )
+
+    row: dict[str, Any] = {"question": question, "answer": answer}
+    if method == "ragas":
+        contexts = resolve_field(
+            cfg.get("context_source") or "retrieval_context", test_case, response
+        )
+        if not isinstance(contexts, list) or not contexts:
+            contexts = (response.metadata or {}).get("retrieved_contexts")
+        if not isinstance(contexts, list) or not contexts:
+            return MetricResult(
+                name=name,
+                score=0.0,
+                threshold=threshold,
+                passed=False,
+                reason="Skipped: no retrieved_contexts for Answer Relevancy (ragas).",
+            )
+        row["retrieved_contexts"] = [str(c) for c in contexts if str(c).strip()]
+
+    try:
+        from pegasus.metrics.rag import AnswerRelevancy  # type: ignore
+
+        llm = _build_llm(cortex_client)
+        metric = AnswerRelevancy(llm=llm, method=method, threshold=threshold)
+        return _result_from_pegasus(name, threshold, metric.evaluate(pd.DataFrame([row])))
     except Exception as exc:  # noqa: BLE001
         return MetricResult(
             name=name,
@@ -193,8 +272,7 @@ def _result_from_pegasus(
         else:
             reason = (
                 f"{reason + ' — ' if reason else ''}"
-                f"score {score:.2f} < threshold {threshold:.2f} "
-                f"(answer did not match reference_answer closely enough)"
+                f"score {score:.2f} < threshold {threshold:.2f}"
             )
     return MetricResult(
         name=name,
