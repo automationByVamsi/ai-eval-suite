@@ -12,7 +12,8 @@ Setup (cases / input checks) lives in conftest.py.
   Pegasus (same test file; data transformed in ka_eval.prepare_for_judges):
     make test-ka-sanity-pegasus-judges
     METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
-    (relevancy supports all three; correctness: pegasus|ragas)
+    (relevancy / precision / recall: all three; correctness: pegasus|ragas)
+    Missing required fields → MetricContractError (fail loud)
 """
 
 from __future__ import annotations

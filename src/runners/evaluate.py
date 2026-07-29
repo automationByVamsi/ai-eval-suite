@@ -5,7 +5,11 @@ Run suite judges for any agent.
 
 Catalog `mode:` selects scoring backend:
   - deepeval (default) → existing MetricFactory / DeepEval path
-  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus (faithfulness / relevancy / correctness / context_precision)
+  - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus
+    (faithfulness / relevancy / correctness / context_precision / context_recall)
+
+Pegasus metrics raise MetricContractError when required case/response fields
+are missing (no silent skip).
 
 Always publishes to outputs/dashboard (Streamlit) unless publish=False or
 DASHBOARD_DISABLE=1. Callers do not need to touch persist themselves.
@@ -124,9 +128,11 @@ def evaluate(
     factory = MetricFactory(cortex_config)
     judges: list[CheckResult] = []
     for cfg in metric_cfgs:
-        if not _should_run_metric(cfg, test_case):
-            continue
         mode = str(cfg.get("mode") or "deepeval").strip().lower()
+        # DeepEval path may still soft-skip optional judges (e.g. no keywords).
+        # Pegasus path always runs and raises MetricContractError on bad inputs.
+        if not mode.startswith("pegasus") and not _should_run_metric(cfg, test_case):
+            continue
         if mode.startswith("pegasus"):
             result = run_pegasus_metric(
                 cfg,

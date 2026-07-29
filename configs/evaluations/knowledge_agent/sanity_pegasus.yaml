@@ -5,12 +5,21 @@
 # Mode: METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
 #   (Answer Correctness: pegasus|ragas only — deepeval coerces to pegasus)
 #
-# relevance_pegasus          → does answer address the question?
-# correctness_pegasus        → answer vs expected_answer
-# context_precision_pegasus  → are retrieved contexts precise? (needs golden + contexts)
+# Strict contracts (MetricContractError if a case is missing required fields):
+#   relevance_pegasus          → question, answer
+#                                (+ retrieved_contexts when METRIC_MODE=pegasus_ragas)
+#   faithfulness_pegasus       → question, answer, retrieved_contexts
+#   correctness_pegasus        → question, answer, expected_answer
+#   context_precision_pegasus  → question, expected_answer, retrieved_contexts
+#   context_recall_pegasus     → question, answer, expected_answer, retrieved_contexts
+#
+# Cases without expected_answer / contexts will fail loud — only include judges
+# whose contract your testdata satisfies, or add the missing fields to cases.
 suite: sanity_pegasus
 
 judges:
   - relevance_pegasus
+  - faithfulness_pegasus
   - correctness_pegasus
   - context_precision_pegasus
+  - context_recall_pegasus

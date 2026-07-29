@@ -1,4 +1,4 @@
-"""Minimal Pegasus judge calls — same pattern as evaluations/evaluate_Faithfulness.py."""
+"""Pegasus judge calls — shared runner + per-metric input contracts."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Any
 
 import pandas as pd
 
+from src.core.exceptions import MetricContractError
 from src.metrics.base_metric import resolve_field
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
@@ -42,6 +43,10 @@ def run_pegasus_metric(
         return run_pegasus_context_precision(
             cfg, test_case, response, cortex_client=cortex_client
         )
+    if mtype == "context_recall" or "context_recall" in name:
+        return run_pegasus_context_recall(
+            cfg, test_case, response, cortex_client=cortex_client
+        )
     if mtype in {"relevance", "answer_relevancy"} or "relevanc" in name:
         return run_pegasus_answer_relevancy(
             cfg, test_case, response, cortex_client=cortex_client
@@ -61,52 +66,34 @@ def run_pegasus_faithfulness(
     """answer vs retrieved_contexts (does not use expected_answer)."""
     name = str(cfg.get("name") or "faithfulness")
     threshold = float(cfg.get("threshold", 0.7))
-    mode = str(cfg.get("mode") or "pegasus").strip().lower()
-    method = _MODE_TO_METHOD.get(mode, "pegasus")
+    method = _method_from_cfg(cfg)
+    case_id = test_case.test_case_id
 
-    question = str(
-        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
+    question = _field_question(cfg, test_case, response)
+    answer = _field_answer(cfg, test_case, response)
+    contexts = _field_contexts(cfg, test_case, response)
+    _require(
+        case_id,
+        name,
+        {
+            "question": question,
+            "answer": answer,
+            "retrieved_contexts": contexts,
+        },
     )
-    answer = str(
-        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
-    )
-    contexts = resolve_field(
-        cfg.get("context_source") or "retrieval_context", test_case, response
-    )
-    if not isinstance(contexts, list) or not contexts:
-        contexts = (response.metadata or {}).get("retrieved_contexts")
-    if not isinstance(contexts, list) or not contexts:
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no retrieved_contexts for Pegasus faithfulness.",
-        )
 
-    try:
-        from pegasus.metrics.rag import Faithfulness  # type: ignore
-
-        llm = _build_llm(cortex_client)
-        metric = Faithfulness(llm=llm, method=method, threshold=threshold)
-        data = pd.DataFrame(
-            [
-                {
-                    "question": question,
-                    "answer": answer,
-                    "retrieved_contexts": [str(c) for c in contexts if str(c).strip()],
-                }
-            ]
-        )
-        return _result_from_pegasus(name, threshold, metric.evaluate(data))
-    except Exception as exc:  # noqa: BLE001
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason=f"Pegasus metric errored: {exc}",
-        )
+    return _evaluate_pegasus(
+        name=name,
+        threshold=threshold,
+        method=method,
+        cortex_client=cortex_client,
+        metric_import="Faithfulness",
+        row={
+            "question": question,
+            "answer": answer,
+            "retrieved_contexts": contexts,
+        },
+    )
 
 
 def run_pegasus_context_precision(
@@ -120,79 +107,86 @@ def run_pegasus_context_precision(
     Are retrieved contexts precise/relevant for the question?
 
     Methods: pegasus | deepeval | ragas
-    Required columns: question, reference_answer, retrieved_contexts
+    Required: question, reference_answer, retrieved_contexts
     """
     name = str(cfg.get("name") or "context_precision")
     threshold = float(cfg.get("threshold", 0.7))
-    mode = str(cfg.get("mode") or "pegasus").strip().lower()
-    method = _MODE_TO_METHOD.get(mode, "pegasus")
+    method = _method_from_cfg(cfg)
+    case_id = test_case.test_case_id
 
-    question = str(
-        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
+    question = _field_question(cfg, test_case, response)
+    reference = _field_reference(cfg, test_case, response)
+    contexts = _field_contexts(cfg, test_case, response)
+    _require(
+        case_id,
+        name,
+        {
+            "question": question,
+            "reference_answer": reference,
+            "retrieved_contexts": contexts,
+        },
     )
-    reference = resolve_field(
-        cfg.get("expected_source") or "expected_answer", test_case, response
+
+    return _evaluate_pegasus(
+        name=name,
+        threshold=threshold,
+        method=method,
+        cortex_client=cortex_client,
+        metric_import="ContextPrecision",
+        row={
+            "question": question,
+            "reference_answer": reference,
+            "retrieved_contexts": contexts,
+        },
     )
-    if not reference:
-        reference = (response.metadata or {}).get("reference_answer") or (
-            response.metadata or {}
-        ).get("expected_answer")
-    reference = str(reference or "").strip()
 
-    contexts = resolve_field(
-        cfg.get("context_source") or "retrieval_context", test_case, response
+
+def run_pegasus_context_recall(
+    cfg: dict[str, Any],
+    test_case: TestCase,
+    response: AgentResponse,
+    *,
+    cortex_client: Any = None,
+) -> MetricResult:
+    """
+    Do retrieved contexts cover info needed for a complete answer?
+
+    Methods: pegasus | deepeval | ragas
+    Required: question, answer, reference_answer, retrieved_contexts
+    """
+    name = str(cfg.get("name") or "context_recall")
+    threshold = float(cfg.get("threshold", 0.7))
+    method = _method_from_cfg(cfg)
+    case_id = test_case.test_case_id
+
+    question = _field_question(cfg, test_case, response)
+    answer = _field_answer(cfg, test_case, response)
+    reference = _field_reference(cfg, test_case, response)
+    contexts = _field_contexts(cfg, test_case, response)
+    _require(
+        case_id,
+        name,
+        {
+            "question": question,
+            "answer": answer,
+            "reference_answer": reference,
+            "retrieved_contexts": contexts,
+        },
     )
-    if not isinstance(contexts, list) or not contexts:
-        contexts = (response.metadata or {}).get("retrieved_contexts")
 
-    if not question.strip():
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no question for Context Precision.",
-        )
-    if not reference:
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no reference_answer / expected_answer for Context Precision.",
-        )
-    if not isinstance(contexts, list) or not contexts:
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no retrieved_contexts for Context Precision.",
-        )
-
-    try:
-        from pegasus.metrics.rag import ContextPrecision  # type: ignore
-
-        llm = _build_llm(cortex_client)
-        metric = ContextPrecision(llm=llm, method=method, threshold=threshold)
-        data = pd.DataFrame(
-            [
-                {
-                    "question": question,
-                    "reference_answer": reference,
-                    "retrieved_contexts": [str(c) for c in contexts if str(c).strip()],
-                }
-            ]
-        )
-        return _result_from_pegasus(name, threshold, metric.evaluate(data))
-    except Exception as exc:  # noqa: BLE001
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason=f"Pegasus metric errored: {exc}",
-        )
+    return _evaluate_pegasus(
+        name=name,
+        threshold=threshold,
+        method=method,
+        cortex_client=cortex_client,
+        metric_import="ContextRecall",
+        row={
+            "question": question,
+            "answer": answer,
+            "reference_answer": reference,
+            "retrieved_contexts": contexts,
+        },
+    )
 
 
 def run_pegasus_answer_relevancy(
@@ -206,68 +200,32 @@ def run_pegasus_answer_relevancy(
     Does the answer address the question? (not factual correctness).
 
     Methods: pegasus | deepeval | ragas
-      - pegasus / deepeval → columns: question, answer
-      - ragas → also needs retrieved_contexts
+      - pegasus / deepeval → question, answer
+      - ragas → also retrieved_contexts
     """
     name = str(cfg.get("name") or "answer_relevancy")
     threshold = float(cfg.get("threshold", 0.7))
-    mode = str(cfg.get("mode") or "pegasus").strip().lower()
-    method = _MODE_TO_METHOD.get(mode, "pegasus")
+    method = _method_from_cfg(cfg)
+    case_id = test_case.test_case_id
 
-    question = str(
-        resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
-    )
-    answer = str(
-        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
-    )
-    if not question.strip():
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no question for Answer Relevancy.",
-        )
-    if not answer.strip():
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no answer for Answer Relevancy.",
-        )
-
+    question = _field_question(cfg, test_case, response)
+    answer = _field_answer(cfg, test_case, response)
+    required: dict[str, Any] = {"question": question, "answer": answer}
     row: dict[str, Any] = {"question": question, "answer": answer}
     if method == "ragas":
-        contexts = resolve_field(
-            cfg.get("context_source") or "retrieval_context", test_case, response
-        )
-        if not isinstance(contexts, list) or not contexts:
-            contexts = (response.metadata or {}).get("retrieved_contexts")
-        if not isinstance(contexts, list) or not contexts:
-            return MetricResult(
-                name=name,
-                score=0.0,
-                threshold=threshold,
-                passed=False,
-                reason="Skipped: no retrieved_contexts for Answer Relevancy (ragas).",
-            )
-        row["retrieved_contexts"] = [str(c) for c in contexts if str(c).strip()]
+        contexts = _field_contexts(cfg, test_case, response)
+        required["retrieved_contexts"] = contexts
+        row["retrieved_contexts"] = contexts
+    _require(case_id, name, required)
 
-    try:
-        from pegasus.metrics.rag import AnswerRelevancy  # type: ignore
-
-        llm = _build_llm(cortex_client)
-        metric = AnswerRelevancy(llm=llm, method=method, threshold=threshold)
-        return _result_from_pegasus(name, threshold, metric.evaluate(pd.DataFrame([row])))
-    except Exception as exc:  # noqa: BLE001
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason=f"Pegasus metric errored: {exc}",
-        )
+    return _evaluate_pegasus(
+        name=name,
+        threshold=threshold,
+        method=method,
+        cortex_client=cortex_client,
+        metric_import="AnswerRelevancy",
+        row=row,
+    )
 
 
 def run_pegasus_answer_correctness(
@@ -280,23 +238,70 @@ def run_pegasus_answer_correctness(
     """
     Agent answer vs ground-truth reference_answer.
 
-    Pegasus AnswerCorrectness supports method=pegasus|ragas only (not deepeval).
-    Dataset columns: answer, reference_answer.
+    Methods: pegasus | ragas only (deepeval coerces to pegasus).
+    Required: question, answer, reference_answer
     """
     name = str(cfg.get("name") or "answer_correctness")
     threshold = float(cfg.get("threshold", 0.7))
-    mode = str(cfg.get("mode") or "pegasus").strip().lower()
-    method = _MODE_TO_METHOD.get(mode, "pegasus")
+    method = _method_from_cfg(cfg)
     if method not in _ANSWER_CORRECTNESS_METHODS:
-        # Docs: no deepeval method for Answer Correctness — coerce to pegasus.
         method = "pegasus"
+    case_id = test_case.test_case_id
 
-    answer = str(
-        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
+    question = _field_question(cfg, test_case, response)
+    answer = _field_answer(cfg, test_case, response)
+    reference = _field_reference(cfg, test_case, response)
+    _require(
+        case_id,
+        name,
+        {
+            "question": question,
+            "answer": answer,
+            "reference_answer": reference,
+        },
     )
-    question = str(
+
+    return _evaluate_pegasus(
+        name=name,
+        threshold=threshold,
+        method=method,
+        cortex_client=cortex_client,
+        metric_import="AnswerCorrectness",
+        row={
+            "question": question,
+            "answer": answer,
+            "reference_answer": reference,
+        },
+    )
+
+
+# --- field helpers / contract -------------------------------------------------
+
+
+def _method_from_cfg(cfg: dict[str, Any]) -> str:
+    mode = str(cfg.get("mode") or "pegasus").strip().lower()
+    return _MODE_TO_METHOD.get(mode, "pegasus")
+
+
+def _field_question(
+    cfg: dict[str, Any], test_case: TestCase, response: AgentResponse
+) -> str:
+    return str(
         resolve_field(cfg.get("input_source") or "question", test_case, response) or ""
-    )
+    ).strip()
+
+
+def _field_answer(
+    cfg: dict[str, Any], test_case: TestCase, response: AgentResponse
+) -> str:
+    return str(
+        resolve_field(cfg.get("actual_source") or "answer", test_case, response) or ""
+    ).strip()
+
+
+def _field_reference(
+    cfg: dict[str, Any], test_case: TestCase, response: AgentResponse
+) -> str:
     reference = resolve_field(
         cfg.get("expected_source") or "expected_answer", test_case, response
     )
@@ -304,41 +309,54 @@ def run_pegasus_answer_correctness(
         reference = (response.metadata or {}).get("reference_answer") or (
             response.metadata or {}
         ).get("expected_answer")
-    reference = str(reference or "").strip()
-    if not reference:
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no reference_answer / expected_answer for Answer Correctness.",
-        )
-    if not question.strip():
-        return MetricResult(
-            name=name,
-            score=0.0,
-            threshold=threshold,
-            passed=False,
-            reason="Skipped: no question for Answer Correctness (pegasus method).",
-        )
+    return str(reference or "").strip()
 
+
+def _field_contexts(
+    cfg: dict[str, Any], test_case: TestCase, response: AgentResponse
+) -> list[str]:
+    contexts = resolve_field(
+        cfg.get("context_source") or "retrieval_context", test_case, response
+    )
+    if not isinstance(contexts, list) or not contexts:
+        contexts = (response.metadata or {}).get("retrieved_contexts")
+    if not isinstance(contexts, list):
+        return []
+    return [str(c).strip() for c in contexts if str(c).strip()]
+
+
+def _require(case_id: str, metric: str, fields: dict[str, Any]) -> None:
+    """Raise MetricContractError if any required field is empty."""
+    missing: list[str] = []
+    for key, value in fields.items():
+        if isinstance(value, list):
+            if not value:
+                missing.append(key)
+        elif not str(value or "").strip():
+            missing.append(key)
+    if missing:
+        raise MetricContractError(case_id=case_id, metric=metric, missing=missing)
+
+
+def _evaluate_pegasus(
+    *,
+    name: str,
+    threshold: float,
+    method: str,
+    cortex_client: Any,
+    metric_import: str,
+    row: dict[str, Any],
+) -> MetricResult:
+    """Instantiate one Pegasus metric class and map evaluate() → MetricResult."""
     try:
-        from pegasus.metrics.rag import AnswerCorrectness  # type: ignore
+        from pegasus.metrics import rag as pegasus_rag  # type: ignore
 
+        metric_cls = getattr(pegasus_rag, metric_import)
         llm = _build_llm(cortex_client)
-        metric = AnswerCorrectness(llm=llm, method=method, threshold=threshold)
-        # pegasus method requires: answer, reference_answer, question
-        # ragas method requires: answer, reference_answer (question still safe to include)
-        data = pd.DataFrame(
-            [
-                {
-                    "question": question,
-                    "answer": answer,
-                    "reference_answer": reference,
-                }
-            ]
-        )
-        return _result_from_pegasus(name, threshold, metric.evaluate(data))
+        metric = metric_cls(llm=llm, method=method, threshold=threshold)
+        return _result_from_pegasus(name, threshold, metric.evaluate(pd.DataFrame([row])))
+    except MetricContractError:
+        raise
     except Exception as exc:  # noqa: BLE001
         return MetricResult(
             name=name,
@@ -356,7 +374,6 @@ def _result_from_pegasus(
     passed = bool(results.get("passed", score >= threshold))
     reason = _reason_from_pegasus_results(results)
     if not reason or _is_score_only_reason(reason):
-        # Prefer LLM reasoning; if missing, still explain pass/fail vs threshold.
         if passed:
             reason = f"{reason + ' — ' if reason else ''}score {score:.2f} ≥ threshold {threshold:.2f}"
         else:
@@ -375,7 +392,6 @@ def _result_from_pegasus(
 
 def _reason_from_pegasus_results(results: dict[str, Any]) -> str:
     """Pull the best human-readable explanation from a Pegasus evaluate() dict."""
-    # Faithfulness / AnswerCorrectness demos usually return reasoning: [str, ...]
     for key in ("reasoning", "reasons"):
         value = results.get(key)
         if isinstance(value, list) and value:
@@ -422,7 +438,6 @@ def _build_llm(cortex_client: Any):
     api_key = os.environ.get("CORTEX_API_KEY", "").strip()
     if api_key in {"your_api_key_here", "changeme", "TODO"}:
         api_key = ""
-    # Prefer CorteX 2.0 base URL when set (Pegasus docs).
     base_url = (
         os.environ.get("CORTEX_BASE_URL", "").strip()
         or getattr(cortex_client, "base_url", None)
@@ -435,7 +450,6 @@ def _build_llm(cortex_client: Any):
         or getattr(cortex_client, "model", None)
         or "gemini-3.1-lite"
     )
-    # Legacy Apigee models often need vertex_ai/ prefix; CorteX 2.0 API-key route does not.
     if not api_key and not str(model_name).startswith("vertex_ai/"):
         model_name = f"vertex_ai/{model_name}"
 

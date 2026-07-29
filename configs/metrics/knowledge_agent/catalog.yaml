@@ -121,6 +121,18 @@ metrics:
     expected_source: expected_answer
     context_source: retrieval_context
 
+  # Context Recall = do contexts cover info needed for a complete answer?
+  # methods: pegasus | deepeval | ragas
+  # needs: question, answer, expected_answer, retrieved_contexts
+  context_recall_pegasus:
+    type: context_recall
+    mode: ${METRIC_MODE:-pegasus}
+    threshold: 0.7
+    input_source: question
+    actual_source: answer
+    expected_source: expected_answer
+    context_source: retrieval_context
+
   keyword_match:
     type: keyword_match
     threshold: 1.0
