@@ -2,7 +2,7 @@
 Knowledge Agent — run generated goldens from testdata/knowledge_agent/golden.
 
 Uses the same flow as sanity:
-  run → deterministic structure checks → enrich → optional judges → publish
+  run → deterministic → prepare_response → prepare_sample → optional judges
 
 If no goldens have been generated yet, this module is skipped.
 """
@@ -12,11 +12,12 @@ from __future__ import annotations
 import pytest
 
 from src.core.exceptions import AgentInvocationError
-from src.parsers.knowledge_agent import enrich
+from src.eval import prepare_sample
+from src.parsers.knowledge_agent import prepare_response
 from src.runners.case_runner import eval_mode, judges_enabled, run_case
 from src.runners.evaluate import evaluate
 from tests.knowledge_agent.conftest import AGENT, METRICS_SUITE
-from tests.knowledge_agent.ka_eval import prepare_for_judges, run_deterministic
+from tests.knowledge_agent.ka_eval import run_deterministic
 from tests.support.sanity import OUTPUT_DIR, assert_all_passed, load_suite_cases, publish_case
 
 DATA_SUITE = "golden"
@@ -52,9 +53,7 @@ def test_run_case(case: dict) -> None:
     raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
     det, fields = run_deterministic(case, raw, question)
 
-    response = enrich(result.response, question=question)
-    # Generated goldens usually store expected.answer; prepare_for_judges supports both.
-    response = prepare_for_judges(case, response)
+    response = prepare_sample(case, prepare_response(case, result.response))
     judges: list = []
     if judges_enabled():
         judges = evaluate(AGENT, METRICS_SUITE, case, response, publish=False).judges

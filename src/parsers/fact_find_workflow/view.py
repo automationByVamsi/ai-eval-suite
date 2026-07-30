@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from deepeval.test_case import ToolCall
@@ -27,6 +28,7 @@ from deepeval.test_case.mcp import MCPToolCall
 from src.models.agent_response import AgentResponse
 from src.parsers import adk_parser
 from src.parsers.fact_find_workflow.gate_validation import state_value
+from src.parsers.fact_find_workflow.ground_truth import attach_aggregate_context
 from src.parsers.fact_find_workflow.mcp_catalog import extract_mcp_tools_called
 from src.parsers.fact_find_workflow.tool_calls import extract_tools_called
 
@@ -109,15 +111,17 @@ def enrich(response: AgentResponse, *, complaint_ref: str = "") -> AgentResponse
     Put FactFindView fields on response.metadata for catalog *_source.
 
     After this, judges can resolve complaint_ref / tools_called / answer.
-    For summary-vs-aggregate ground truth, still call prepare_for_judges(...).
+    For aggregate ground truth, use prepare_response(...) or attach_aggregate_context.
     """
     raw = response.raw_output if isinstance(response.raw_output, dict) else {}
     view = extract(raw, complaint_ref=complaint_ref)
 
+    ref = complaint_ref or view.complaint_ref
     meta = dict(response.metadata or {})
     meta.update(
         {
-            "complaint_ref": complaint_ref or view.complaint_ref,
+            "complaint_ref": ref,
+            "question": ref,  # shared EvalSample "question" slot for this agent
             "validation_failed": view.validation_failed,
             "successful_run": view.successful_run,
             "looks_like_summary": view.looks_like_summary,
@@ -136,3 +140,15 @@ def enrich(response: AgentResponse, *, complaint_ref: str = "") -> AgentResponse
             "metadata": meta,
         }
     )
+
+
+def prepare_response(
+    case: dict[str, Any],
+    response: AgentResponse,
+    *,
+    repo_root: str | Path = ".",
+) -> AgentResponse:
+    """Enrich ADK fields + optional aggregate payload before prepare_sample."""
+    complaint_ref = str((case.get("input") or {}).get("complaint_ref") or "")
+    response = enrich(response, complaint_ref=complaint_ref)
+    return attach_aggregate_context(case, response, repo_root=repo_root)

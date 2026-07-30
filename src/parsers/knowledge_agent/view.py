@@ -67,10 +67,17 @@ def extract(raw: dict[str, Any]) -> KnowledgeAgentView:
     )
 
 
-def enrich(response: AgentResponse, *, question: str = "") -> AgentResponse:
+def enrich(
+    response: AgentResponse,
+    *,
+    question: str = "",
+    case: dict[str, Any] | None = None,
+) -> AgentResponse:
     """
-    Copy KA fields onto response.metadata for catalog *_source wiring
-    (e.g. actual_source: rewritten_query, anchor_page_content).
+    Copy KA fields onto response for catalog *_source wiring.
+
+    Puts anchor_page_content onto response.context so shared prepare_sample
+    can build EvalSample without Knowledge Agent branches.
     """
     raw = response.raw_output if isinstance(response.raw_output, dict) else {}
     view = extract(raw)
@@ -87,10 +94,26 @@ def enrich(response: AgentResponse, *, question: str = "") -> AgentResponse:
             "decision": view.decision,
         }
     )
+    if case:
+        articles = (case.get("expected") or {}).get("expected_source_articles")
+        if articles:
+            meta["expected_source_articles"] = articles
+
+    contexts = list(response.context or [])
+    anchor = str(view.anchor_page_content or "").strip()
+    if anchor and anchor not in contexts:
+        contexts.append(anchor)
 
     return response.model_copy(
         update={
             "answer": response.answer or view.answer,
+            "context": contexts,
             "metadata": meta,
         }
     )
+
+
+def prepare_response(case: dict[str, Any], response: AgentResponse) -> AgentResponse:
+    """Agent-specific prep before src.eval.prepare_sample."""
+    question = str((case.get("input") or {}).get("question") or "")
+    return enrich(response, question=question, case=case)

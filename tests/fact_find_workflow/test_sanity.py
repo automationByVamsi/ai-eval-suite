@@ -13,11 +13,12 @@ Setup (cases / input checks / aggregate paths) lives in conftest.py.
 from __future__ import annotations
 
 from src.core.exceptions import AgentInvocationError
-from src.parsers.fact_find_workflow import enrich
+from src.eval import prepare_sample
+from src.parsers.fact_find_workflow import prepare_response
 from src.runners.case_runner import eval_mode, judges_enabled, run_case
 from src.runners.evaluate import evaluate
 from tests.fact_find_workflow.conftest import AGENT, METRICS_SUITE
-from tests.fact_find_workflow.ff_eval import prepare_for_judges, run_deterministic
+from tests.fact_find_workflow.ff_eval import run_deterministic
 from tests.support.sanity import DATA_SUITE, OUTPUT_DIR, assert_all_passed, publish_case
 
 
@@ -38,9 +39,7 @@ def test_run_case(case: dict) -> None:
     raw = result.response.raw_output if isinstance(result.response.raw_output, dict) else {}
     det, fields = run_deterministic(case, raw, complaint_ref)
 
-    response = enrich(result.response, complaint_ref=complaint_ref)
-    # Attach aggregate ground truth for dashboard (+ judges) when the case has a payload.
-    response = prepare_for_judges(case, response)
+    response = prepare_sample(case, prepare_response(case, result.response))
     judges: list = []
     if judges_enabled():
         judges = evaluate(AGENT, METRICS_SUITE, case, response, publish=False).judges

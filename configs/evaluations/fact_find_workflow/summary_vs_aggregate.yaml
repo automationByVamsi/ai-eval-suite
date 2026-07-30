@@ -3,7 +3,7 @@
 # Definitions: configs/metrics/fact_find_workflow/catalog.yaml
 #
 # Needs response.context (+ source_document) from aggregated payload.
-# Use tests.fact_find_workflow.ff_eval.prepare_for_judges(...) before evaluate().
+# Use parsers.fact_find_workflow.prepare_response + src.eval.prepare_sample before evaluate().
 suite: summary_vs_aggregate
 
 judges:

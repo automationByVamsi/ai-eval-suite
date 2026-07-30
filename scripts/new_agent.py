@@ -336,23 +336,17 @@ from tests.support.sanity import (
 
 
 def _prepare_for_judges(case: dict, response: AgentResponse) -> AgentResponse:
-    """Attach question / optional golden for DeepEval + Pegasus (no custom parser)."""
-    inp = case.get("input") or {{}}
-    expected = case.get("expected") or {{}}
-    prompt = str(inp.get("{message_field}") or "")
-    golden = str(expected.get("expected_answer") or expected.get("answer") or "").strip()
+    """Attach EvalSample fields for DeepEval + Pegasus (no custom parser)."""
+    from src.eval import prepare_sample
 
+    inp = case.get("input") or {{}}
+    prompt = str(inp.get("{message_field}") or "")
     meta = dict(response.metadata or {{}})
-    meta["question"] = prompt or str(meta.get("question") or "")
-    meta["{message_field}"] = prompt
-    if golden:
-        meta["expected_answer"] = golden
-        meta["reference_answer"] = golden
-    contexts = list(response.context or [])
-    if contexts:
-        meta["retrieved_contexts"] = contexts
-        meta.setdefault("retrieval_context", contexts)
-    return response.model_copy(update={{"metadata": meta}})
+    if prompt:
+        meta["question"] = prompt
+        meta["{message_field}"] = prompt
+        response = response.model_copy(update={{"metadata": meta}})
+    return prepare_sample(case, response)
 
 
 def _run_deterministic(case: dict, response: AgentResponse) -> list[CheckResult]:

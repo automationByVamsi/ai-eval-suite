@@ -19,13 +19,21 @@ from src.parsers.fact_find_workflow.summary_vs_aggregate import (
     SummaryVsAggregateParsed,
     parse as parse_summary_vs_aggregate,
 )
+from src.parsers.fact_find_workflow.ground_truth import attach_aggregate_context
 from src.parsers.fact_find_workflow.tool_calls import extract_tools_called
-from src.parsers.fact_find_workflow.view import FactFindView, enrich, extract
+from src.parsers.fact_find_workflow.view import (
+    FactFindView,
+    enrich,
+    extract,
+    prepare_response,
+)
 
 __all__ = [
     "FactFindView",
     "extract",
     "enrich",
+    "prepare_response",
+    "attach_aggregate_context",
     "GateValidationParsed",
     "SummaryVsAggregateParsed",
     "parse_gate_validation",

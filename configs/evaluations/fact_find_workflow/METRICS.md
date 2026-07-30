@@ -7,7 +7,7 @@ Same layout as Knowledge Agent:
 
 Ground truth for the success path = aggregated payload
 (`data/fact_find_workflow/aggregated_payloads/`), attached as `retrieval_context`
-via `tests/fact_find_workflow/ff_eval.prepare_for_judges`.
+via `src.parsers.fact_find_workflow.prepare_response` then `src.eval.prepare_sample`.
 
 ---
 
@@ -68,5 +68,6 @@ Deferred until tool traces are stable: `tool_correctness`, `mcp_use`, `mcp_task_
 | Metric definitions | `configs/metrics/fact_find_workflow/catalog.yaml` |
 | Sanity / gate / summary / e2e suites | `configs/evaluations/fact_find_workflow/*.yaml` |
 | GEval rubrics | `configs/criteria/fact_find_workflow/*.md` |
-| Aggregate → context helper | `tests/fact_find_workflow/ff_eval.py` |
+| Aggregate → context helper | `src/parsers/fact_find_workflow/ground_truth.py` |
+| Shared judge sample | `src/eval/prepare_sample` |
 | MCP catalog | `src/parsers/fact_find_workflow/mcp_catalog.py` |
