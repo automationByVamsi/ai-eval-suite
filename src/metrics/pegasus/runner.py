@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-import pandas as pd
-
 from src.core.exceptions import MetricContractError
+from src.metrics.pegasus.columns import fallback_columns, rag_dataframe, required_columns
 from src.metrics.pegasus.factory import PegasusMetricFactory
 from src.metrics.pegasus.fields import build_row, require_fields
 from src.metrics.pegasus.llm import build_llm
@@ -47,10 +46,13 @@ def _run_strategy(
     threshold = float(cfg.get("threshold", 0.7))
     method = _method_from_cfg(cfg, strategy)
 
-    needed = list(strategy.required)
-    for extra in strategy.required_by_method.get(method, ()):
-        if extra not in needed:
-            needed.append(extra)
+    needed = required_columns(
+        strategy.metric_key,
+        method,
+        fallback=fallback_columns(
+            strategy.required, strategy.required_by_method, method
+        ),
+    )
 
     row = build_row(tuple(needed), cfg, test_case, response)
     require_fields(test_case.test_case_id, name, row)
@@ -91,9 +93,8 @@ def _call_pegasus(
         metric_cls = getattr(pegasus_rag, pegasus_class)
         llm = build_llm(cortex_client)
         metric = metric_cls(llm=llm, method=method, threshold=threshold)
-        return result_from_pegasus(
-            name, threshold, metric.evaluate(pd.DataFrame([row]))
-        )
+        df = rag_dataframe(row)
+        return result_from_pegasus(name, threshold, metric.evaluate(df))
     except MetricContractError:
         raise
     except Exception as exc:  # noqa: BLE001

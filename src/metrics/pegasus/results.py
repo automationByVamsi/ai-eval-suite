@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.metrics.pegasus.columns import parse_score
 from src.models.metric_result import MetricResult
 
 
 def result_from_pegasus(
     name: str, threshold: float, results: dict[str, Any]
 ) -> MetricResult:
-    score = float(results.get("score") or 0.0)
+    score = parse_score(results.get("score"))
+    if score is None:
+        score = 0.0
     passed = bool(results.get("passed", score >= threshold))
     reason = _reason_from_pegasus_results(results)
     if not reason or _is_score_only_reason(reason):
