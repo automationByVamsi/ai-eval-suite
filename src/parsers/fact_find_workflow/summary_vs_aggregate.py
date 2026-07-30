@@ -18,8 +18,9 @@ from src.parsers.fact_find_workflow.aggregated_payload import (
     load_aggregated_payload,
     payload_to_context,
 )
-from src.parsers.fact_find_workflow.gate_validation import state_value
-from src.parsers.fact_find_workflow.tool_calls import extract_tools_called, tool_calls_from_expected
+from src.parsers.fact_find_workflow.tool_calls import tool_calls_from_expected
+from src.parsers.fact_find_workflow.signals import unwrap_raw
+from src.parsers.fact_find_workflow.view import extract
 
 
 class SummaryVsAggregateParsed(BaseModel):
@@ -73,24 +74,20 @@ def _token_hits(answer: str, tokens: list[str], *, min_hits: int = 2) -> bool:
 
 def parse(raw: dict[str, Any], *, aggregated_payload_path: str | Path | None = None) -> SummaryVsAggregateParsed:
     """Compare one Fact Find summary trace with its expected payload facts."""
-    test_case = raw.get("test_case", {})
-    agent_output = raw.get("raw_output", {})
+    test_case = raw.get("test_case", {}) if isinstance(raw.get("test_case"), dict) else {}
     expected = test_case.get("expected") or {}
-    complaint_ref = (
-        test_case.get("input", {}).get("complaint_ref")
-        or agent_output.get("complaintRef")
-        or ""
-    )
-    answer = adk_parser.extract_answer(agent_output)
+    complaint_ref = str((test_case.get("input") or {}).get("complaint_ref") or "")
+
+    view = extract(raw, complaint_ref=complaint_ref)
+    flat = unwrap_raw(raw)
+    answer = view.answer
     path = expected.get("path") or (
-        "invalid_complaint"
-        if state_value(agent_output, "complaint_validation_failed")
-        else "success"
+        "invalid_complaint" if view.validation_failed else "success"
     )
 
     payload_path = aggregated_payload_path or expected.get("aggregated_payload_path")
     expected_facts: dict[str, Any] = {}
-    context: list[str] = list(adk_parser.extract_context(agent_output) or [])
+    context: list[str] = list(adk_parser.extract_context(flat) or [])
 
     if payload_path:
         payload = load_aggregated_payload(payload_path)
@@ -115,8 +112,6 @@ def parse(raw: dict[str, Any], *, aggregated_payload_path: str | Path | None = N
         "No Relationships identified",
         "none identified",
     )
-    # Heuristic: inventing trusted parties when API failed — named "Trusted Party"
-    # relationship with an ID that is not a known related-party id.
     invents_trusted = False
     if trusted_failed or expected_facts.get("trusted_parties_empty"):
         invents_trusted = (
@@ -128,10 +123,10 @@ def parse(raw: dict[str, Any], *, aggregated_payload_path: str | Path | None = N
         )
 
     return SummaryVsAggregateParsed(
-        complaint_ref=str(complaint_ref),
+        complaint_ref=view.complaint_ref or complaint_ref,
         answer=answer,
         path=path,
-        validation_failed=bool(state_value(agent_output, "complaint_validation_failed")),
+        validation_failed=view.validation_failed,
         has_customer_profile_section=_section_present(answer, "Customer Profile", "Primary Customer"),
         has_support_needs_section=_section_present(answer, "Support Need", "Support Needs"),
         has_account_holdings_section=_section_present(
@@ -160,13 +155,13 @@ def parse(raw: dict[str, Any], *, aggregated_payload_path: str | Path | None = N
             answer, "Associated with complaint", "associated with complaint"
         ),
         contact_note_dates_hit_count=note_date_hits,
-        tools_called=extract_tools_called(agent_output),
+        tools_called=list(view.tools_called),
         expected_tools=tool_calls_from_expected(expected.get("expected_tools")),
         expected_facts=expected_facts,
         context=context,
-        events=adk_parser.extract_events(agent_output),
-        session_id=adk_parser.extract_session_id(agent_output),
-        latency_ms=adk_parser.extract_latency_ms(agent_output),
+        events=adk_parser.extract_events(flat),
+        session_id=view.session_id,
+        latency_ms=adk_parser.extract_latency_ms(flat),
     )
 
 

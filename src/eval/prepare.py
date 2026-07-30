@@ -76,7 +76,7 @@ def prepare_sample(
     """
     Build EvalSample from case + response and attach judge aliases.
 
-    Call after parsers/<agent>.enrich(...).
+    Call after parsers/<agent>.prepare_response(case, response).
     """
     sample = build_sample(case, response)
     return attach_sample(response, sample)

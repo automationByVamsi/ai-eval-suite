@@ -1,11 +1,19 @@
-"""Shared eval helpers: EvalSample + prepare_sample (agent-agnostic)."""
+"""
+Shared eval helpers (agent-agnostic).
 
-from src.eval.prepare import attach_sample, build_sample, prepare_sample
+One path for judges:
+
+  response = parsers.<agent>.prepare_response(case, response)
+  response = prepare_sample(case, response)
+  evaluate(agent, suite, case, response)
+
+EvalSample is the shared row for DeepEval + Pegasus.
+"""
+
+from src.eval.prepare import prepare_sample
 from src.eval.sample import EvalSample
 
 __all__ = [
     "EvalSample",
-    "attach_sample",
-    "build_sample",
     "prepare_sample",
 ]

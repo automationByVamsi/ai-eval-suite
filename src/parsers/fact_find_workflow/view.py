@@ -5,15 +5,9 @@ Shape we expect (see ff_org_adk.json):
   agentOutput, complaintRef, sessionId, raw_events[]
   events may include functionCall / functionResponse (tools).
 
-Usage:
-  from src.parsers.fact_find_workflow import extract, enrich
-
-  view = extract(raw_adk_json)
-  assert view.complaint_ref == "NC10010556"
-  assert "getCustomerSummary" in view.tool_names
-
-  response = enrich(live_response, complaint_ref="NC10010556")
-  # → response.metadata ready for judges (complaint_ref, tools_called, …)
+Judge path (preferred):
+  prepare_response(case, response)  → agent fields + aggregate
+  prepare_sample(case, response)    → EvalSample for DeepEval / Pegasus
 """
 
 from __future__ import annotations
@@ -27,12 +21,15 @@ from deepeval.test_case.mcp import MCPToolCall
 
 from src.models.agent_response import AgentResponse
 from src.parsers import adk_parser
-from src.parsers.fact_find_workflow.gate_validation import state_value
 from src.parsers.fact_find_workflow.ground_truth import attach_aggregate_context
 from src.parsers.fact_find_workflow.mcp_catalog import extract_mcp_tools_called
+from src.parsers.fact_find_workflow.signals import (
+    is_invalid_message,
+    looks_like_summary,
+    state_value,
+    unwrap_raw,
+)
 from src.parsers.fact_find_workflow.tool_calls import extract_tools_called
-
-_INVALID = ("InvalidComplaintId", "valid complaint reference must begin")
 
 
 @dataclass(frozen=True)
@@ -45,24 +42,15 @@ class FactFindView:
     successful_run: bool | None = None
     looks_like_summary: bool = False
     is_invalid_message: bool = False
-    # Tools from functionCall events (empty on slim/replay traces)
     tool_names: tuple[str, ...] = ()
     tools_called: tuple[ToolCall, ...] = field(default_factory=tuple)
     mcp_tools_called: tuple[MCPToolCall, ...] = field(default_factory=tuple)
-    # Handy ids from state / tool args when present
     party_id: str = ""
     account_number: str = ""
     session_id: str | None = None
-
-
-def _unwrap(raw: dict[str, Any]) -> dict[str, Any]:
-    """Support flat saves and { raw_output: {...} } wrappers."""
-    inner = raw.get("raw_output")
-    if isinstance(inner, dict) and (
-        "agentOutput" in inner or "raw_events" in inner or "sessionId" in inner
-    ):
-        return inner
-    return raw
+    # Extra session flags used by gate_validation.parse
+    initialized: bool | None = None
+    interaction_count: int | None = None
 
 
 def _party_id_from_tools(tools: list[ToolCall]) -> str:
@@ -75,8 +63,8 @@ def _party_id_from_tools(tools: list[ToolCall]) -> str:
 
 
 def extract(raw: dict[str, Any], *, complaint_ref: str = "") -> FactFindView:
-    """Read one ADK JSON (live or cached) → FactFindView."""
-    raw = _unwrap(raw)
+    """Read one ADK JSON (live, cached, or {raw_output:...} wrap) → FactFindView."""
+    raw = unwrap_raw(raw)
     answer = adk_parser.extract_answer(raw) or ""
 
     ref = (
@@ -89,20 +77,24 @@ def extract(raw: dict[str, Any], *, complaint_ref: str = "") -> FactFindView:
     tools = extract_tools_called(raw)
     mcp_tools = extract_mcp_tools_called(raw)
     successful = state_value(raw, "successful_run")
+    initialized = state_value(raw, "initialized")
+    interaction_count = state_value(raw, "interaction_count")
 
     return FactFindView(
         answer=answer,
         complaint_ref=str(ref),
         validation_failed=bool(state_value(raw, "complaint_validation_failed")),
         successful_run=successful if isinstance(successful, bool) else None,
-        looks_like_summary="FactFind Summary" in answer or "Complaint Reference" in answer,
-        is_invalid_message=any(m in answer for m in _INVALID),
+        looks_like_summary=looks_like_summary(answer),
+        is_invalid_message=is_invalid_message(answer),
         tool_names=tuple(t.name for t in tools),
         tools_called=tuple(tools),
         mcp_tools_called=tuple(mcp_tools),
         party_id=_party_id_from_tools(tools),
         account_number=str(state_value(raw, "account_number") or ""),
         session_id=adk_parser.extract_session_id(raw),
+        initialized=initialized if isinstance(initialized, bool) else None,
+        interaction_count=interaction_count if isinstance(interaction_count, int) else None,
     )
 
 
@@ -110,8 +102,7 @@ def enrich(response: AgentResponse, *, complaint_ref: str = "") -> AgentResponse
     """
     Put FactFindView fields on response.metadata for catalog *_source.
 
-    After this, judges can resolve complaint_ref / tools_called / answer.
-    For aggregate ground truth, use prepare_response(...) or attach_aggregate_context.
+    Prefer prepare_response(case, response) when you also need aggregate context.
     """
     raw = response.raw_output if isinstance(response.raw_output, dict) else {}
     view = extract(raw, complaint_ref=complaint_ref)
@@ -121,7 +112,7 @@ def enrich(response: AgentResponse, *, complaint_ref: str = "") -> AgentResponse
     meta.update(
         {
             "complaint_ref": ref,
-            "question": ref,  # shared EvalSample "question" slot for this agent
+            "question": ref,
             "validation_failed": view.validation_failed,
             "successful_run": view.successful_run,
             "looks_like_summary": view.looks_like_summary,

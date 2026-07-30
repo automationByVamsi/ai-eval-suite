@@ -43,8 +43,10 @@ def find_event_by_author(raw: dict[str, Any], author: str) -> dict[str, Any] | N
     return None
 
 
-def event_json(event: dict[str, Any]) -> dict[str, Any]:
+def event_json(event: dict[str, Any] | None) -> dict[str, Any]:
     """Parses an event's model text output as JSON (ADK agent turns are JSON-only by convention)."""
+    if not event:
+        return {}
     parts = event.get("content", {}).get("parts", [])
     text = parts[0].get("text", "") if parts else ""
     try:

@@ -1,6 +1,9 @@
 """
 Run suite judges for any agent.
 
+  # Preferred call site:
+  response = parsers.<agent>.prepare_response(case, response)
+  response = prepare_sample(case, response)
   evaluate(agent_name, suite, case, response) → EvalResult
 
 Catalog `mode:` selects scoring backend:

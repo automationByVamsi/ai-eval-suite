@@ -5,9 +5,17 @@ Same layout as Knowledge Agent:
 - **Catalog** = define metrics once (`configs/metrics/fact_find_workflow/catalog.yaml`)
 - **Suites** = select judge names (`configs/evaluations/fact_find_workflow/*.yaml`)
 
+## One judge path
+
+```text
+parsers.fact_find_workflow.prepare_response(case, response)
+  → src.eval.prepare_sample(case, response)
+  → evaluate("fact_find_workflow", suite, case, response)
+```
+
 Ground truth for the success path = aggregated payload
 (`data/fact_find_workflow/aggregated_payloads/`), attached as `retrieval_context`
-via `src.parsers.fact_find_workflow.prepare_response` then `src.eval.prepare_sample`.
+inside `prepare_response`.
 
 ---
 

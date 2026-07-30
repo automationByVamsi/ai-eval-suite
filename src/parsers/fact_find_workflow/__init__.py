@@ -1,4 +1,8 @@
-"""Fact Find Workflow ADK trace parsers."""
+"""Fact Find Workflow ADK trace parsers.
+
+Preferred judge path:
+  prepare_response(case, response) → prepare_sample(case, response) → evaluate(...)
+"""
 
 from src.parsers.fact_find_workflow.aggregated_payload import (
     extract_expected_facts,
@@ -11,15 +15,16 @@ from src.parsers.fact_find_workflow.gate_validation import (
     is_valid_complaint_ref,
     parse as parse_gate_validation,
 )
+from src.parsers.fact_find_workflow.ground_truth import attach_aggregate_context
 from src.parsers.fact_find_workflow.mcp_catalog import (
     default_factfind_mcp_servers,
     extract_mcp_tools_called,
 )
+from src.parsers.fact_find_workflow.signals import state_value
 from src.parsers.fact_find_workflow.summary_vs_aggregate import (
     SummaryVsAggregateParsed,
     parse as parse_summary_vs_aggregate,
 )
-from src.parsers.fact_find_workflow.ground_truth import attach_aggregate_context
 from src.parsers.fact_find_workflow.tool_calls import extract_tools_called
 from src.parsers.fact_find_workflow.view import (
     FactFindView,
@@ -34,6 +39,7 @@ __all__ = [
     "enrich",
     "prepare_response",
     "attach_aggregate_context",
+    "state_value",
     "GateValidationParsed",
     "SummaryVsAggregateParsed",
     "parse_gate_validation",

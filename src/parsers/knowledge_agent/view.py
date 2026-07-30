@@ -2,7 +2,10 @@
 Knowledge Agent view — named fields for contracts and LLM judges.
 
 Built on src.parsers.adk_parser (shared ADK envelope).
-Does not dump raw_events to the judge — only short, stable strings.
+
+Judge path (preferred):
+  prepare_response(case, response)  → agent fields + anchor context
+  prepare_sample(case, response)    → EvalSample for DeepEval / Pegasus
 """
 
 from __future__ import annotations
