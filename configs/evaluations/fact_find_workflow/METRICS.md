@@ -3,7 +3,16 @@
 Same layout as Knowledge Agent:
 
 - **Catalog** = define metrics once (`configs/metrics/fact_find_workflow/catalog.yaml`)
-- **Suites** = select judge names (`configs/evaluations/fact_find_workflow/*.yaml`)
+- **Suites** = select judge names + preferred ``mode:`` (`configs/evaluations/fact_find_workflow/*.yaml`)
+
+## Mode resolution
+
+Suite ``mode:`` (default **pegasus**) is the preferred backend for *portable*
+metrics (`relevance`, `faithfulness`, …). Catalog ``backends:`` declares what
+each metric supports. Custom GEval metrics are deepeval-only and **ignore** a
+pegasus suite mode — one suite can mix both backends in a single run.
+
+Priority: per-judge `{name, mode}` → `METRIC_MODE` env → suite `mode:` → `pegasus`.
 
 ## One judge path
 
@@ -26,7 +35,8 @@ Do **not** derive it from `case.expected.path`.
 
 | Suite | When | Judges |
 |-------|------|--------|
-| **sanity** | Smoke / `test_sanity` | `relevance` |
+| **sanity** | Smoke / `test_sanity` | `relevance` (pegasus) + `summarization` (deepeval) |
+| **sanity_pegasus** | Faithfulness smoke | `faithfulness` (pegasus) |
 | **e2e** | Full judge pack | `include:` gate + summary |
 | **gate_validation** | Building block (also via e2e) | `validation_message_clarity`, `relevance` |
 | **summary_vs_aggregate** | Building block (also via e2e) | faithfulness, relevance, summarization, task_completion + 4 domain GEval |
@@ -77,5 +87,5 @@ Deferred until tool traces are stable: `tool_correctness`, `mcp_use`, `mcp_task_
 | Sanity / gate / summary / e2e suites | `configs/evaluations/fact_find_workflow/*.yaml` |
 | GEval rubrics | `configs/criteria/fact_find_workflow/*.md` |
 | Aggregate → context helper | `src/parsers/fact_find_workflow/ground_truth.py` |
-| Shared judge sample | `src/eval/prepare_sample` |
-| MCP catalog | `src/parsers/fact_find_workflow/mcp_catalog.py` |
+| Shared judge sample | `src.eval.prepare_sample` |
+| Mode resolution | `src.core.metric_mode` + `resolve_suite_metrics` |

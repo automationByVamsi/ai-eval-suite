@@ -6,10 +6,12 @@ Run suite judges for any agent.
   response = prepare_sample(case, response)
   evaluate(agent_name, suite, case, response) → EvalResult
 
-Catalog `mode:` selects scoring backend:
-  - deepeval (default) → existing MetricFactory / DeepEval path
+Suite ``mode:`` (default pegasus) + catalog ``backends:`` select scoring path:
+  - deepeval → MetricFactory / DeepEval (incl. GEval customs)
   - pegasus | pegasus_ragas | pegasus_deepeval → lbg-pegasus
-    (faithfulness / relevancy / correctness / context_precision / context_recall)
+
+GEval / deepeval-only metrics ignore a pegasus suite mode and stay on deepeval.
+resolve_suite_metrics() stamps the effective mode onto each judge config.
 
 Pegasus metrics raise MetricContractError when required case/response fields
 are missing (no silent skip).
@@ -30,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from src.core.config import agent_metrics_profile, resolve_suite_metrics
+from src.core.metric_mode import is_pegasus_mode
 from src.models.agent_response import AgentResponse
 from src.models.metric_result import MetricResult
 from src.models.test_case import TestCase
@@ -134,9 +137,9 @@ def evaluate(
         mode = str(cfg.get("mode") or "deepeval").strip().lower()
         # DeepEval path may still soft-skip optional judges (e.g. no keywords).
         # Pegasus path always runs and raises MetricContractError on bad inputs.
-        if not mode.startswith("pegasus") and not _should_run_metric(cfg, test_case):
+        if not is_pegasus_mode(mode) and not _should_run_metric(cfg, test_case):
             continue
-        if mode.startswith("pegasus"):
+        if is_pegasus_mode(mode):
             result = run_pegasus_metric(
                 cfg,
                 test_case,
@@ -184,12 +187,7 @@ def _should_run_metric(cfg: dict[str, Any], test_case: TestCase) -> bool:
         return bool(keywords)
     if (
         mtype in {"correctness", "answer_correctness", "context_precision"}
-        or name
-        in {
-            "correctness",
-            "correctness_pegasus",
-            "context_precision_pegasus",
-        }
+        or name in {"correctness", "context_precision"}
         or "context_precision" in str(name or "")
     ):
         src = cfg.get("expected_source") or "expected_answer"

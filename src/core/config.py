@@ -7,6 +7,10 @@ Loads `.env` (if present) and expands `${VAR}` / `${VAR:-default}` in values.
 Knowledge Agent metrics use:
   configs/metrics/<profile>/catalog.yaml   — definitions (once)
   configs/evaluations/<profile>/<suite>.yaml — selection (judges + optional include)
+
+Suite YAML may set ``mode:`` (default pegasus). Each judge can override with
+``{name: …, mode: …}``. Catalog ``backends:`` (or type inference) decides
+whether a preferred mode applies or falls back to deepeval for customs.
 """
 
 from pathlib import Path
@@ -16,6 +20,12 @@ import yaml
 
 from src.core.env import expand_env, load_dotenv
 from src.core.exceptions import AgentNotFoundError, ConfigError
+from src.core.metric_mode import (
+    DEFAULT_SUITE_MODE,
+    apply_resolved_mode,
+    preferred_suite_mode,
+    resolve_metric_mode,
+)
 
 
 def load_yaml(path: str | Path) -> dict[str, Any]:
@@ -152,25 +162,46 @@ def load_eval_config(
     return load_yaml(path)
 
 
-def _suite_judge_names(
+def _parse_judge_entry(
+    item: Any,
+    *,
+    suite_name: str,
+) -> tuple[str, str | None]:
+    """Return (metric_name, optional per-judge mode override)."""
+    if isinstance(item, str):
+        return item, None
+    if isinstance(item, dict) and item.get("name"):
+        override = item.get("mode")
+        return str(item["name"]), (str(override) if override is not None else None)
+    raise ConfigError(
+        f"Suite '{suite_name}' judges entry must be a name or "
+        f"{{name: ..., mode?: ...}}, got {item!r}"
+    )
+
+
+def _suite_judges(
     agent_profile: str,
     suite_name: str,
     *,
     evals_dir: str | Path = "configs/evaluations",
     _seen: set[str] | None = None,
-) -> list[str]:
-    """Collect judge metric names from a suite, following `include:` (no cycles)."""
+) -> list[tuple[str, str | None]]:
+    """
+    Collect (judge_name, mode_override) from a suite, following ``include:``.
+
+    First occurrence of a name wins (include order, then local judges).
+    """
     seen = _seen if _seen is not None else set()
     if suite_name in seen:
         raise ConfigError(f"Suite include cycle involving '{suite_name}'")
     seen.add(suite_name)
 
     suite = load_eval_config(agent_profile, suite_name, base_dir=evals_dir)
-    names: list[str] = []
+    entries: list[tuple[str, str | None]] = []
 
     for inc in suite.get("include") or []:
-        names.extend(
-            _suite_judge_names(
+        entries.extend(
+            _suite_judges(
                 agent_profile,
                 str(inc),
                 evals_dir=evals_dir,
@@ -179,26 +210,80 @@ def _suite_judge_names(
         )
 
     for item in suite.get("judges") or []:
-        if isinstance(item, str):
-            names.append(item)
-        elif isinstance(item, dict) and item.get("name"):
-            names.append(str(item["name"]))
-        else:
-            raise ConfigError(
-                f"Suite '{suite_name}' judges entry must be a name or {{name: ...}}, got {item!r}"
-            )
+        entries.append(_parse_judge_entry(item, suite_name=suite_name))
 
     for item in suite.get("judge_metrics") or []:
-        if isinstance(item, str):
-            names.append(item)
-        elif isinstance(item, dict) and item.get("name"):
-            names.append(str(item["name"]))
+        entries.append(_parse_judge_entry(item, suite_name=suite_name))
 
-    out: list[str] = []
-    for n in names:
-        if n not in out:
-            out.append(n)
+    out: list[tuple[str, str | None]] = []
+    seen_names: set[str] = set()
+    for name, override in entries:
+        if name in seen_names:
+            continue
+        seen_names.add(name)
+        out.append((name, override))
     return out
+
+
+def _suite_judge_names(
+    agent_profile: str,
+    suite_name: str,
+    *,
+    evals_dir: str | Path = "configs/evaluations",
+    _seen: set[str] | None = None,
+) -> list[str]:
+    """Collect judge metric names from a suite, following `include:` (no cycles)."""
+    return [
+        name
+        for name, _ in _suite_judges(
+            agent_profile, suite_name, evals_dir=evals_dir, _seen=_seen
+        )
+    ]
+
+
+def _suite_mode(
+    agent_profile: str,
+    suite_name: str,
+    *,
+    evals_dir: str | Path = "configs/evaluations",
+) -> str | None:
+    """
+    Effective suite-level mode for ``suite_name``.
+
+    Child suite ``mode:`` wins over included parents when set; otherwise the
+    first non-empty mode from ``include:`` order is used.
+    """
+    suite = load_eval_config(agent_profile, suite_name, base_dir=evals_dir)
+    own = suite.get("mode")
+    if own is not None and str(own).strip():
+        return str(own).strip()
+
+    for inc in suite.get("include") or []:
+        inherited = _suite_mode(agent_profile, str(inc), evals_dir=evals_dir)
+        if inherited:
+            return inherited
+    return None
+
+
+def _catalog_lookup(
+    catalog: dict[str, dict[str, Any]],
+    name: str,
+) -> tuple[dict[str, Any], str | None] | None:
+    """
+    Find a catalog metric by name.
+
+    Legacy ``*_pegasus`` aliases map to the base metric and imply pegasus mode.
+    """
+    if name in catalog:
+        return dict(catalog[name]), None
+    if name.endswith("_pegasus"):
+        base = name[: -len("_pegasus")]
+        if base in catalog:
+            return dict(catalog[base]), "pegasus"
+        # e.g. already-canonical names were only registered with a suffix historically
+        if name in catalog:
+            return dict(catalog[name]), "pegasus"
+    return None
 
 
 def resolve_suite_metrics(
@@ -209,10 +294,11 @@ def resolve_suite_metrics(
     evals_dir: str | Path = "configs/evaluations",
 ) -> list[dict[str, Any]]:
     """
-    Resolve a suite to full metric configs.
+    Resolve a suite to full metric configs with effective ``mode`` set.
 
     Prefers catalog definitions. If the suite still uses legacy inline
-    `judge_metrics:` dicts (and no catalog), returns those dicts as-is.
+    `judge_metrics:` dicts (and no catalog), returns those dicts as-is
+    (still applying suite mode resolution when possible).
     """
     suite = load_eval_config(agent_profile, suite_name, base_dir=evals_dir)
     legacy_inline = suite.get("judge_metrics") or []
@@ -222,17 +308,34 @@ def resolve_suite_metrics(
         if isinstance(m, dict) and m.get("name") and m.get("type")
     }
 
-    names = _suite_judge_names(agent_profile, suite_name, evals_dir=evals_dir)
+    judges = _suite_judges(agent_profile, suite_name, evals_dir=evals_dir)
+    suite_preferred = preferred_suite_mode(
+        _suite_mode(agent_profile, suite_name, evals_dir=evals_dir)
+        or suite.get("mode")
+        or DEFAULT_SUITE_MODE
+    )
 
     if has_metric_catalog(agent_profile, base_dir=metrics_dir):
         catalog = load_metric_catalog(agent_profile, base_dir=metrics_dir)
         resolved: list[dict[str, Any]] = []
         missing: list[str] = []
-        for name in names:
-            if name in catalog:
-                resolved.append(dict(catalog[name]))
+        for name, judge_override in judges:
+            hit = _catalog_lookup(catalog, name)
+            if hit is not None:
+                cfg, alias_mode = hit
+                if name.endswith("_pegasus") and name not in catalog:
+                    cfg["name"] = name[: -len("_pegasus")]
+                override = judge_override or alias_mode
+                mode = resolve_metric_mode(
+                    suite_preferred, cfg, judge_override=override
+                )
+                resolved.append(apply_resolved_mode(cfg, mode))
             elif name in inline_by_name:
-                resolved.append(dict(inline_by_name[name]))
+                cfg = dict(inline_by_name[name])
+                mode = resolve_metric_mode(
+                    suite_preferred, cfg, judge_override=judge_override
+                )
+                resolved.append(apply_resolved_mode(cfg, mode))
             else:
                 missing.append(name)
         if missing:
@@ -243,7 +346,16 @@ def resolve_suite_metrics(
         return resolved
 
     if inline_by_name:
-        return [dict(inline_by_name[n]) for n in names if n in inline_by_name]
+        resolved = []
+        for name, judge_override in judges:
+            if name not in inline_by_name:
+                continue
+            cfg = dict(inline_by_name[name])
+            mode = resolve_metric_mode(
+                suite_preferred, cfg, judge_override=judge_override
+            )
+            resolved.append(apply_resolved_mode(cfg, mode))
+        return resolved
 
     raise ConfigError(
         f"No metric catalog for '{agent_profile}' and suite '{suite_name}' "

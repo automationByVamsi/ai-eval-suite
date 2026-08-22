@@ -16,7 +16,8 @@ test-ff-sanity-cache:
 test-ff-sanity-judges:
 	RUN_JUDGES=true EVAL_MODE=live pytest tests/fact_find_workflow/test_sanity.py -v -s
 
-# Live ADK with Pegasus-backed judges selected via METRICS_SUITE.
+# Live ADK with Pegasus-backed judges (suite mode: pegasus).
+# METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval overrides suite mode.
 test-ff-sanity-pegasus:
 	METRICS_SUITE=sanity_pegasus EVAL_MODE=live pytest tests/fact_find_workflow/test_sanity.py -v -s
 

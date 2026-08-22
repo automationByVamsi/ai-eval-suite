@@ -1,5 +1,7 @@
 # Suite: end-to-end — stage suites + final-answer judges.
+# Portable judges follow suite mode; GEval stage metrics stay on deepeval.
 suite: e2e
+mode: pegasus
 
 include:
   - stage1_query_rewrite

@@ -16,8 +16,8 @@ test-ka-sanity-cache:
 test-ka-sanity-judges:
 	RUN_JUDGES=true EVAL_MODE=live pytest tests/knowledge_agent/test_sanity.py -v -s
 
-# Same test_sanity.py, Pegasus judges.
-# METRIC_MODE=pegasus|pegasus_ragas  (Answer Correctness: no deepeval method)
+# Same test_sanity.py; suite mode is pegasus (see sanity_pegasus.yaml).
+# METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval overrides suite mode.
 METRIC_MODE ?= pegasus
 
 test-ka-sanity-pegasus:

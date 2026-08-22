@@ -1,7 +1,9 @@
 # Gate validation = complaint reference accept / InvalidComplaintId reject.
 # Building block; usually selected via e2e include, or evaluate(..., "gate_validation", ...).
 # Definitions: configs/metrics/fact_find_workflow/catalog.yaml
+# validation_message_clarity is GEval-only; relevance follows suite mode.
 suite: gate_validation
+mode: pegasus
 
 judges:
   - validation_message_clarity

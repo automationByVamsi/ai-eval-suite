@@ -4,7 +4,9 @@
 #
 # Needs response.context (+ source_document) from aggregated payload.
 # Use parsers.fact_find_workflow.prepare_response + src.eval.prepare_sample before evaluate().
+# Portable judges (faithfulness, relevance) follow mode; GEval / summarization stay deepeval.
 suite: summary_vs_aggregate
+mode: pegasus
 
 judges:
   # Built-in

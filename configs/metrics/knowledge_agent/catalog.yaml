@@ -1,13 +1,18 @@
 # Knowledge Agent — metric definitions (once).
 # Suites under configs/evaluations/knowledge_agent/ only *select* names from here.
 #
+# backends: which scoring paths this metric supports.
+#   Suite ``mode:`` (default pegasus) picks among them; unsupported modes fall
+#   back (e.g. GEval customs always stay on deepeval).
+#
 # default_suite: used by src.main / EvaluationRunner when a case has no suite/metrics.
 default_suite: e2e
 
 metrics:
-  # --- Stage 1 (query rewrite) ---
+  # --- Stage 1 (query rewrite) — GEval / DeepEval only ---
   intent_preservation:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/intent_preservation.md
     evaluation_params: [input, actual_output]
@@ -16,6 +21,7 @@ metrics:
 
   semantic_preservation:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/semantic_preservation.md
     evaluation_params: [input, actual_output]
@@ -24,6 +30,7 @@ metrics:
 
   domain_appropriateness:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/domain_appropriateness.md
     evaluation_params: [input, actual_output]
@@ -32,15 +39,17 @@ metrics:
 
   query_optimization:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/query_optimization.md
     evaluation_params: [input, actual_output]
     input_source: question
     actual_source: rewritten_query
 
-  # --- Stage 2 (anchor) ---
+  # --- Stage 2 (anchor) — GEval / DeepEval only ---
   anchor_relevance:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/anchor_relevance.md
     evaluation_params: [input, actual_output]
@@ -49,24 +58,25 @@ metrics:
 
   anchor_grounding_quality:
     type: geval
+    backends: [deepeval]
     threshold: 0.7
     rubric: configs/criteria/knowledge_agent/anchor_grounding_quality.md
     evaluation_params: [input, actual_output]
     input_source: rewritten_query
     actual_source: anchor_page_content
 
-  # --- Final-answer / e2e ---
-  # mode: deepeval | pegasus | pegasus_ragas | pegasus_deepeval
+  # --- Final-answer / e2e (portable: suite mode selects pegasus* or deepeval) ---
   relevance:
     type: relevance
-    mode: deepeval
+    backends: [pegasus, deepeval]
     threshold: 0.7
     input_source: question
     actual_source: answer
+    context_source: retrieval_context
 
   correctness:
     type: correctness
-    mode: deepeval
+    backends: [pegasus, deepeval]
     threshold: 0.7
     input_source: question
     actual_source: answer
@@ -74,59 +84,24 @@ metrics:
 
   faithfulness:
     type: faithfulness
-    mode: deepeval
+    backends: [pegasus, deepeval]
     threshold: 0.7
     input_source: question
     actual_source: answer
     context_source: retrieval_context
 
-  # Pegasus path: evaluate() switches on mode and calls lbg-pegasus.
-  # Faithfulness = answer vs retrieved_contexts (ignores expected_answer).
-  faithfulness_pegasus:
-    type: faithfulness
-    mode: ${METRIC_MODE:-pegasus}
-    threshold: 0.7
-    input_source: question
-    actual_source: answer
-    context_source: retrieval_context
-
-  # Answer Correctness = answer vs expected_answer (methods: pegasus|ragas only).
-  # pegasus method needs columns: question, answer, reference_answer
-  correctness_pegasus:
-    type: answer_correctness
-    mode: ${METRIC_MODE:-pegasus}
-    threshold: 0.7
-    input_source: question
-    actual_source: answer
-    expected_source: expected_answer
-
-  # Answer Relevancy = does answer address the question? (not factual correctness).
-  # methods: pegasus | deepeval | ragas (ragas also needs retrieved_contexts)
-  relevance_pegasus:
-    type: relevance
-    mode: ${METRIC_MODE:-pegasus}
-    threshold: 0.7
-    input_source: question
-    actual_source: answer
-    context_source: retrieval_context
-
-  # Context Precision = are retrieved contexts precise for the question?
-  # methods: pegasus | deepeval | ragas
-  # needs: question, expected_answer (→ reference_answer), retrieved_contexts
-  context_precision_pegasus:
+  # Pegasus-only in this repo (no DeepEval wrapper).
+  context_precision:
     type: context_precision
-    mode: ${METRIC_MODE:-pegasus}
+    backends: [pegasus]
     threshold: 0.7
     input_source: question
     expected_source: expected_answer
     context_source: retrieval_context
 
-  # Context Recall = do contexts cover info needed for a complete answer?
-  # methods: pegasus | deepeval | ragas
-  # needs: question, answer, expected_answer, retrieved_contexts
-  context_recall_pegasus:
+  context_recall:
     type: context_recall
-    mode: ${METRIC_MODE:-pegasus}
+    backends: [pegasus]
     threshold: 0.7
     input_source: question
     actual_source: answer
@@ -135,5 +110,6 @@ metrics:
 
   keyword_match:
     type: keyword_match
+    backends: [deepeval]
     threshold: 1.0
     keywords_source: keywords

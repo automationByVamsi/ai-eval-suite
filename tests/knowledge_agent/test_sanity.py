@@ -6,13 +6,16 @@ Setup (cases / input checks) lives in conftest.py.
   EVAL_MODE=live|cache
   RUN_JUDGES=true   → also run suite judges
 
-  DeepEval (default):
+  Default suite (sanity) prefers Pegasus for portable metrics:
     make test-ka-sanity-judges
 
-  Pegasus (same test file; data via prepare_response → prepare_sample):
+  Broader Pegasus pack (same test file):
     make test-ka-sanity-pegasus-judges
-    METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval
+    METRIC_MODE=pegasus|pegasus_ragas|pegasus_deepeval  (overrides suite mode)
     Missing required fields → MetricContractError (fail loud)
+
+  Force DeepEval on sanity: set mode: deepeval in the suite YAML, or
+  METRIC_MODE=deepeval.
 """
 
 from __future__ import annotations

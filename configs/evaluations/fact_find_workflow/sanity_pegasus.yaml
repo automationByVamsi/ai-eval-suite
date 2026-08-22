@@ -1,6 +1,7 @@
-# Fact Find — Pegasus-backed sanity suite.
+# Fact Find — Pegasus-backed sanity suite (faithfulness smoke).
 # Uses the same test file as sanity; select via METRICS_SUITE="sanity_pegasus".
 suite: sanity_pegasus
+mode: pegasus
 
 judges:
-  - faithfulness_pegasus
+  - faithfulness

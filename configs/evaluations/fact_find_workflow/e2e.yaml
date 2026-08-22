@@ -1,6 +1,8 @@
 # Fact Find e2e = full judge pack (gate + summary).
 # Select explicitly: METRICS_SUITE=e2e / evaluate(..., "e2e", ...).
+# Included suites set mode: pegasus; portable metrics follow it.
 suite: e2e
+mode: pegasus
 
 include:
   - gate_validation

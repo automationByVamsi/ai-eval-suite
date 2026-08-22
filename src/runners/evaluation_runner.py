@@ -11,10 +11,18 @@ from pathlib import Path
 
 from src.clients.adk_client import invoke_agent
 from src.core.config import agent_metrics_profile, has_metric_catalog, load_metric_catalog, resolve_suite_metrics
+from src.core.metric_mode import (
+    DEFAULT_SUITE_MODE,
+    apply_resolved_mode,
+    is_pegasus_mode,
+    preferred_suite_mode,
+    resolve_metric_mode,
+)
 from src.models.evaluation_result import EvaluationResult
 from src.models.test_case import TestCase
 from src.reporting.persist import publish_suite_result
 from src.runners.factories import MetricFactory
+from src.runners.pegasus_judge import run_pegasus_metric
 
 
 class EvaluationRunner:
@@ -50,9 +58,22 @@ class EvaluationRunner:
             )
 
         metric_configs = self._resolve_metric_configs(test_case)
-        metric_results = [
-            self.metric_factory.create(cfg).evaluate(test_case, response) for cfg in metric_configs
-        ]
+        metric_results = []
+        for cfg in metric_configs:
+            mode = str(cfg.get("mode") or "deepeval").strip().lower()
+            if is_pegasus_mode(mode):
+                metric_results.append(
+                    run_pegasus_metric(
+                        cfg,
+                        test_case,
+                        response,
+                        cortex_client=self.metric_factory._cortex_client,
+                    )
+                )
+            else:
+                metric_results.append(
+                    self.metric_factory.create(cfg).evaluate(test_case, response)
+                )
 
         # Blind path: same Streamlit dashboard as evaluate()
         if os.environ.get("DASHBOARD_DISABLE") != "1":
@@ -94,12 +115,17 @@ class EvaluationRunner:
                 by_name.setdefault(name, cfg)
 
         configs = []
+        preferred = preferred_suite_mode(DEFAULT_SUITE_MODE)
         for override in test_case.metrics:
             cfg = dict(by_name.get(override.name, {"name": override.name}))
             if override.threshold is not None:
                 cfg["threshold"] = override.threshold
             if override.type is not None:
                 cfg["type"] = override.type
+            if not cfg.get("mode"):
+                cfg = apply_resolved_mode(
+                    cfg, resolve_metric_mode(preferred, cfg)
+                )
             configs.append(cfg)
         return configs
 

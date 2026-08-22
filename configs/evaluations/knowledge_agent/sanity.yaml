@@ -1,10 +1,16 @@
-# Knowledge Agent — sanity suite (final-answer DeepEval judges).
+# Knowledge Agent — sanity suite (smoke judges).
 # Definitions: configs/metrics/knowledge_agent/catalog.yaml
 #
-# mode: deepeval (see catalog). For Pegasus use suite sanity_pegasus.
+# mode: preferred backend for portable metrics (pegasus | pegasus_ragas |
+#   pegasus_deepeval | deepeval). GEval / deepeval-only metrics ignore this
+#   and stay on deepeval. Per-judge override: {name: faithfulness, mode: deepeval}
+# Optional env: METRIC_MODE overrides this suite mode (Make / CI escape hatch).
+#
 # Select via METRICS_SUITE="sanity" (default) or Verdict pack.
-# correctness needs expected.expected_answer (skipped when absent).
+# correctness needs expected.expected_answer (DeepEval soft-skips when absent;
+# Pegasus fails loud if required fields are missing).
 suite: sanity
+mode: pegasus
 
 judges:
   - relevance

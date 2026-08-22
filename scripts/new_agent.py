@@ -155,49 +155,25 @@ def _append_agents_yaml(name: str, message_field: str, env_prefix: str) -> Path:
 def _write_metric_catalog(name: str, message_field: str, with_pegasus: bool) -> Path:
     path = ROOT / "configs" / "metrics" / name / "catalog.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
-    pegasus_block = ""
-    if with_pegasus:
-        pegasus_block = f"""
-  # Pegasus twins (select via METRICS_SUITE=sanity_pegasus)
-  relevance_pegasus:
-    type: relevance
-    mode: ${{METRIC_MODE:-pegasus}}
-    threshold: 0.7
-    input_source: {message_field}
-    actual_source: answer
-
-  correctness_pegasus:
-    type: answer_correctness
-    mode: ${{METRIC_MODE:-pegasus}}
-    threshold: 0.7
-    input_source: {message_field}
-    actual_source: answer
-    expected_source: expected_answer
-
-  faithfulness_pegasus:
-    type: faithfulness
-    mode: ${{METRIC_MODE:-pegasus}}
-    threshold: 0.7
-    input_source: {message_field}
-    actual_source: answer
-    context_source: retrieval_context
-"""
+    # with_pegasus keeps portable backends; --no-pegasus pins deepeval-only.
+    backends = "[pegasus, deepeval]" if with_pegasus else "[deepeval]"
     path.write_text(
         f"""# {name} — starter metric catalog.
 # Suites under configs/evaluations/{name}/ only select names from here.
+# Suite ``mode:`` (default pegasus) picks among backends; GEval stays deepeval.
 default_suite: sanity
 
 metrics:
   relevance:
     type: relevance
-    mode: deepeval
+    backends: {backends}
     threshold: 0.7
     input_source: {message_field}
     actual_source: answer
 
   correctness:
     type: correctness
-    mode: deepeval
+    backends: {backends}
     threshold: 0.7
     input_source: {message_field}
     actual_source: answer
@@ -205,12 +181,12 @@ metrics:
 
   faithfulness:
     type: faithfulness
-    mode: deepeval
+    backends: {backends}
     threshold: 0.7
     input_source: {message_field}
     actual_source: answer
     context_source: retrieval_context
-{pegasus_block}""",
+""",
         encoding="utf-8",
     )
     return path
@@ -220,9 +196,13 @@ def _write_sanity_suite(name: str) -> Path:
     path = ROOT / "configs" / "evaluations" / name / "sanity.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f"""# {name} — starter sanity suite (DeepEval).
-# correctness needs expected.expected_answer (DeepEval may soft-skip if absent).
+        f"""# {name} — starter sanity suite.
+# mode: preferred backend for portable metrics (pegasus | pegasus_ragas |
+#   pegasus_deepeval | deepeval). Per-judge override: {{name: X, mode: deepeval}}
+# correctness needs expected.expected_answer (DeepEval may soft-skip if absent;
+# Pegasus fails loud if required fields are missing).
 suite: sanity
+mode: pegasus
 
 judges:
   - relevance
@@ -237,13 +217,15 @@ def _write_sanity_pegasus_suite(name: str) -> Path:
     path = ROOT / "configs" / "evaluations" / name / "sanity_pegasus.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        f"""# {name} — Pegasus sanity suite.
+        f"""# {name} — broader Pegasus-oriented sanity pack.
 # Cases need fields each metric requires (MetricContractError if missing).
-# Starter: relevance only (question + answer). Add others when data is ready.
+# Starter: relevance + faithfulness. Add others when data is ready.
 suite: sanity_pegasus
+mode: pegasus
 
 judges:
-  - relevance_pegasus
+  - relevance
+  - faithfulness
 """,
         encoding="utf-8",
     )
