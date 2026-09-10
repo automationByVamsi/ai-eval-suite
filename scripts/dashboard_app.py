@@ -12,6 +12,8 @@ Scope (sidebar):
 Publish path: sanity tests call publish_case() (actual output, expected/ground
 truth, det + judges); evaluate(..., publish=True) still works for judge-only.
 
+Export: use "Export Excel report" above the results (respects sidebar filters).
+
     streamlit run scripts/dashboard_app.py
 """
 
@@ -28,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 
 from src.models.evaluation_result import CaseEvaluationResult, E2ECaseResult
+from src.reporting.excel_export import export_evaluation_report, export_filename
 from src.reporting.persist import DEFAULT_DASHBOARD_ROOT, list_runs, resolve_latest_run
 
 st.set_page_config(page_title="Agent Evaluation Dashboard", page_icon="🧪", layout="wide")
@@ -414,6 +417,44 @@ def _render_e2e_view(filtered: list[E2ECaseResult]) -> None:
                     _render_stage_body(s, key_prefix=f"e2e_{r.test_case_id}")
 
 
+def _render_export_section(
+    *,
+    stage_results: list[CaseEvaluationResult],
+    e2e_results: list[E2ECaseResult],
+    view_mode: str,
+    scope_label: str,
+    run_id: str,
+) -> None:
+    """Sidebar download for the currently filtered dashboard scope."""
+    is_e2e = view_mode.startswith("By test case")
+    export_view = "e2e" if is_e2e else "stage"
+    payload_stage = [] if is_e2e else stage_results
+    payload_e2e = e2e_results if is_e2e else []
+
+    if not payload_stage and not payload_e2e:
+        return
+
+    try:
+        workbook = export_evaluation_report(
+            stage_results=payload_stage,
+            e2e_results=payload_e2e,
+            view_mode=export_view,
+            scope_label=scope_label,
+            run_id=run_id,
+        )
+    except Exception as exc:
+        st.error(f"Export failed: {exc}")
+        return
+
+    st.download_button(
+        label="Export Excel report",
+        data=workbook,
+        file_name=export_filename(run_id=run_id, view_mode=export_view),
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        help="PO-friendly workbook for the current filters (summary, results, checks, failures).",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Sidebar + routing
 # ---------------------------------------------------------------------------
@@ -543,6 +584,17 @@ if view_mode.startswith("By test case"):
     if not filtered_e2e:
         st.info("No test cases match the current filters.")
         st.stop()
+    scope_label = "All runs (all agents)" if all_runs_scope else f"Single run · {Path(output_dir).name}"
+    run_id = "" if all_runs_scope else Path(output_dir).name
+    export_col, _ = st.columns([1, 4])
+    with export_col:
+        _render_export_section(
+            stage_results=[],
+            e2e_results=filtered_e2e,
+            view_mode=view_mode,
+            scope_label=scope_label,
+            run_id=run_id,
+        )
     _render_e2e_view(filtered_e2e)
 
 else:
@@ -570,5 +622,16 @@ else:
     if not filtered:
         st.info("No test cases match the current filters.")
         st.stop()
+    scope_label = "All runs (all agents)" if all_runs_scope else f"Single run · {Path(output_dir).name}"
+    run_id = "" if all_runs_scope else Path(output_dir).name
+    export_col, _ = st.columns([1, 4])
+    with export_col:
+        _render_export_section(
+            stage_results=filtered,
+            e2e_results=[],
+            view_mode=view_mode,
+            scope_label=scope_label,
+            run_id=run_id,
+        )
     _agent_summary_tiles(filtered)
     _render_stage_view(filtered, show_eval=show_eval)
