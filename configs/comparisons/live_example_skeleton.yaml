@@ -1,0 +1,59 @@
+# Example live A/B skeleton — requires two reachable ADK agent configs.
+# Overrides are metadata only; ADK does not switch model/prompt at runtime.
+#
+# For Pedro-style demos, register separate agents.yaml entries per arm:
+#   knowledge_agent_prompt_v1 / knowledge_agent_prompt_v2
+#   knowledge_agent_model_a / knowledge_agent_model_b
+#   knowledge_agent_tools_a / knowledge_agent_tools_ab
+
+comparison:
+  name: live_example_skeleton
+  description: "Template — set mode: live and distinct agent endpoints"
+  dimension: release
+  mode: offline
+
+  candidate_a:
+    name: trusted
+    agent: knowledge_agent
+    metadata:
+      release: trusted
+
+  candidate_b:
+    name: candidate
+    agent: knowledge_agent
+    metadata:
+      release: candidate
+    overrides:
+      model: model-b
+
+  dataset:
+    path: testdata/knowledge_agent/sanity
+
+  evaluation_suite: sanity
+  repetitions: 6
+
+  fixtures:
+    path: testdata/comparison/demo/scores.json
+
+  require_stability: false
+  require_similarity: true
+  require_judge_reliability: false
+
+  statistics:
+    bootstrap_samples: 10000
+    confidence_level: 0.95
+    alpha: 0.05
+    seed: 42
+    inflation: 0.10
+
+  metrics:
+    correctness:
+      role: primary
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+    faithfulness:
+      role: guardrail
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+
+  output_dir: outputs/comparison

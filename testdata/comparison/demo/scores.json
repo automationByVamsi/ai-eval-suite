@@ -1,0 +1,5119 @@
+{
+  "observations": [
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.7,
+        0.71,
+        0.69
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.71,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.73,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.72,
+        0.73,
+        0.71
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.73,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.74,
+        0.75,
+        0.73
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.76,
+        0.77,
+        0.75
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.8,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.81,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.7799999999999999,
+        0.7899999999999999,
+        0.7699999999999999
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7899999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.7,
+        0.71,
+        0.69
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.71,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.73,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.72,
+        0.73,
+        0.71
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.73,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.74,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.74,
+        0.75,
+        0.73
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.75,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.76,
+        0.77,
+        0.75
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.7799999999999999,
+        0.7899999999999999,
+        0.7699999999999999
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.7,
+        0.71,
+        0.69
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.7,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.72,
+        0.73,
+        0.71
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.72,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.84,
+        0.85,
+        0.83
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.86,
+        0.87,
+        0.85
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.8799999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 0.",
+      "judge_rescores": [
+        0.8799999999999999,
+        0.8899999999999999,
+        0.8699999999999999
+      ]
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.8899999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.8799999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8899999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.8799999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.8899999999999999,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7899999999999999,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.89,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.8599999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.8699999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.8799999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8899999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.8999999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.9099999999999999,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7799999999999999,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7899999999999999,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.82,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.83,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.84,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.85,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.86,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.765,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.755,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.765,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.755,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.765,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.755,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7849999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.7749999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7849999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.7749999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.7849999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.7749999999999999,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.705,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.695,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.705,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.695,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.705,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.695,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.725,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.715,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.725,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.715,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.725,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.715,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.76,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.77,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.78,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.79,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 0,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 1,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 2,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 3,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 4,
+      "score": 0.7999999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "correctness",
+      "rep": 5,
+      "score": 0.8099999999999999,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 0."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 1."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 2."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.906,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 3."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.908,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 4."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.91,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.88,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.878,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.876,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.874,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.872,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.87,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.901,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.903,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.905,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.901,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.903,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.905,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.901,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.903,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.905,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.901,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.903,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.905,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 0,
+      "score": 0.9,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz0."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 1,
+      "score": 0.901,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz1."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 2,
+      "score": 0.902,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz2."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 3,
+      "score": 0.903,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz3."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 4,
+      "score": 0.904,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz4."
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "faithfulness",
+      "rep": 5,
+      "score": 0.905,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz5."
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2000.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2000.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2001.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2001.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2002.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2002.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2003.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2003.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2004.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2004.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2005.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2005.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2010.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2010.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2011.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2011.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2012.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2012.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2013.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2013.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2014.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2014.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2015.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2015.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2020.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2020.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2021.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2021.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2022.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2022.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2023.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2023.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2024.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2024.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2025.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2025.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2030.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2030.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2031.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2031.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2032.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2032.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2033.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2033.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2034.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2034.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2035.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2035.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2040.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2040.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2041.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2041.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2042.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2042.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2043.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2043.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2044.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2044.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2045.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2045.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2050.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2050.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2051.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2051.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2052.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2052.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2053.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2053.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2054.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2054.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2055.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2055.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2060.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2060.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2061.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2061.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2062.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2062.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2063.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2063.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2064.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2064.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2065.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2065.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2070.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2070.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2071.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2071.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2072.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2072.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2073.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2073.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2074.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2074.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2075.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2075.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2080.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2080.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2081.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2081.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2082.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2082.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2083.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2083.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2084.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2084.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2085.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2085.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2090.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2090.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2091.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2091.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2092.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2092.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2093.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2093.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2094.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2094.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2095.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2095.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2100.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2100.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2101.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2101.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2102.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2102.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2103.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2103.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2104.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2104.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2105.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2105.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2110.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2110.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2111.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2111.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2112.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2112.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2113.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2113.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2114.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2114.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2115.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2115.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2120.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2120.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2121.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2121.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2122.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2122.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2123.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2123.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2124.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2124.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2125.0,
+      "passed": true,
+      "answer": "Answer for TC013 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2125.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2130.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2130.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2131.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2131.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2132.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2132.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2133.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2133.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2134.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2134.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2135.0,
+      "passed": true,
+      "answer": "Answer for TC014 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2135.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2140.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 0.",
+      "latency_ms": 2140.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2141.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 1.",
+      "latency_ms": 2141.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2142.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 2.",
+      "latency_ms": 2142.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2143.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 3.",
+      "latency_ms": 2143.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2144.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 4.",
+      "latency_ms": 2144.0
+    },
+    {
+      "candidate": "a",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2145.0,
+      "passed": true,
+      "answer": "Answer for TC015 about customer vulnerability and braille support need. variant a run 5.",
+      "latency_ms": 2145.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2400.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2400.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2401.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2401.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2402.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2402.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2403.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2403.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2404.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2404.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC001",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2405.0,
+      "passed": true,
+      "answer": "Answer for TC001 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2405.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2410.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2410.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2411.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2411.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2412.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2412.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2413.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2413.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2414.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2414.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC002",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2415.0,
+      "passed": true,
+      "answer": "Answer for TC002 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2415.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2420.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2420.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2421.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2421.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2422.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2422.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2423.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2423.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2424.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2424.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC003",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2425.0,
+      "passed": true,
+      "answer": "Answer for TC003 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2425.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2430.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2430.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2431.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2431.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2432.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2432.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2433.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2433.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2434.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2434.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC004",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2435.0,
+      "passed": true,
+      "answer": "Answer for TC004 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2435.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2440.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2440.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2441.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2441.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2442.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2442.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2443.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2443.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2444.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2444.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC005",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2445.0,
+      "passed": true,
+      "answer": "Answer for TC005 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2445.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2450.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2450.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2451.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2451.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2452.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2452.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2453.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2453.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2454.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2454.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC006",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2455.0,
+      "passed": true,
+      "answer": "Answer for TC006 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2455.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2460.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2460.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2461.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2461.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2462.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2462.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2463.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2463.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2464.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2464.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC007",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2465.0,
+      "passed": true,
+      "answer": "Answer for TC007 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2465.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2470.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2470.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2471.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2471.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2472.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2472.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2473.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2473.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2474.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2474.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC008",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2475.0,
+      "passed": true,
+      "answer": "Answer for TC008 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2475.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2480.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2480.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2481.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2481.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2482.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2482.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2483.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2483.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2484.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2484.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC009",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2485.0,
+      "passed": true,
+      "answer": "Answer for TC009 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2485.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2490.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2490.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2491.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2491.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2492.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2492.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2493.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2493.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2494.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2494.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC010",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2495.0,
+      "passed": true,
+      "answer": "Answer for TC010 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2495.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2500.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2500.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2501.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2501.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2502.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2502.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2503.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2503.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2504.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2504.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC011",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2505.0,
+      "passed": true,
+      "answer": "Answer for TC011 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2505.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2510.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 0.",
+      "latency_ms": 2510.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2511.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 1.",
+      "latency_ms": 2511.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2512.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 2.",
+      "latency_ms": 2512.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2513.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 3.",
+      "latency_ms": 2513.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2514.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 4.",
+      "latency_ms": 2514.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC012",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2515.0,
+      "passed": true,
+      "answer": "Answer for TC012 about customer vulnerability and braille support need. variant b run 5.",
+      "latency_ms": 2515.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2520.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz0.",
+      "latency_ms": 2520.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2521.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz1.",
+      "latency_ms": 2521.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2522.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz2.",
+      "latency_ms": 2522.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2523.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz3.",
+      "latency_ms": 2523.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2524.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz4.",
+      "latency_ms": 2524.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC013",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2525.0,
+      "passed": true,
+      "answer": "Different wording for TC013: alternative retrieval path and unrelated filler tokens xyz5.",
+      "latency_ms": 2525.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2530.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz0.",
+      "latency_ms": 2530.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2531.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz1.",
+      "latency_ms": 2531.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2532.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz2.",
+      "latency_ms": 2532.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2533.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz3.",
+      "latency_ms": 2533.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2534.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz4.",
+      "latency_ms": 2534.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC014",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2535.0,
+      "passed": true,
+      "answer": "Different wording for TC014: alternative retrieval path and unrelated filler tokens xyz5.",
+      "latency_ms": 2535.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 0,
+      "score": 2540.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz0.",
+      "latency_ms": 2540.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 1,
+      "score": 2541.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz1.",
+      "latency_ms": 2541.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 2,
+      "score": 2542.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz2.",
+      "latency_ms": 2542.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 3,
+      "score": 2543.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz3.",
+      "latency_ms": 2543.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 4,
+      "score": 2544.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz4.",
+      "latency_ms": 2544.0
+    },
+    {
+      "candidate": "b",
+      "test_case_id": "TC015",
+      "metric_name": "latency_ms",
+      "rep": 5,
+      "score": 2545.0,
+      "passed": true,
+      "answer": "Different wording for TC015: alternative retrieval path and unrelated filler tokens xyz5.",
+      "latency_ms": 2545.0
+    }
+  ]
+}

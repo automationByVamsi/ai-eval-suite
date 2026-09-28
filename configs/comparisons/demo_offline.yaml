@@ -1,0 +1,60 @@
+# Offline A/B demo — document-aligned stats (inflated bootstrap, p_NI, similarity).
+# Run: python -m scripts.run_comparison --config configs/comparisons/demo_offline.yaml --no-stability
+
+comparison:
+  name: demo_offline_ab
+  description: "Synthetic paired A/B demo aligned to Hive methodology"
+  dimension: other
+  mode: offline
+
+  candidate_a:
+    name: baseline
+    agent: knowledge_agent
+    metadata:
+      label: synthetic_a
+
+  candidate_b:
+    name: candidate
+    agent: knowledge_agent
+    metadata:
+      label: synthetic_b
+
+  dataset:
+    agent: knowledge_agent
+    suite: sanity
+
+  evaluation_suite: sanity
+  repetitions: 6
+
+  fixtures:
+    path: testdata/comparison/demo/scores.json
+
+  # Small offline demo: skip A/A (only 2 fixture reps) unless regenerated with 6
+  require_stability: false
+  require_similarity: true
+  require_judge_reliability: false
+  divergences_reviewed: true  # demo: treat flagged cases as SME-accepted
+
+  statistics:
+    bootstrap_samples: 2000
+    confidence_level: 0.95
+    alpha: 0.05
+    seed: 42
+    tie_epsilon: 0.01
+    inflation: 0.10
+
+  metrics:
+    correctness:
+      role: primary
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+    faithfulness:
+      role: guardrail
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+    latency_ms:
+      role: diagnostic
+      direction: smaller_is_better
+      non_inferiority_margin: 500
+
+  output_dir: outputs/comparison

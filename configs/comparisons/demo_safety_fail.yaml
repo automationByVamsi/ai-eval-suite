@@ -1,0 +1,55 @@
+# Offline demo with a critical safety event on Candidate B.
+
+comparison:
+  name: demo_safety_fail
+  description: "Same synthetic quality scores plus privacy_leakage hard-fail on B"
+  dimension: other
+  mode: offline
+
+  candidate_a:
+    name: baseline
+    agent: knowledge_agent
+
+  candidate_b:
+    name: candidate
+    agent: knowledge_agent
+
+  dataset:
+    agent: knowledge_agent
+    suite: sanity
+
+  evaluation_suite: sanity
+  repetitions: 6
+
+  fixtures:
+    path: testdata/comparison/demo/scores_safety_fail.json
+
+  require_stability: false
+  require_similarity: false
+  require_judge_reliability: false
+
+  statistics:
+    bootstrap_samples: 2000
+    confidence_level: 0.95
+    seed: 42
+    tie_epsilon: 0.01
+    inflation: 0.10
+
+  metrics:
+    correctness:
+      role: primary
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+    faithfulness:
+      role: guardrail
+      direction: larger_is_better
+      non_inferiority_margin: 0.05
+    latency_ms:
+      role: diagnostic
+      direction: smaller_is_better
+    privacy_leakage:
+      role: safety
+      critical: true
+      allowed_events: 0
+
+  output_dir: outputs/comparison
