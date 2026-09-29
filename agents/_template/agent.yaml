@@ -1,0 +1,32 @@
+# my_agent — one line on what this agent does
+#
+# Created by `make new-agent NAME=my_agent`. Fill in the TODOs, add test cases under
+# testdata/sanity/, then: make run AGENT=my_agent SUITE=sanity
+
+connection:                   # how to reach the agent (Google ADK). Values come from .env
+  base_url: ${MY_AGENT_BASE_URL:-http://localhost:8080}
+  base_path: ${MY_AGENT_BASE_PATH:-}
+  app_name: ${MY_AGENT_APP_NAME:-my_agent}
+  user_id: ${MY_AGENT_USER_ID:-eval_user}
+  timeout_s: 120
+  retries: 1
+  verify_tls: true            # true | false | /path/to/ca-bundle.pem
+  headers: {}                 # e.g.  x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
+
+input_field: question         # the key in each test case's "input" that is sent to the agent
+# message_template: "Please look up {question}"   # optional: wrap the input before sending
+
+# Metrics this agent is judged on.
+#   Built-in ones (names from metric_library.yaml): just the name + threshold.
+#   Your own: a rubric file under rubrics/ (runs on DeepEval GEval).
+metrics:
+  relevance:   {threshold: 0.7}
+  correctness: {threshold: 0.7}           # only runs for cases that have expected.expected_answer
+  # tone:      {rubric: rubrics/tone.md, threshold: 0.8}
+
+# Suites = which metrics run on which test data. testdata defaults to testdata/<suite name>.
+suites:
+  sanity:
+    metrics: [relevance]
+  # regression:
+  #   metrics: [relevance, correctness]

@@ -1,0 +1,58 @@
+# ============================================================================================
+#  METRIC LIBRARY — the built-in judges every agent can use by name in its agent.yaml
+# ============================================================================================
+#
+#  Which engine runs a metric (the only rule):
+#    - `pegasus:` is set and the Pegasus package is installed  -> Pegasus
+#    - otherwise                                                -> DeepEval (`deepeval:` or `criteria:`)
+#
+#  Keys
+#    needs      fields the judge reads: question, answer, contexts, expected_answer.
+#               If a case has no value for one of them, the judge is SKIPPED for that case.
+#    pegasus    class name in pegasus.metrics.rag
+#    deepeval   class name in deepeval.metrics (the fallback, or the only engine)
+#    criteria   DeepEval GEval with this text as the rubric (instead of a deepeval class)
+#    question / answer / contexts / expected_answer: <field>
+#               read that standard field from another parser field (see summarization)
+#
+#  Add a Pegasus metric:     add an entry with `pegasus:` + `needs:` (+ `deepeval:` if DeepEval
+#                            has an equivalent, so machines without Pegasus can still run it).
+#  Remove a metric:          delete its entry, and remove it from any agents/*/agent.yaml.
+#  Agent-specific judges:    don't add them here — give them a `rubric:` in that agent's agent.yaml.
+# ============================================================================================
+
+relevance:
+  needs: [question, answer]
+  pegasus: AnswerRelevancy
+  deepeval: AnswerRelevancyMetric
+
+faithfulness:
+  needs: [question, answer, contexts]
+  pegasus: Faithfulness
+  deepeval: FaithfulnessMetric
+
+correctness:
+  needs: [question, answer, expected_answer]
+  pegasus: AnswerCorrectness
+  criteria: >
+    Determine whether the actual output is factually correct and complete compared to the
+    expected output, for the given input.
+
+context_precision:
+  needs: [question, answer, expected_answer, contexts]
+  pegasus: ContextPrecision
+  deepeval: ContextualPrecisionMetric
+
+context_recall:
+  needs: [question, answer, expected_answer, contexts]
+  pegasus: ContextRecall
+  deepeval: ContextualRecallMetric
+
+contextual_relevancy:
+  needs: [question, answer, contexts]
+  deepeval: ContextualRelevancyMetric
+
+summarization:                      # is `answer` a good summary of the source text?
+  needs: [question, answer]
+  question: source_document         # the parser provides source_document
+  deepeval: SummarizationMetric

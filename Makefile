@@ -1,33 +1,57 @@
-# Front door for running the eval suite - `make <target>`, like `npm run <script>`.
-# Each agent owns its own targets in makefiles/<agent>.mk - this file only
-# holds things that span every agent, so onboarding a new agent never
-# requires touching this file.
+# Everything you need day to day. `make help` lists it.
+#
+#   make run      AGENT=knowledge_agent SUITE=sanity
+#   make run      AGENT=knowledge_agent SUITE=sanity OFFLINE=1        (reuse saved traces)
+#   make baseline AGENT=knowledge_agent SUITE=sanity BUILD=1.4.0 REPS=5
+#   make verdict  AGENT=knowledge_agent SUITE=sanity BUILD=1.5.0 REPS=5
+#   make new-agent NAME=my_agent INPUT_FIELD=question
 
-include $(wildcard makefiles/*.mk)
+AGENT ?= knowledge_agent
+SUITE ?= sanity
+REPS  ?= 1
+BUILD ?=
+OFFLINE ?=
+JUDGES ?= 1
+NAME ?=
+INPUT_FIELD ?= question
 
-.PHONY: test-all help new-agent
+FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges)
+EVAL  = uv run python -m evalkit
 
-test-all:
-	pytest -v
-
-# Scaffold a minimal agent pack: make new-agent name=my_agent
-# Optional: MESSAGE_FIELD=complaint_ref  or  PEGASUS=0
-name ?=
-MESSAGE_FIELD ?= question
-PEGASUS ?= 1
-
-new-agent:
-	@if [ -z "$(name)" ]; then echo "Usage: make new-agent name=my_agent"; exit 1; fi
-	@if [ "$(PEGASUS)" = "0" ]; then \
-		python3 scripts/new_agent.py --name "$(name)" --message-field "$(MESSAGE_FIELD)" --no-pegasus; \
-	else \
-		python3 scripts/new_agent.py --name "$(name)" --message-field "$(MESSAGE_FIELD)"; \
-	fi
+.PHONY: help setup list new-agent run baseline verdict dashboard test
 
 help:
-	@echo "Available targets:"
-	@grep -hE '^[a-zA-Z0-9_-]+:' $(MAKEFILE_LIST) | cut -d: -f1 | sort -u | sed 's/^/  make /'
-	@echo ""
-	@echo "Onboard a new agent:"
-	@echo "  make new-agent name=my_agent"
-	@echo "  make new-agent name=my_agent MESSAGE_FIELD=complaint_ref PEGASUS=0"
+	@echo "make setup                                  install everything (needs uv)"
+	@echo "make list                                   agents and suites"
+	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
+	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n]"
+	@echo "make baseline AGENT=.. SUITE=.. BUILD=..    run a stable build and save it as the baseline [REPS=5]"
+	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
+	@echo "make dashboard                              open the results dashboard"
+	@echo "make test                                   test the framework itself (offline)"
+
+setup:
+	uv sync
+	@test -f .env || (cp .env.example .env && echo "Created .env - fill in your values")
+
+list:
+	$(EVAL) list
+
+new-agent:
+	@test -n "$(NAME)" || (echo "Usage: make new-agent NAME=my_agent [INPUT_FIELD=question]" && exit 1)
+	$(EVAL) new-agent $(NAME) --input-field $(INPUT_FIELD)
+
+run:
+	$(EVAL) run $(AGENT) $(SUITE) $(FLAGS)
+
+baseline:
+	$(EVAL) baseline $(AGENT) $(SUITE) $(FLAGS)
+
+verdict:
+	$(EVAL) verdict $(AGENT) $(SUITE) $(FLAGS)
+
+dashboard:
+	uv run streamlit run dashboard.py
+
+test:
+	uv run pytest -q

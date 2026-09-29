@@ -1,0 +1,45 @@
+# Knowledge Agent — RAG over the knowledge base (query rewrite -> search -> anchor -> ... -> answer)
+
+connection:                   # how to reach the agent (Google ADK)
+  base_url: ${KNOWLEDGE_ADK_BASE_URL:-http://localhost:8080}
+  base_path: ${KNOWLEDGE_ADK_BASE_PATH:-}
+  app_name: ${KNOWLEDGE_ADK_APP_NAME:-knowledge_agent}
+  user_id: ${KNOWLEDGE_ADK_USER_ID:-eval_user}
+  timeout_s: 180
+  retries: 1
+  verify_tls: false          # local/sandbox only — use true or a CA bundle path elsewhere
+  headers: {}
+
+input_field: question        # testdata input.question is sent to the agent
+
+# Every metric the agent can be judged on. Built-ins run on Pegasus when Pegasus has them,
+# otherwise DeepEval. Metrics with a rubric run on DeepEval GEval.
+metrics:
+  relevance:    {threshold: 0.7}
+  faithfulness: {threshold: 0.7}
+  correctness:  {threshold: 0.7}   # needs expected.expected_answer in the case, else skipped
+
+  # Stage 1 — query rewrite: judge the rewritten query against the user's question
+  intent_preservation:    {rubric: rubrics/intent_preservation.md,    answer: rewritten_query}
+  semantic_preservation:  {rubric: rubrics/semantic_preservation.md,  answer: rewritten_query}
+  domain_appropriateness: {rubric: rubrics/domain_appropriateness.md, answer: rewritten_query}
+  query_optimization:     {rubric: rubrics/query_optimization.md,     answer: rewritten_query}
+
+  # Stage 2 — anchor page: judge the chosen page
+  anchor_relevance:         {rubric: rubrics/anchor_relevance.md, answer: anchor_page_content}
+  anchor_grounding_quality: {rubric: rubrics/anchor_grounding_quality.md,
+                             question: rewritten_query, answer: anchor_page_content}
+
+# Which metrics each suite runs. testdata defaults to testdata/<suite name>.
+suites:
+  sanity:
+    metrics: [relevance, correctness]
+  stages:
+    testdata: testdata/sanity
+    metrics: [intent_preservation, semantic_preservation, domain_appropriateness,
+              query_optimization, anchor_relevance, anchor_grounding_quality]
+  e2e:
+    testdata: testdata/sanity
+    metrics: [relevance, faithfulness, correctness,
+              intent_preservation, semantic_preservation, domain_appropriateness,
+              query_optimization, anchor_relevance, anchor_grounding_quality]
