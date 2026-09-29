@@ -274,29 +274,62 @@ def test_committed_traces_exist_for_offline_demo():
 
 # --- synthesizer ----------------------------------------------------------------------------
 
-def test_athena_page_cleans_to_the_committed_source():
+def _load_team_source(name):
     import importlib.util
-    path = ROOT / "agents/knowledge_agent/synth/sources.py"
-    spec = importlib.util.spec_from_file_location("ka_sources", path)
-    sources = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(sources)
+    spec = importlib.util.spec_from_file_location(f"test_{name}", ROOT / "sources" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
+
+def test_athena_page_cleans_to_the_same_text_as_before():
+    athena = _load_team_source("athena_mcp")
     page = json.loads((ROOT / "tests/fixtures/athena_page_8708.json").read_text())
-    title, text = sources.page_to_text(page)
-    committed = (ROOT / "agents/knowledge_agent/synth/sources/8708.txt").read_text().strip()
-    assert f"{title}\n\n{text}".strip() == committed
+    title, text = athena.page_to_text(page)
+    assert f"{title}\n\n{text}".strip() == (ROOT / "tests/fixtures/athena_page_8708.txt").read_text().strip()
 
 
-def test_goldens_are_written_as_runnable_cases(tmp_path, monkeypatch):
+@pytest.mark.parametrize("event_stream", [False, True])
+def test_athena_mcp_source_calls_the_mcp_server(monkeypatch, event_stream):
+    page = json.loads((ROOT / "tests/fixtures/athena_page_8708.json").read_text())
+    seen = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            seen.append((self.path, self.headers["x-lbg-client-id"], body["params"]))
+            reply = json.dumps({"jsonrpc": "2.0", "id": 1,
+                                "result": {"structuredContent": {"result": {"value": page}}}})
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write((f"event: message\ndata: {reply}\n\n" if event_stream else reply).encode())
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    monkeypatch.setenv("HIVE_ATHENA_BASE_URL", f"http://127.0.0.1:{server.server_port}")
+    monkeypatch.setenv("HIVE_ATHENA_CLIENT_ID", "id")
+    monkeypatch.setenv("HIVE_ATHENA_CLIENT_SECRET", "secret")
+    try:
+        documents = _load_team_source("athena_mcp").fetch({}, ["8708"], Path("."))
+    finally:
+        server.shutdown()
+    assert seen == [("/v1/mcp", "id", {"name": "athena_get_page_content",
+                                       "arguments": {"pageId": "8708", "format": "json"}})]
+    assert documents[0]["text"].startswith("Types of Accessible Format Statements")
+    assert documents[0]["metadata"]["revision"] == str(page["@revision"])
+
+
+@pytest.fixture
+def fake_generator(monkeypatch):
+    """DeepEval's Synthesizer and the CORTEX model replaced by fakes; records what they were given."""
     import deepeval.synthesizer
     from deepeval.dataset import Golden
-
-    from evalkit import cortex, synth
-
-    agents = tmp_path / "agents"
-    shutil.copytree(ROOT / "agents" / "knowledge_agent", agents / "knowledge_agent")
-    monkeypatch.setattr(config, "AGENTS_DIR", agents)
     from deepeval.models import DeepEvalBaseLLM
+
+    from evalkit import cortex
 
     class FakeLLM(DeepEvalBaseLLM):
         def load_model(self):
@@ -309,31 +342,180 @@ def test_goldens_are_written_as_runnable_cases(tmp_path, monkeypatch):
             return ""
 
         def get_model_name(self):
-            return "fake"
+            return "fake-model"
 
-    monkeypatch.setattr(cortex, "deepeval_llm", FakeLLM)
-    styles_seen = []
+    calls = {"styles": [], "contexts": [], "answer": "Answer from the page.", "input": None, "fail_on": None}
 
     class FakeSynthesizer:
         def __init__(self, styling_config, **kwargs):
-            styles_seen.append(styling_config)
+            calls["styles"].append(styling_config)
 
         def generate_goldens_from_contexts(self, contexts, source_files, max_goldens_per_context, **kwargs):
-            assert source_files == ["8708"]
-            return [Golden(input=f"Question {i}?", expected_output="Answer.", source_file=source_files[0])
-                    for i in range(max_goldens_per_context)]
+            if calls["fail_on"] in source_files:
+                raise TimeoutError("CORTEX timed out")
+            calls["contexts"].append(contexts[0][0])
+            number = len(calls["contexts"])
+            question = calls["input"] or f"Question {number} about {source_files[0]}?"
+            return [Golden(input=question, expected_output=calls["answer"], source_file=source_files[0])
+                    for _ in range(max_goldens_per_context)]
 
+    monkeypatch.setattr(cortex, "deepeval_llm", FakeLLM)
     monkeypatch.setattr(deepeval.synthesizer, "Synthesizer", FakeSynthesizer)
+    return calls
+
+
+@pytest.fixture
+def ka_copy(tmp_path, monkeypatch):
+    """The real knowledge_agent folder in a temp dir, with the two Athena pages already cached."""
+    agents = tmp_path / "agents"
+    shutil.copytree(ROOT / "agents" / "knowledge_agent", agents / "knowledge_agent")
+    monkeypatch.setattr(config, "AGENTS_DIR", agents)
+    cache = agents / "knowledge_agent" / "synth" / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    for page_id in ("36626", "39696"):
+        (cache / f"{page_id}.json").write_text(json.dumps({
+            "id": page_id, "title": f"Page {page_id}", "text": f"Content of page {page_id}.",
+            "group": "", "metadata": {"revision": "7"}}))
+    return agents / "knowledge_agent"
+
+
+def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
+    from evalkit import synth
 
     written = synth.generate_goldens("knowledge_agent")
-    assert len(written) == 4                                         # 2 styles x 2 per source
-    assert "advisor" in styles_seen[0].scenario.lower()             # instructions.md folded in
-    agent = load_agent("knowledge_agent")
-    cases = runner.load_cases(agent, agent.suite("golden"))
-    assert cases[0]["input"] == {"question": "Question 0?"}
-    assert cases[0]["expected"]["expected_answer"] == "Answer."
-    assert cases[0]["expected"]["source"] == "8708"
+    assert len(written) == 12                                         # 6 styles x 2 pages x 1
+    assert "advisor" in fake_generator["styles"][0].scenario.lower()  # instructions.md folded in
+    assert "colleague" in fake_generator["styles"][0].task            # additional_guidance folded in
 
-    with pytest.raises(ConfigError, match="REPLACE=1"):             # never overwrite reviewed cases silently
-        synth.generate_goldens("knowledge_agent")
-    assert len(synth.generate_goldens("knowledge_agent", replace=True)) == 4
+    folder = ka_copy / "testdata/golden/direct_query/recoveries_commercial_bank"
+    path = folder / "TC_SYN_direct_query_recoveries_commercial_bank_001.json"
+    case = json.loads(path.read_text())
+    assert case["input"] == {"question": "Question 1 about 36626?"}
+    assert case["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626"}
+    assert case["metadata"]["domain"] == "Recoveries Commercial Bank"
+    assert case["metadata"]["source_revision"] == "7"
+    assert case["metadata"]["approval_status"] == "UNREVIEWED"
+
+    agent = load_agent("knowledge_agent")
+    assert len(runner.load_cases(agent, agent.suite("golden"))) == 12   # sub-folders are read
+    manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
+    assert manifest["generated"] == 12 and manifest["failed"] == []
+
+
+def test_goldens_add_to_existing_cases_unless_replace(ka_copy, fake_generator):
+    from evalkit import synth
+
+    synth.generate_goldens("knowledge_agent", ids=["36626"])
+    fake_generator["contexts"].clear()                     # run again: new cases are numbered after the old ones
+    synth.generate_goldens("knowledge_agent", ids=["36626"])
+    folder = ka_copy / "testdata/golden/direct_query/recoveries_commercial_bank"
+    assert sorted(p.name[-8:] for p in folder.glob("*.json")) == ["001.json", "002.json"]
+    synth.generate_goldens("knowledge_agent", ids=["36626"], replace=True)
+    assert len(list(folder.glob("*.json"))) == 1
+
+
+def test_goldens_filters_skips_and_failures(ka_copy, fake_generator):
+    from evalkit import synth
+
+    with pytest.raises(ConfigError, match="unknown group"):
+        synth.generate_goldens("knowledge_agent", groups=["Blackhorse"])
+
+    fake_generator["fail_on"] = "39696"                     # one page fails: the run carries on
+    fake_generator["input"] = "Same question every time?"   # duplicates are dropped
+    written = synth.generate_goldens("knowledge_agent", groups=["recoveries commercial bank"])
+    assert len(written) == 1
+    manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
+    assert len(manifest["failed"]) == 6
+    assert {s["reason"] for s in manifest["skipped"]} == {"duplicate question"}
+
+
+def test_placeholder_answers_are_rejected(ka_copy, fake_generator):
+    from evalkit import synth
+
+    fake_generator["answer"] = "The team is [INSERT TEAM NAME]."
+    assert synth.generate_goldens("knowledge_agent") == []
+
+
+def test_any_agent_any_source_any_case_shape(tmp_path, monkeypatch, fake_generator):
+    """A different agent: JSON records as the source, and its own test-case shape."""
+    from evalkit import synth
+
+    agents = tmp_path / "agents"
+    shutil.copytree(ROOT / "agents" / "_template", agents / "_template")
+    (tmp_path / ".env.example").write_text("")
+    for module in (config, new_agent):
+        monkeypatch.setattr(module, "AGENTS_DIR", agents)
+    monkeypatch.setattr(new_agent, "ROOT", tmp_path)
+    new_agent.create_agent("analysis_agent", input_field="request")
+    synth_dir = agents / "analysis_agent" / "synth"
+    (synth_dir / "styles").mkdir(parents=True)
+    (synth_dir / "styles" / "trend.md").write_text("## task\nAsk for a trend.\n\n## input_format\n"
+                                                   'JSON: {"request": "...", "metric": "..."}\n')
+    (synth_dir / "sales.json").write_text(json.dumps({"rows": [
+        {"sku": "A1", "region": "North", "q1": 10, "q2": 14},
+        {"sku": "B2", "region": "South", "q1": 7, "q2": 5}]}))
+    (synth_dir / "synth.yaml").write_text("""
+source: {type: json_records, file: sales.json, records_key: rows, id_field: sku, group_field: region}
+styles: {trend: {file: styles/trend.md, per_source: 1}}
+output:
+  folder: testdata/golden/{group_slug}
+  id: "AN_{source.id}_{n:02}"
+  case:
+    test_case_id: "{id}"
+    input: {request: "{generated.input.request}", dataset: "{source.id}"}
+    expected: {metric: "{generated.input.metric}", summary: "{generated.expected_output}"}
+""")
+    fake_generator["input"] = '{"request": "How did sales move?", "metric": "q2 vs q1"}'
+    written = synth.generate_goldens("analysis_agent", groups=["north"])
+    case = json.loads(written[0].read_text())
+    assert written[0].parent.name == "north"
+    assert case == {"test_case_id": "AN_A1_01",
+                    "input": {"request": "How did sales move?", "dataset": "A1"},
+                    "expected": {"metric": "q2 vs q1", "summary": "Answer from the page."}}
+    assert '"q2": 14' in fake_generator["contexts"][0]              # whole record given to the generator
+
+    fake_generator["input"] = "not json"                              # template field missing -> skipped
+    assert synth.generate_goldens("analysis_agent", ids=["B2"]) == []
+
+
+def test_files_source_and_default_case_shape(tmp_path, monkeypatch, fake_generator):
+    from evalkit import synth
+
+    agents = tmp_path / "agents"
+    folder = agents / "demo" / "synth"
+    (folder / "documents" / "Cards").mkdir(parents=True)
+    (folder / "documents" / "Cards" / "limits.md").write_text("Card limits\nThe daily limit is 500.")
+    (folder / "styles").mkdir()
+    (folder / "styles" / "q.md").write_text("## task\nAsk one question.\n")
+    (folder / "synth.yaml").write_text("source: {type: files}\nstyles: {q: {file: styles/q.md}}\n")
+    (agents / "demo" / "agent.yaml").write_text(
+        "connection: {base_url: http://x, app_name: demo}\ninput_field: prompt\n"
+        "suites: {golden: {testdata: testdata/golden, only: {metadata.approval_status: APPROVED}}}\n")
+    monkeypatch.setattr(config, "AGENTS_DIR", agents)
+
+    written = synth.generate_goldens("demo")
+    case = json.loads(written[0].read_text())
+    assert written[0].relative_to(agents / "demo").parts[:4] == ("testdata", "golden", "q", "cards")
+    assert case["input"] == {"prompt": "Question 1 about limits?"}
+    assert case["expected"]["expected_answer"] == "Answer from the page."
+    agent = load_agent("demo")
+    with pytest.raises(ConfigError, match="matching only"):              # nothing approved yet
+        runner.load_cases(agent, agent.suite("golden"))
+    case["metadata"]["approval_status"] = "APPROVED"
+    written[0].write_text(json.dumps(case))
+    assert len(runner.load_cases(agent, agent.suite("golden"))) == 1
+
+
+def test_synth_config_mistakes_are_caught(ka_copy):
+    from evalkit import synth
+
+    style = ka_copy / "synth/styles/conditional_query.md"
+    style.write_text(style.read_text().replace("## additional_guidance", "## additional guidance"))
+    with pytest.raises(ConfigError, match="unknown section"):
+        synth.load_settings(load_agent("knowledge_agent"))
+    style.write_text(style.read_text().replace("## additional guidance", "## additional_guidance"))
+
+    settings = ka_copy / "synth/synth.yaml"
+    settings.write_text(settings.read_text().replace("REASONING: 0.30", "REASONING: 0.50"))
+    with pytest.raises(ConfigError, match="add up to 1.0"):
+        synth.load_settings(load_agent("knowledge_agent"))

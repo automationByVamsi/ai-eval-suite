@@ -43,6 +43,7 @@ class Suite:
     name: str
     testdata: Path
     metrics: list[str]
+    only: dict[str, Any]
 
 
 @dataclass
@@ -101,6 +102,7 @@ def load_agent(name: str) -> Agent:
             name=suite_name,
             testdata=folder / spec.get("testdata", f"testdata/{suite_name}"),
             metrics=wanted,
+            only=dict(spec.get("only") or {}),
         )
 
     if "connection" not in raw:

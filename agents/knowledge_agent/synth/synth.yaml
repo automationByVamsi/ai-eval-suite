@@ -1,28 +1,66 @@
-# Knowledge Agent — generate test cases from knowledge-base pages
+# Knowledge Agent — generate test cases from Athena knowledge-base pages.
 #
-#   make sources AGENT=knowledge_agent IDS="8708 9001"   Athena pages -> sources/<id>.txt   (sources.py)
-#   make goldens AGENT=knowledge_agent                   sources/*.txt -> testdata/golden/*.json
-#   make run     AGENT=knowledge_agent SUITE=golden      evaluate the agent on them
+#   make sources AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626"]   fetch pages -> cache/
+#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]                      generate -> testdata/golden/
+#   make run     AGENT=knowledge_agent SUITE=golden                                         evaluate the agent on them
 #
-# Paths below are relative to this folder. The generator model is the CORTEX judge model (.env).
+# Paths are relative to this folder. The generator model is the CORTEX model in .env.
 
-output_suite: golden                 # cases are written to ../testdata/golden/
-include_expected_answer: true        # also generate a reference answer (used by correctness)
+# 1. SOURCE — where the documents come from.  Other types: files, json_records, or your own in sources/
+source:
+  type: athena_mcp
+  ids_file: page_ids.json            # page ids grouped by domain; GROUP= picks domains, IDS= picks pages
+
+# 2. GENERATOR
+include_expected_answer: true        # also generate the reference answer (used by the correctness judge)
+per_source: 1                        # cases per page per style (a style can override it)
 instructions: instructions.md        # rules every style must follow
 
-styles:                              # one batch per style; per_source = cases per document
-  simple_query:  {file: styles/simple_query.md,  per_source: 2}
-  complex_query: {file: styles/complex_query.md, per_source: 2}
+styles:                              # one file per question style, see styles/
+  direct_query:      {file: styles/direct_query.md}
+  procedural_query:  {file: styles/procedural_query.md}
+  conditional_query: {file: styles/conditional_query.md}
+  eligibility:       {file: styles/eligibility.md}
+  simple_query:      {file: styles/simple_query.md}
+  complex_query:     {file: styles/complex_query.md}
 
-evolutions:                          # how questions are varied / made harder (weights ~ sum to 1)
+evolutions:                          # how questions are varied; weights must add up to 1.0
   rounds: 1
-  REASONING: 0.20
-  CONCRETIZING: 0.20
-  CONSTRAINED: 0.20
-  HYPOTHETICAL: 0.15
-  COMPARATIVE: 0.15
-  IN_BREADTH: 0.10
+  REASONING: 0.30
+  CONCRETIZING: 0.25
+  CONSTRAINED: 0.25
+  HYPOTHETICAL: 0.10
+  COMPARATIVE: 0.05
+  IN_BREADTH: 0.05
 
 quality_filter:                      # regenerate questions the critic scores below min_quality
   min_quality: 0.5
   retries: 3
+
+# 3. OUTPUT TEMPLATE — the shape of one generated test case.
+# Placeholders: {generated.input} {generated.expected_output} {source.id} {source.title} {source.text}
+#   {source.metadata.<key>} {style} {group} {group_slug} {run.id} {run.generated_at} {run.date}
+#   {run.model} {agent.name} {agent.input_field} {id} {n:03}
+# folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
+output:
+  folder: testdata/golden/{style}/{group_slug}
+  id: "TC_SYN_{style}_{group_slug}_{n:03}"
+  case:
+    test_case_id: "{id}"
+    description: "Synthesized {style} case from Athena page {source.id} ({source.title})"
+    input:
+      question: "{generated.input}"
+    expected:
+      expected_answer: "{generated.expected_output}"
+      source_page_id: "{source.id}"
+    metadata:
+      origin: SYNTHETIC_PAGE
+      approval_status: UNREVIEWED
+      generation_scope: SINGLE_PAGE
+      style: "{style}"
+      domain: "{group}"
+      source_page_title: "{source.title}"
+      source_revision: "{source.metadata.revision}"
+      generation_run_id: "{run.id}"
+      generated_at: "{run.generated_at}"
+      generator_model: "{run.model}"

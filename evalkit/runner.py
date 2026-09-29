@@ -102,25 +102,39 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
 
 
 def load_cases(agent: Agent, suite: Suite) -> list[dict[str, Any]]:
-    """Every *.json in the suite's testdata folder: one case per file, or {"cases": [...]}."""
+    """
+    Every *.json in the suite's testdata folder, including sub-folders (names starting with _ are
+    skipped): one case per file, or {"cases": [...]}. A suite's `only:` keeps matching cases, e.g.
+    only: {metadata.approval_status: APPROVED}.
+    """
     if not suite.testdata.is_dir():
         raise ConfigError(f"Test data folder not found: {suite.testdata} (generated suites: run make goldens first)")
     cases: list[dict[str, Any]] = []
-    for path in sorted(suite.testdata.glob("*.json")):
+    for path in sorted(suite.testdata.rglob("*.json")):
+        if any(part.startswith("_") for part in path.relative_to(suite.testdata).parts):
+            continue
         data = json.loads(path.read_text())
         for i, case in enumerate(data["cases"] if "cases" in data else [data]):
             case.setdefault("test_case_id", path.stem if "cases" not in data else f"{path.stem}_{i}")
             case.setdefault("expected", {})
             if agent.input_field not in (case.get("input") or {}):
                 raise ConfigError(f"{path}: input.{agent.input_field} is required for {agent.name}")
-            cases.append(case)
+            if all(_dotted(case, key) == value for key, value in suite.only.items()):
+                cases.append(case)
     if not cases:
-        raise ConfigError(f"No test cases in {suite.testdata}")
+        only = f" matching only: {suite.only}" if suite.only else ""
+        raise ConfigError(f"No test cases in {suite.testdata}{only}")
     ids = [c["test_case_id"] for c in cases]
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
     if duplicates:
         raise ConfigError(f"Duplicate test_case_id in {suite.testdata}: {duplicates}")
     return cases
+
+
+def _dotted(data: dict[str, Any], path: str) -> Any:
+    for part in path.split("."):
+        data = data.get(part) if isinstance(data, dict) else None
+    return data
 
 
 def _standard_checks(fields: dict[str, Any], case: dict[str, Any]) -> list[Result]:

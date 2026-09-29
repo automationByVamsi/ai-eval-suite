@@ -3,8 +3,8 @@ Command line. Every `make` target calls one of these.
 
   python -m evalkit list
   python -m evalkit new-agent <name> [--input-field question]
-  python -m evalkit sources  <agent> <id> [<id> ...]       fetch synth source documents
-  python -m evalkit goldens  <agent> [--replace]           generate test cases from them
+  python -m evalkit sources  <agent> [--group G] [--ids ID ...]              fetch synth documents
+  python -m evalkit goldens  <agent> [--group G] [--ids ID ...] [--replace]  generate test cases
   python -m evalkit run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
   python -m evalkit baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
   python -m evalkit verdict  <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
@@ -32,12 +32,15 @@ def main(argv: list[str] | None = None) -> int:
     new = commands.add_parser("new-agent", help="create agents/<name>/ from the template")
     new.add_argument("name")
     new.add_argument("--input-field", default="question", help="test case input key sent to the agent")
-    sources = commands.add_parser("sources", help="fetch documents into agents/<agent>/synth/sources/")
-    sources.add_argument("agent")
-    sources.add_argument("ids", nargs="+")
-    goldens = commands.add_parser("goldens", help="generate test cases from synth/sources/")
-    goldens.add_argument("agent")
-    goldens.add_argument("--replace", action="store_true", help="delete existing generated cases first")
+    for name, text in [("sources", "fetch synthesizer documents into agents/<agent>/synth/cache/"),
+                       ("goldens", "generate test cases from the synthesizer documents")]:
+        cmd = commands.add_parser(name, help=text)
+        cmd.add_argument("agent")
+        cmd.add_argument("--group", action="append", help="only this group/domain (repeatable, or comma-separated)")
+        cmd.add_argument("--ids", nargs="+", help="only these document ids")
+        if name == "goldens":
+            cmd.add_argument("--replace", action="store_true",
+                             help="clear the folders being generated into (after generation succeeds)")
     for name, text in [("run", "run a suite and report pass/fail"),
                        ("baseline", "run (or reuse a run) and save it as the baseline"),
                        ("verdict", "run (or reuse a run) and compare it with the baseline")]:
@@ -64,11 +67,12 @@ def main(argv: list[str] | None = None) -> int:
         create_agent(args.name, args.input_field)
         return 0
 
-    if args.command == "sources":
-        synth.fetch_sources(args.agent, args.ids)
-        return 0
-    if args.command == "goldens":
-        synth.generate_goldens(args.agent, replace=args.replace)
+    if args.command in ("sources", "goldens"):
+        groups = [g.strip() for value in args.group or [] for g in value.split(",") if g.strip()] or None
+        if args.command == "sources":
+            synth.fetch_sources(args.agent, groups, args.ids)
+        else:
+            synth.generate_goldens(args.agent, groups, args.ids, replace=args.replace)
         return 0
 
     if getattr(args, "from_run", None):

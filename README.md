@@ -65,8 +65,8 @@ You should never need to edit `evalkit/` to onboard an agent or change metrics.
 | run every case several times                | `... REPS=5` |
 | save a stable build as the baseline         | `make baseline AGENT=.. SUITE=.. BUILD=1.4.0 REPS=5` |
 | check a new build against the baseline      | `make verdict  AGENT=.. SUITE=.. BUILD=1.5.0 REPS=5` |
-| fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent IDS="8708 9001"` |
-| generate test cases from them               | `make goldens AGENT=knowledge_agent` |
+| fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent [GROUP="…"] [IDS="36626"]` |
+| generate test cases from them               | `make goldens AGENT=knowledge_agent [GROUP=…] [IDS=…]` |
 | look at results                             | `make dashboard` |
 | test the framework itself                   | `make test` |
 
@@ -83,7 +83,7 @@ agents/
     rubrics/*.md                custom judge criteria, in plain English     (optional)
     parser.py                   stage fields from the trace + own checks    (optional)
     client.py                   only for agents that are not Google ADK     (optional)
-    synth/                      test-case generator settings + source documents (optional)
+    synth/                      test-case generator: synth.yaml, styles/, instructions.md (optional)
   _template/                    what `make new-agent` copies
 evalkit/                        the framework (~1,350 lines) — start with runner.py
   runner.py                     steps 1–6
@@ -92,6 +92,8 @@ evalkit/                        the framework (~1,350 lines) — start with runn
   adk.py                        Google ADK client + trace helpers for parsers
   cortex.py                     the judge LLM (CORTEX gateway) for DeepEval and Pegasus
   synth.py                      the synthesizer (make sources / make goldens)
+  sources/                      built-in synthesizer sources: files, json_records
+sources/                        the team's own synthesizer sources: athena_mcp.py
   results.py, config.py, new_agent.py, __main__.py
 baselines/<agent>/<suite>.json  committed, so the team compares against the same baseline
 outputs/traces/                 latest trace per case (committed ones are offline fixtures)
@@ -186,35 +188,66 @@ rename `client.py.example` to `client.py` and fill in the three TODOs.
 
 ## Synthesizer (generate test cases)
 
-For agents like the Knowledge Agent you can generate many realistic cases from source documents
-with DeepEval's Synthesizer (the generator model is the CORTEX model from `.env`).
-Everything is in the agent's `synth/` folder:
+Generate many realistic test cases for any agent from source documents, with DeepEval's Synthesizer
+(the generator model is the CORTEX model from `.env`). Three independent parts, all configured in the
+agent's `synth/synth.yaml`:
+
+```
+SOURCE                        GENERATOR                          OUTPUT TEMPLATE
+where documents come from  ─► styles × evolutions × quality  ─►  the JSON shape of this
+(Athena, files, JSON, API)    filter; checks + de-duplication    agent's test cases
+```
 
 ```
 agents/knowledge_agent/synth/
-  synth.yaml           styles, cases per document, question variety, quality filter
-  instructions.md      rules every generated question and answer must follow
-  styles/*.md          one per question style: ## scenario / ## task / ## input_format / ## expected_output_format
-  sources/*.txt        the documents — one per file, the file name is its id (8708.txt)
-  sources.py           fetches documents from Athena into sources/ (optional)
+  synth.yaml         source + styles + evolutions + quality filter + output template
+  page_ids.json      page ids grouped by domain (used by the athena_mcp source)
+  instructions.md    rules every generated question and answer must follow
+  styles/*.md        one per question style: ## scenario / ## task / ## additional_guidance /
+                     ## input_format / ## expected_output_format
+  cache/             fetched documents (make sources); runs/  one manifest per generation run
 ```
 
 ```bash
-make sources AGENT=knowledge_agent IDS="8708 9001"   # Athena pages -> synth/sources/8708.txt, 9001.txt
-make goldens AGENT=knowledge_agent                   # sources -> testdata/golden/GOLDEN_<style>_001.json ...
-make run     AGENT=knowledge_agent SUITE=golden      # evaluate the agent on them
+make sources AGENT=knowledge_agent                                  # fetch every page in page_ids.json
+make goldens AGENT=knowledge_agent GROUP="Recoveries Commercial Bank"  # generate for one domain
+make goldens AGENT=knowledge_agent IDS="36626"                      # …or for specific pages
+make run     AGENT=knowledge_agent SUITE=golden                     # evaluate the agent on them
 ```
 
-- Generated cases are ordinary test cases with `input.question`, `expected.expected_answer`,
-  and `expected.source` (the document they came from). **Review them before trusting them.**
-- `make goldens` refuses to overwrite existing cases; `REPLACE=1` regenerates (the old ones are only
-  deleted once generation succeeded).
-- **Add a style:** write `styles/<name>.md` and add one line under `styles:` in `synth.yaml`.
-- **Change how hard/varied questions are:** the `evolutions:` weights in `synth.yaml`
-  (REASONING, CONCRETIZING, CONSTRAINED, HYPOTHETICAL, COMPARATIVE, IN_BREADTH, MULTICONTEXT).
-- **Other document sources:** drop `.txt` files into `sources/` by hand, or write a `sources.py` with
-  `fetch(id) -> (title, text)` for your system (Confluence, SharePoint, …).
-- **Another agent:** copy `agents/knowledge_agent/synth/` into that agent's folder and edit it.
+**Sources.** Every source turns what it reads into the same document —
+`{"id", "title", "text", "group", "metadata"}` — so the generator never knows where it came from.
+
+| `source: {type: …}` | For | Settings |
+|---|---|---|
+| `athena_mcp` | knowledge-base pages from the Hive Athena MCP server | `ids_file`; `HIVE_ATHENA_*` in `.env` |
+| `files` | a folder of `.txt` / `.md` / `.json` files; sub-folders become groups | `folder` (default `documents`) |
+| `json_records` | one JSON file with a list of records (an API export, a table) | `file`, `records_key`, `id_field`, `group_field`, `title_field`, `text_fields` |
+| your own | any other system | `sources/<name>.py` with `fetch(settings, ids, folder) -> [documents]` |
+
+`ids_file` (any id-based source) groups ids: `[{"domain": "…", "page_ids": ["…"]}]` (`group`/`ids` also work).
+`GROUP=` picks groups, `IDS=` picks ids. `make goldens` fetches whatever isn't in `cache/` yet;
+`make sources` re-fetches on purpose.
+
+**Generator.** One DeepEval Synthesizer run per document × style, so every case knows its exact source.
+A document that fails doesn't stop the run. Cases with an empty or placeholder question/answer, and
+duplicate questions, are dropped. Each run writes a manifest to `synth/runs/` (generated / skipped / failed).
+Config mistakes stop the run before anything is generated: an unknown `## section` in a style,
+evolution weights that don't add up to 1, a missing file.
+
+**Output template.** `output:` in synth.yaml is the exact shape of one test case, with placeholders:
+`{generated.input}` `{generated.expected_output}` `{source.id}` `{source.title}` `{source.metadata.<key>}`
+`{style}` `{group}` `{group_slug}` `{run.id}` `{run.generated_at}` `{run.model}` `{agent.input_field}` `{id}` `{n:03}`.
+Leave `output:` out to get the standard evaluation case (`input.<input_field>`, `expected.expected_answer`,
+`metadata.approval_status: UNREVIEWED`). If a style asks for JSON in its `input_format`, the template can
+read its fields: `{generated.input.request}` (cases where the JSON is missing that field are skipped).
+
+- New cases are **added** next to existing ones (numbering continues). `REPLACE=1` clears the folders being
+  generated into — only after generation succeeded.
+- Generated cases start as `approval_status: UNREVIEWED`. They all run by default; a suite can keep only
+  reviewed ones with `only: {metadata.approval_status: APPROVED}`.
+- **Add a style:** a new `styles/<name>.md` + one line under `styles:`.
+- **Another agent:** copy `agents/knowledge_agent/synth/`, change `source:` and `output:`.
 
 ## Baseline and verdict
 
@@ -264,10 +297,13 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 | `METRICS_SUITE`, `METRIC_MODE`, `sanity_pegasus` suites | not needed — the engine is chosen per metric |
 | `make verdict-baseline` / `verdict-check` | `make baseline` / `make verdict` |
 | `configs/synthesizers/knowledge_agent/*` (config, evolution, filtration yaml) | one `agents/knowledge_agent/synth/synth.yaml` + `instructions.md` + `styles/` |
-| `data/knowledge_agent/source_docs/` | `agents/knowledge_agent/synth/sources/*.txt` |
-| `make synth-ka-prepare` / `synth-ka-generate` | `make sources AGENT=knowledge_agent IDS=8708` / `make goldens AGENT=knowledge_agent` |
+| `data/knowledge_agent/source_docs/`, `configs/synthesizers/knowledge_agent/page_ids.json` | `agents/knowledge_agent/synth/cache/`, `…/synth/page_ids.json` |
+| `src/clients/hive_athena_mcp_client.py` + `src/synthesizer/clean.py` | `sources/athena_mcp.py` |
+| `make synth-ka-prepare` / `synth-ka-generate` | `make sources AGENT=knowledge_agent` / `make goldens AGENT=knowledge_agent` |
+| `make synth-ka-generate-page PAGE_ID=…` / `-domain DOMAIN=…` | `make goldens AGENT=knowledge_agent IDS=…` / `GROUP=…` |
+| synthesized cases' `reference.answer` | `expected.expected_answer` (set in the output template) |
 | `testdata/knowledge_agent/golden/` | `agents/knowledge_agent/testdata/golden/` (suite `golden`, key `expected_answer`) |
-| Athena client id `ATHEN_ID` (typo) | `ATHENA_ID` |
+| `HIVE_ATHENA_CLIENT_ID` / `HIVE_ATHENA_CLIENT_SECRET` (Athena MCP) | same names, in `.env`; the server URL is now `HIVE_ATHENA_BASE_URL` |
 
 Rename these in your `.env` if you still have the old names:
 `KNOWLEDGE_BASE_URL_LOCAL` → `KNOWLEDGE_ADK_BASE_URL`, `KNOWLEDGE_BASE_PATH_LOCAL` → `KNOWLEDGE_ADK_BASE_PATH`,

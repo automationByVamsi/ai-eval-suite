@@ -5,8 +5,8 @@
 #   make baseline AGENT=knowledge_agent SUITE=sanity BUILD=1.4.0 REPS=5
 #   make verdict  AGENT=knowledge_agent SUITE=sanity BUILD=1.5.0 REPS=5
 #   make new-agent NAME=my_agent INPUT_FIELD=question
-#   make sources  AGENT=knowledge_agent IDS="8708 9001"      (synthesizer: fetch documents)
-#   make goldens  AGENT=knowledge_agent [REPLACE=1]          (synthesizer: generate test cases)
+#   make sources  AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626 39696"]
+#   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]     (synthesizer)
 
 AGENT ?= knowledge_agent
 SUITE ?= sanity
@@ -17,6 +17,7 @@ JUDGES ?= 1
 NAME ?=
 INPUT_FIELD ?= question
 IDS ?=
+GROUP ?=
 REPLACE ?=
 
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges)
@@ -31,8 +32,8 @@ help:
 	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n]"
 	@echo "make baseline AGENT=.. SUITE=.. BUILD=..    run a stable build and save it as the baseline [REPS=5]"
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
-	@echo "make sources  AGENT=.. IDS=\"id1 id2\"        synthesizer: fetch source documents"
-	@echo "make goldens  AGENT=.. [REPLACE=1]          synthesizer: generate test cases into testdata/golden"
+	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"
+	@echo "make goldens  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: generate test cases [REPLACE=1]"
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
 
@@ -56,12 +57,13 @@ baseline:
 verdict:
 	$(EVAL) verdict $(AGENT) $(SUITE) $(FLAGS)
 
+SYNTH = $(if $(GROUP),--group "$(GROUP)") $(if $(IDS),--ids $(IDS))
+
 sources:
-	@test -n "$(IDS)" || (echo 'Usage: make sources AGENT=knowledge_agent IDS="8708 9001"' && exit 1)
-	$(EVAL) sources $(AGENT) $(IDS)
+	$(EVAL) sources $(AGENT) $(SYNTH)
 
 goldens:
-	$(EVAL) goldens $(AGENT) $(if $(REPLACE),--replace)
+	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
 
 dashboard:
 	uv run streamlit run dashboard.py
