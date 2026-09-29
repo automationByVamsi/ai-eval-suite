@@ -270,3 +270,70 @@ def test_no_baseline_from_a_broken_run(outputs):
 
 def test_committed_traces_exist_for_offline_demo():
     assert list(Path(ROOT / "outputs" / "traces").glob("*/sanity/*.json"))
+
+
+# --- synthesizer ----------------------------------------------------------------------------
+
+def test_athena_page_cleans_to_the_committed_source():
+    import importlib.util
+    path = ROOT / "agents/knowledge_agent/synth/sources.py"
+    spec = importlib.util.spec_from_file_location("ka_sources", path)
+    sources = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sources)
+
+    page = json.loads((ROOT / "tests/fixtures/athena_page_8708.json").read_text())
+    title, text = sources.page_to_text(page)
+    committed = (ROOT / "agents/knowledge_agent/synth/sources/8708.txt").read_text().strip()
+    assert f"{title}\n\n{text}".strip() == committed
+
+
+def test_goldens_are_written_as_runnable_cases(tmp_path, monkeypatch):
+    import deepeval.synthesizer
+    from deepeval.dataset import Golden
+
+    from evalkit import cortex, synth
+
+    agents = tmp_path / "agents"
+    shutil.copytree(ROOT / "agents" / "knowledge_agent", agents / "knowledge_agent")
+    monkeypatch.setattr(config, "AGENTS_DIR", agents)
+    from deepeval.models import DeepEvalBaseLLM
+
+    class FakeLLM(DeepEvalBaseLLM):
+        def load_model(self):
+            return self
+
+        def generate(self, prompt, schema=None):
+            return ""
+
+        async def a_generate(self, prompt, schema=None):
+            return ""
+
+        def get_model_name(self):
+            return "fake"
+
+    monkeypatch.setattr(cortex, "deepeval_llm", FakeLLM)
+    styles_seen = []
+
+    class FakeSynthesizer:
+        def __init__(self, styling_config, **kwargs):
+            styles_seen.append(styling_config)
+
+        def generate_goldens_from_contexts(self, contexts, source_files, max_goldens_per_context, **kwargs):
+            assert source_files == ["8708"]
+            return [Golden(input=f"Question {i}?", expected_output="Answer.", source_file=source_files[0])
+                    for i in range(max_goldens_per_context)]
+
+    monkeypatch.setattr(deepeval.synthesizer, "Synthesizer", FakeSynthesizer)
+
+    written = synth.generate_goldens("knowledge_agent")
+    assert len(written) == 4                                         # 2 styles x 2 per source
+    assert "advisor" in styles_seen[0].scenario.lower()             # instructions.md folded in
+    agent = load_agent("knowledge_agent")
+    cases = runner.load_cases(agent, agent.suite("golden"))
+    assert cases[0]["input"] == {"question": "Question 0?"}
+    assert cases[0]["expected"]["expected_answer"] == "Answer."
+    assert cases[0]["expected"]["source"] == "8708"
+
+    with pytest.raises(ConfigError, match="REPLACE=1"):             # never overwrite reviewed cases silently
+        synth.generate_goldens("knowledge_agent")
+    assert len(synth.generate_goldens("knowledge_agent", replace=True)) == 4

@@ -1,0 +1,365 @@
+Types of Accessible Format Statements for Customers with Vulnerabilities
+
+Overview 
+
+This page explains the different statement formats available to help customers who need more accessible options due to vulnerability. 
+
+Verification 
+
+- Minimum Standard Risk to maintain all Support Needs. 
+
+- Non-Verifiable - to give a customer general information around the Support Needs we can apply. 
+
+Paperfree: 
+
+- Only one accessible format support need can be added at a time. 
+
+- Paper-free status can override correspondence such as statements. Review the customers paperless options and remove paperless for products the customer wishes to receive their paper accessible formats in, see Re-Activate Paper Statements - Multi-Channel Processes . 
+
+Types of Accessible Formats Available 
+
+There are five types of formats, each offering different accessibility features, these are: 
+
+- Correspondence - Braille. 
+
+- Correspondence – Large Print 
+
+- Correspondence - Audio CD. 
+
+- Correspondence - Bespoke. 
+
+- Correspondence – Easy Read 
+
+For visual examples of all the following different accessible formats, see Show Me Different Accessible Formats of Statements . 
+
+Common Features and Timescales for All Accessible Formats 
+
+- Personal Security Numbers (PSNs) are also sent out but PINs aren't. 
+
+- Timescales: 
+
+- It may take up to seven working days for the request to show on their account. 
+
+- Statements usually arrive seven to nine working days after the statement date although is usually faster than this. 
+
+- Postage: 
+
+- General communications and statements are sent directly to the customer. 
+
+- The accessible format documents are produced by RNIB Services and issued by the ‘Royal Mail Articles for the Blind’ service, which is equivalent to first class post. 
+
+- It’s delivered in tamper proof plastic packaging that provides privacy. This shouldn't be mistaken for junk mail. 
+
+- Plain envelopes are considered on a case-by-case basis but only where there's a clear medical need for example an allergy to plastic packaging. 
+
+- Agreement to add this as a Bespoke requirement needs to be sought from $LBGServiceManagement . 
+
+Features of the Individual Formats 
+
+Braille 
+
+Customers Who Might Benefit from Having the Braille Accessibility Format 
+
+Customers who are blind or have severe visual impairments. 
+
+Braille Accessibility Format Features 
+
+- We use Contracted (Grade 2) braille, which is a shorthand version of English Braille. It’s used by more experienced braille users and is the most common type. If this isn’t suitable, customers can choose Large Print or Audio CD instead. 
+
+- Braille statements are larger - one printed page equals about four Braille pages and are printed on double-sided A4 paper , held together with a treasury tag and not stapled booklets. 
+
+- A standard print version is also included. 
+
+- Customers can also choose a monthly statement as this could potentially reduce the pack size. 
+
+Can a Customer Have a Braille Debit or Credit Card 
+
+- Braille is not available on any Plastic Debit or Credit cards however, to support visually impaired customers, the cards have individually distinct features to help identify them: 
+
+- All Cards have larger font to make them easier to read. 
+
+- Debit cards have three raised dots. 
+
+- Savings and Cashpoint cards have six raised dots. 
+
+- Credit cards have a curved notch. 
+
+- If your customer requires further support, you may tell them: 
+
+- Our Mobile App has support features, such as device screen readers. If they use the mobile banking App, they can view their debit card number, expiry date and CVV within the ‘Manage Card’ tab. 
+
+- This could either be magnified or alternatively read back to them using their appropriate smart phone accessibility feature, for example, 'Apple Voice Over'. 
+
+- If the difficulty relates to online purchases, they can consider saving their card details to PayPal or Apple Pay etc. to make online payments easier. 
+
+- If the difficulty relates to identifying their card from others, tactile sticky dots, small stickers that can be stuck on the card, or a card magnifying sheet can be ordered from branch. 
+
+Large Print 
+
+Customers Who Might Benefit From Having Large Print Accessibility Format 
+
+Customers who benefit from large print formats are usually people with visual impairments, such as those with age-related vision loss like macular degeneration or cataracts, or those with low vision who need larger, clearer text to read comfortably. 
+
+Large Print Accessibility Format Features 
+
+- Produced as A4 using A3 folded to booklet style, centre stapled. 
+
+- Large Print correspondence is issued on white paper with a font size of 20. 
+
+- If the customer needs larger font, see 'Correspondence - Bespoke' Support Need where they can request font sizes 20 to 32 or instead suggest an Audio CD. 
+
+- If a customer asks for Large Print correspondence on coloured paper, refer to the Bespoke section. 
+
+- The ‘Large Print – Support Need’ is the equivalent of ‘Plain Text’, so if a customer asks for ‘Plain Text’ statements, add this support need. 
+
+Audio CD 
+
+Customers Who Might Benefit from Having the Audio CD Accessibility Format 
+
+Customers who benefit from audio CD formats are usually people who are blind, have low vision, or have difficulty reading printed text. Listening to information allows them to access content more easily and independently. 
+
+Audio CD Accessibility Format Features 
+
+- They'll be produced on an Audio CD. 
+
+- A computer-generated voice is used. 
+
+- Human voice or audio tape options aren't available. 
+
+- The customer receives an Audio CD as well as a standard print version. 
+
+- Multiple tracks, and automated disc splitting for large audio documents. 
+
+- The Audio CD will be in a cardboard sleeve. 
+
+- This format is regularly reviewed with the supplier but, at the moment, an Audio CD is all that can be provided for an audio version. 
+
+Bespoke 
+
+Customers Who Might Benefit from Having the Bespoke Format 
+
+Customers who benefit from bespoke formats are people with specific accessibility needs that aren’t met by standard formats. This could include combining different formats, using specific fonts, colours, layouts, or adapting content to suit individual preferences or disabilities. 
+
+Bespoke Accessibility Format Features 
+
+- Bespoke Accessibility options include: 
+
+- Large Print, which can be produced to a maximum size of 32 Arial font. 
+
+- Increased line spacing. 
+
+- Combinations of output types can be accommodated, so if the customer needs Large Print and Braille, this can be entered as the Bespoke need. 
+
+- Coloured paper, see Show Me Different Accessible Formats of Statements for illustrations of the colours. The coloured paper options available are: 
+
+- Light green 
+
+- Lilac 
+
+- Pale blue 
+
+- Pale ivory 
+
+- Peach 
+
+- Pink 
+
+- Red 
+
+- Yellow. 
+
+- Bespoke can be used for coloured paper and large print together however other formats such as Large Print or Audio CD should be explored before agreeing to Bespoke. 
+
+- Bespoke requirements that aren't available are: 
+
+- Different coloured font. 
+
+- Bold font - request Font size 24 instead. 
+
+- Hole punched paper. 
+
+- Single-sided print. 
+
+- Printing on landscape orientation. 
+
+- Addressed handwritten envelopes. 
+
+- Plain envelopes unless there's a clear disability-related need to do so such as allergy to polythene. 
+
+- Standard print can't be applied to bespoke formats, such as coloured paper. 
+
+- Audio tapes in place of a CD. 
+
+- Human speech in place of the synthetic speech on an Audio CD. 
+
+- Don't use ‘Support Need Correspondence - Bespoke' for Easy Read and Large Print together as 'Correspondence - Easy Read' already does this. For more information, see section Easy Read . 
+
+- If the customer also needs a large print statement, this should be specified when requesting the Bespoke requirements. 
+
+Easy Read 
+
+Customers Who Might Benefit from Having the Easy Read Accessibility Format 
+
+Customers who benefit from Easy Read formats are people with learning disabilities, cognitive impairments, or those who find reading complex information difficult. Customers with other vulnerabilities affecting how they process information or who aren't fluent in English. 
+
+Easy Read Features 
+
+- Easy Read uses simple words and pictures to make information easier to understand. 
+
+- When the Easy Read support need option is added customers will receive large print correspondence where applicable except for Credit Cards where Large Print Support Need still has to be added in addition if this is required. See Ordering Bespoke Accessible Format Statements . 
+
+- If the customer does not want large print, do not add the Easy Read support need. 
+
+- Customers can also use the Easy Read guide. This is an online document that explains statements using short, clear sentences and simple pictures. It helps customers understand the words in their statement. It’s available for personal current accounts, savings, credit cards, and loans. It is not available for other types of correspondence. 
+
+- The customer can view the guide by going to our public websites, and going to, ‘Your support options’ under ‘Choose what you want’ and selecting ‘My statements’, see: 
+
+- Bank Account Easy Read Guides: 
+
+- Easy Read Guide Bank Account | Lloyds 
+
+- Easy Read Guide Bank Account | Halifax 
+
+- Easy Read Guide Bank Account | Bank of Scotland . 
+
+- Credit Card Easy Read Guides: 
+
+- Easy Read Guide Credit Cards | Lloyds 
+
+- Easy Read Guide Credit Card | Bank of Scotland 
+
+- Easy Read Guide Credit Cards | Halifax 
+
+- Easy Read Guide Credit Cards | MBNA . 
+
+- Loans Easy Read Guides: 
+
+- Easy Read Guide Loans | Lloyds 
+
+- Easy Read Guide Loans | Halifax 
+
+- Easy Read Guide Loans | Bank of Scotland 
+
+- Easy Read Guide Loans | MBNA . 
+
+- If the customer cannot use the online guide, you can request a printed Easy Read Guide for the customer using this form free of charge 14087.pdf . 
+
+Ordering Accessible Format Statements, Excluding Bespoke 
+
+To order statements in accessible formats, excluding the 'Bespoke' option, follow the steps below: 
+
+Step Action 
+
+1 
+
+- If you haven’t already done so, complete verification and check if any Support Needs are set on the account. 
+
+- To see how to view support needs, see Customer Vulnerability Support Needs . 
+
+2 
+
+- If there aren't any, add the relevant Correspondence Support Need, with clear, concise notes detailing the customer's needs. For example, ‘DD/MM/YY: Large Print requested by Mrs X.’ 
+
+- When speaking to customer on the phone, gain appropriate consent, see Consent Needed for Adding Support Needs . 
+
+- When responding to customers in messaging, see Recording Support Needs from Written Communications . 
+
+- To see how to add a support need, see Customer Vulnerability Support Needs . 
+
+3 
+
+It will take a few days for the system to update, so if the customer needs a document transcribed urgently, then a copy can be requested at branch. 
+
+4 
+
+Once added, all general and statement correspondence is issued automatically, including PSN’s, but not PINs. 
+
+Ordering Bespoke Accessible Format Statements 
+
+Follow the steps below: 
+
+Step Action 
+
+1 
+
+- If you haven’t already done so, complete verification and check if any Support Needs are set on the account. 
+
+- To see how to view support needs, see Customer Vulnerability Support Needs . 
+
+2 
+
+- If there aren't any, add Support Need 'Correspondence - Bespoke, adding clear, concise notes detailing the customer's needs and, where necessary, the customer’s circumstances. For instance, 'DD/MM/YY: Mrs X has dyslexia and asked for yellow paper in Large Print size 20'. 
+
+- When speaking to customer on the phone, gain appropriate consent, see Consent Needed for Adding Support Needs . 
+
+- When responding to customers in messaging, see Recording Support Needs from Written Communications . 
+
+- To see how to add a support need, see Customer Vulnerability Support Needs . 
+
+3 Email $ Bespoke & HBoS LP Chequebooks if amending a Bespoke requirement. They'll need the customer's details and the change in requirements. 
+
+4 
+
+It will take a few days for the system to update, so if the customer needs a document transcribed urgently, then a copy can be requested at branch. 
+
+5 
+
+Once added, all general and statement correspondence is issued automatically, including PSN’s, but not PINs. 
+
+Other Customer Requests 
+
+Changing from Another Accessible Format 
+
+- Delete the other accessible format correspondence Support Need, see Customer Vulnerability Support Needs for how to do this. 
+
+- Add the new correspondence support need adding clear, concise notes detailing the customer's needs, for instance, 'DD/MM/YY: Large Print requested by Mrs X'. 
+
+- When speaking to customer on the phone, gain appropriate consent, see Consent Needed for Adding Support Needs . 
+
+- When responding to customers in messaging, see Recording Support Needs from Written Communications . 
+
+Customer Asks for Other Letters Such as PINs, T And C's or Pricing Change to be Sent in an Accessible Format 
+
+‘One off’ letters such as Pricing Changes, Notice of Variation, T and C's and PINs aren't automatically sent in accessible formats and a copy needs to be requested at branch. Customers wanting to use these services must be told that the bank can't accept responsibility for the accuracy of the transcription. 
+
+Correspondence Received in Wrong Format 
+
+Follow the steps in the table below: 
+
+Step Action 
+
+1 
+
+Check: 
+
+- Correct address is held. 
+
+- Customer hasn't opted for paper-free statements, as paper-free status overrides Personal Current Accounts and savings documents that are due to be in an accessible format. If the customer wants to go back to paper statements see Re-activate Paper Statements - Multi-channel Processes . 
+
+- Statement due date - allow ten working days before re-ordering. 
+
+- The correct Support Need is captured - only one accessible format Support Need should be set on the account. 
+
+2 
+
+Check there's no indicators on the account that would prevent statements being issued. 
+
+3 
+
+Ask if the customer is receiving normal print letters / statements. 
+
+4 
+
+If all the above is ok, re-order. 
+
+PBSC - UK Private Banking Customers 
+
+- Complete Data Entry System (DES) to Retail Operations and add an RMS note: 
+
+- DES Workflow 
+
+- Specialist 
+
+- PBSC DES form. 
+
+- For more information see Adding Notes onto RMS - UK Private Banking Customer Contact .

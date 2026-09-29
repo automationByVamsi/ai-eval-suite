@@ -104,7 +104,7 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
 def load_cases(agent: Agent, suite: Suite) -> list[dict[str, Any]]:
     """Every *.json in the suite's testdata folder: one case per file, or {"cases": [...]}."""
     if not suite.testdata.is_dir():
-        raise ConfigError(f"Test data folder not found: {suite.testdata}")
+        raise ConfigError(f"Test data folder not found: {suite.testdata} (generated suites: run make goldens first)")
     cases: list[dict[str, Any]] = []
     for path in sorted(suite.testdata.glob("*.json")):
         data = json.loads(path.read_text())

@@ -1,0 +1,28 @@
+# Knowledge Agent — generate test cases from knowledge-base pages
+#
+#   make sources AGENT=knowledge_agent IDS="8708 9001"   Athena pages -> sources/<id>.txt   (sources.py)
+#   make goldens AGENT=knowledge_agent                   sources/*.txt -> testdata/golden/*.json
+#   make run     AGENT=knowledge_agent SUITE=golden      evaluate the agent on them
+#
+# Paths below are relative to this folder. The generator model is the CORTEX judge model (.env).
+
+output_suite: golden                 # cases are written to ../testdata/golden/
+include_expected_answer: true        # also generate a reference answer (used by correctness)
+instructions: instructions.md        # rules every style must follow
+
+styles:                              # one batch per style; per_source = cases per document
+  simple_query:  {file: styles/simple_query.md,  per_source: 2}
+  complex_query: {file: styles/complex_query.md, per_source: 2}
+
+evolutions:                          # how questions are varied / made harder (weights ~ sum to 1)
+  rounds: 1
+  REASONING: 0.20
+  CONCRETIZING: 0.20
+  CONSTRAINED: 0.20
+  HYPOTHETICAL: 0.15
+  COMPARATIVE: 0.15
+  IN_BREADTH: 0.10
+
+quality_filter:                      # regenerate questions the critic scores below min_quality
+  min_quality: 0.5
+  retries: 3

@@ -47,7 +47,8 @@ which engine scored it.
 | judge a stage output (rewritten query, tool, …)   | expose it in `agents/<agent>/parser.py`, point the metric at it (`answer: rewritten_query`) |
 | add a deterministic check for one agent           | `checks()` in `agents/<agent>/parser.py` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
-| judge model / CORTEX / Pegasus credentials        | `.env` |
+| generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
+| judge model / CORTEX / Pegasus / Athena settings  | `.env` |
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `evalkit/verdict.py` |
 
 You should never need to edit `evalkit/` to onboard an agent or change metrics.
@@ -64,6 +65,8 @@ You should never need to edit `evalkit/` to onboard an agent or change metrics.
 | run every case several times                | `... REPS=5` |
 | save a stable build as the baseline         | `make baseline AGENT=.. SUITE=.. BUILD=1.4.0 REPS=5` |
 | check a new build against the baseline      | `make verdict  AGENT=.. SUITE=.. BUILD=1.5.0 REPS=5` |
+| fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent IDS="8708 9001"` |
+| generate test cases from them               | `make goldens AGENT=knowledge_agent` |
 | look at results                             | `make dashboard` |
 | test the framework itself                   | `make test` |
 
@@ -80,13 +83,15 @@ agents/
     rubrics/*.md                custom judge criteria, in plain English     (optional)
     parser.py                   stage fields from the trace + own checks    (optional)
     client.py                   only for agents that are not Google ADK     (optional)
+    synth/                      test-case generator settings + source documents (optional)
   _template/                    what `make new-agent` copies
-evalkit/                        the framework (~1,100 lines) — start with runner.py
+evalkit/                        the framework (~1,350 lines) — start with runner.py
   runner.py                     steps 1–6
   judges.py                     how a metric is scored (engine rule, fields, skip/error)
   verdict.py                    baseline + verdict (step 7)
   adk.py                        Google ADK client + trace helpers for parsers
   cortex.py                     the judge LLM (CORTEX gateway) for DeepEval and Pegasus
+  synth.py                      the synthesizer (make sources / make goldens)
   results.py, config.py, new_agent.py, __main__.py
 baselines/<agent>/<suite>.json  committed, so the team compares against the same baseline
 outputs/traces/                 latest trace per case (committed ones are offline fixtures)
@@ -179,6 +184,38 @@ Add `parser.py` logic only when you want stage fields or agent-specific checks �
 `agents/knowledge_agent/parser.py` (40 lines) is a good example. For an agent that is not Google ADK,
 rename `client.py.example` to `client.py` and fill in the three TODOs.
 
+## Synthesizer (generate test cases)
+
+For agents like the Knowledge Agent you can generate many realistic cases from source documents
+with DeepEval's Synthesizer (the generator model is the CORTEX model from `.env`).
+Everything is in the agent's `synth/` folder:
+
+```
+agents/knowledge_agent/synth/
+  synth.yaml           styles, cases per document, question variety, quality filter
+  instructions.md      rules every generated question and answer must follow
+  styles/*.md          one per question style: ## scenario / ## task / ## input_format / ## expected_output_format
+  sources/*.txt        the documents — one per file, the file name is its id (8708.txt)
+  sources.py           fetches documents from Athena into sources/ (optional)
+```
+
+```bash
+make sources AGENT=knowledge_agent IDS="8708 9001"   # Athena pages -> synth/sources/8708.txt, 9001.txt
+make goldens AGENT=knowledge_agent                   # sources -> testdata/golden/GOLDEN_<style>_001.json ...
+make run     AGENT=knowledge_agent SUITE=golden      # evaluate the agent on them
+```
+
+- Generated cases are ordinary test cases with `input.question`, `expected.expected_answer`,
+  and `expected.source` (the document they came from). **Review them before trusting them.**
+- `make goldens` refuses to overwrite existing cases; `REPLACE=1` regenerates (the old ones are only
+  deleted once generation succeeded).
+- **Add a style:** write `styles/<name>.md` and add one line under `styles:` in `synth.yaml`.
+- **Change how hard/varied questions are:** the `evolutions:` weights in `synth.yaml`
+  (REASONING, CONCRETIZING, CONSTRAINED, HYPOTHETICAL, COMPARATIVE, IN_BREADTH, MULTICONTEXT).
+- **Other document sources:** drop `.txt` files into `sources/` by hand, or write a `sources.py` with
+  `fetch(id) -> (title, text)` for your system (Confluence, SharePoint, …).
+- **Another agent:** copy `agents/knowledge_agent/synth/` into that agent's folder and edit it.
+
 ## Baseline and verdict
 
 ```bash
@@ -226,6 +263,11 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 | `EVAL_MODE=cache` / `RUN_JUDGES=false` | `OFFLINE=1` / `JUDGES=0` |
 | `METRICS_SUITE`, `METRIC_MODE`, `sanity_pegasus` suites | not needed — the engine is chosen per metric |
 | `make verdict-baseline` / `verdict-check` | `make baseline` / `make verdict` |
+| `configs/synthesizers/knowledge_agent/*` (config, evolution, filtration yaml) | one `agents/knowledge_agent/synth/synth.yaml` + `instructions.md` + `styles/` |
+| `data/knowledge_agent/source_docs/` | `agents/knowledge_agent/synth/sources/*.txt` |
+| `make synth-ka-prepare` / `synth-ka-generate` | `make sources AGENT=knowledge_agent IDS=8708` / `make goldens AGENT=knowledge_agent` |
+| `testdata/knowledge_agent/golden/` | `agents/knowledge_agent/testdata/golden/` (suite `golden`, key `expected_answer`) |
+| Athena client id `ATHEN_ID` (typo) | `ATHENA_ID` |
 
 Rename these in your `.env` if you still have the old names:
 `KNOWLEDGE_BASE_URL_LOCAL` → `KNOWLEDGE_ADK_BASE_URL`, `KNOWLEDGE_BASE_PATH_LOCAL` → `KNOWLEDGE_ADK_BASE_PATH`,
@@ -234,5 +276,5 @@ Rename these in your `.env` if you still have the old names:
 Only `.env` is read now (v1 also read `env/.env.factfind.api`) — copy the CORTEX values you need into `.env`.
 Traces saved by v1 in `outputs/traces/` still replay with `OFFLINE=1`.
 
-Not carried over (still in git history on `main`): the KA golden synthesizer, the Fact Find
-ground-truth payload generator, the A/B comparison and Excel export branches.
+Not carried over (still in git history on `main`): the Fact Find ground-truth payload generator,
+the A/B comparison and Excel export branches.
