@@ -135,5 +135,5 @@ def _verify(value: Any) -> bool | str:
 def _headers(headers: dict[str, Any]) -> dict[str, str]:
     empty = [k for k, v in headers.items() if not str(v or "").strip()]
     if empty:
-        raise AgentCallError(f"Header(s) {empty} are empty — set the matching variable in .env")
+        raise AgentCallError(f"Header(s) {empty} are empty — set the matching variable in env/.env")
     return {str(k): str(v) for k, v in headers.items()}

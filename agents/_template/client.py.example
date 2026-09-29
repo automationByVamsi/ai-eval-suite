@@ -3,7 +3,7 @@ Only for agents that are NOT Google ADK. Rename this file to client.py and the r
 call it instead of the built-in ADK client. Everything else (checks, judges, reports,
 baseline/verdict) works unchanged.
 
-`settings` is the `connection:` section of agent.yaml (with .env values filled in).
+`settings` is the `connection:` section of agent.yaml (with env/.env values filled in).
 Return a trace dict. Only "agentOutput" is required; keep the raw response in it too,
 so parser.py can read whatever it needs and --offline replays have everything.
 """

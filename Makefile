@@ -26,7 +26,7 @@ EVAL  = uv run python -m evalkit
 .PHONY: help setup list new-agent run baseline verdict sources goldens dashboard test
 
 help:
-	@echo "make setup                                  install everything (needs uv)"
+	@echo "make setup                                  install everything (needs uv), create env/.env"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
 	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n]"
@@ -39,7 +39,7 @@ help:
 
 setup:
 	uv sync
-	@test -f .env || (cp .env.example .env && echo "Created .env - fill in your values")
+	@test -f env/.env || (cp env/.env.example env/.env && echo "Created env/.env - fill in your values")
 
 list:
 	$(EVAL) list

@@ -1,8 +1,8 @@
 """
 `make new-agent NAME=my_agent [INPUT_FIELD=question]`
 
-Copies agents/_template to agents/<name>, fills in the name, the .env variable names and the
-input field, and adds the agent's variables to .env.example. Then prints what to do next.
+Copies agents/_template to agents/<name>, fills in the name, the env variable names and the
+input field, and adds the agent's variables to env/.env.example. Then prints what to do next.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def create_agent(name: str, input_field: str = "question") -> None:
         case_file.write_text(json.dumps(case, indent=2) + "\n")
 
     env_lines = [f"{prefix}_BASE_URL=", f"{prefix}_APP_NAME={name}"]
-    example = ROOT / ".env.example"
+    example = ROOT / "env" / ".env.example"
     if f"{prefix}_BASE_URL=" not in example.read_text():
         with example.open("a") as f:
             f.write(f"\n# --- {name} ---\n" + "\n".join(env_lines) + "\n")
@@ -42,7 +42,7 @@ def create_agent(name: str, input_field: str = "question") -> None:
     print(f"""Created agents/{name}/
 
 Next:
-  1. Add to your .env:           {env_lines[0]}<agent url>
+  1. Add to env/.env (or env/.env.{name}): {env_lines[0]}<agent url>
                                  {env_lines[1]}
   2. Fill in agents/{name}/agent.yaml (metrics, suites, headers)
   3. Add test cases to           agents/{name}/testdata/sanity/   (see TC_001.json)

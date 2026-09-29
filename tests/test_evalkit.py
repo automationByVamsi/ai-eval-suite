@@ -34,9 +34,16 @@ def fake_cortex(monkeypatch):
     reply = {"statements": ["s"], "verdicts": [{"verdict": "yes", "reason": "ok"}], "truths": ["t"],
              "claims": ["c"], "steps": ["check the answer"], "score": 9, "reason": "looks right"}
 
+    seen = []
+
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             self.rfile.read(int(self.headers["Content-Length"]))
+            seen.append(dict(self.headers))
+            if len(seen) == 1:                     # first call: gateway busy -> the client must retry
+                self.send_response(503)
+                self.end_headers()
+                return
             body = json.dumps({"choices": [{"message": {"content": json.dumps(reply)}}]}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -50,11 +57,13 @@ def fake_cortex(monkeypatch):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     monkeypatch.setenv("CORTEX_HOST", f"http://127.0.0.1:{server.server_port}/v1")
     monkeypatch.setenv("CORTEX_CLIENT_ID", "test")
+    monkeypatch.setenv("CORTEX_API_KEY", "key-123")
     monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
     from evalkit import cortex
     cortex.deepeval_llm.cache_clear()
-    yield
+    yield seen
     server.shutdown()
+    cortex.deepeval_llm.cache_clear()
 
 
 # --- config ---------------------------------------------------------------------------------
@@ -149,7 +158,8 @@ def test_non_adk_agent_uses_its_client_py(tmp_path, monkeypatch, outputs):
     for module in (config, new_agent):
         monkeypatch.setattr(module, "AGENTS_DIR", agents)
     monkeypatch.setattr(new_agent, "ROOT", tmp_path)
-    (tmp_path / ".env.example").write_text("")
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / ".env.example").write_text("")
     new_agent.create_agent("rest_agent")
     (agents / "rest_agent" / "client.py").write_text(
         "def call_agent(settings, message):\n"
@@ -210,7 +220,8 @@ def test_metric_library_is_valid():
 def test_new_agent_is_ready_to_run(tmp_path, monkeypatch):
     agents = tmp_path / "agents"
     shutil.copytree(ROOT / "agents" / "_template", agents / "_template")
-    (tmp_path / ".env.example").write_text("")
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / ".env.example").write_text("")
     for module in (config, new_agent):
         monkeypatch.setattr(module, "AGENTS_DIR", agents)
     monkeypatch.setattr(new_agent, "ROOT", tmp_path)
@@ -219,7 +230,7 @@ def test_new_agent_is_ready_to_run(tmp_path, monkeypatch):
     agent = load_agent("claims_agent")
     assert agent.input_field == "claim_id"
     assert "CLAIMS_AGENT_BASE_URL" in (agents / "claims_agent" / "agent.yaml").read_text()
-    assert "CLAIMS_AGENT_BASE_URL=" in (tmp_path / ".env.example").read_text()
+    assert "CLAIMS_AGENT_BASE_URL=" in (tmp_path / "env" / ".env.example").read_text()
     assert runner.load_cases(agent, agent.suite("sanity"))[0]["input"] == {"claim_id": "How do I request VPN access?"}
     assert not (agents / "claims_agent" / "client.py").exists()     # ADK unless you opt in
 
@@ -233,6 +244,22 @@ def test_deepeval_judges_run_through_cortex(fake_cortex):
         assert result.engine == "deepeval"
     rubric = str(ROOT / "agents/knowledge_agent/rubrics/intent_preservation.md")
     assert judges.run_judge("intent", {"rubric": rubric}, fields).status == results.PASS
+    headers = {k.lower(): v for k, v in fake_cortex[-1].items()}
+    assert headers["x-lbg-origin-client-id"] == "test"
+    assert headers["authorization"] == "Bearer key-123"          # CorteX 2.0 API key
+
+
+def test_env_files_agent_file_overrides_shared_but_not_shell(tmp_path, monkeypatch):
+    (tmp_path / ".env").write_text("A=shared\nB=shared\nC=shared\n")
+    (tmp_path / ".env.demo").write_text("B=agent\nC=agent\n")
+    for key in ("A", "B", "C"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("C", "shell")
+    monkeypatch.setattr(config, "_SHELL_VARS", {"C"})
+    config.load_env_file(tmp_path / ".env")
+    config.load_env_file(tmp_path / ".env.demo")
+    import os
+    assert (os.environ["A"], os.environ["B"], os.environ["C"]) == ("shared", "agent", "shell")
 
 
 # --- verdict --------------------------------------------------------------------------------
@@ -442,7 +469,8 @@ def test_any_agent_any_source_any_case_shape(tmp_path, monkeypatch, fake_generat
 
     agents = tmp_path / "agents"
     shutil.copytree(ROOT / "agents" / "_template", agents / "_template")
-    (tmp_path / ".env.example").write_text("")
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / ".env.example").write_text("")
     for module in (config, new_agent):
         monkeypatch.setattr(module, "AGENTS_DIR", agents)
     monkeypatch.setattr(new_agent, "ROOT", tmp_path)

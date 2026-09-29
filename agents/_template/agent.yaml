@@ -3,7 +3,7 @@
 # Created by `make new-agent NAME=my_agent`. Fill in the TODOs, add test cases under
 # testdata/sanity/, then: make run AGENT=my_agent SUITE=sanity
 
-connection:                   # how to reach the agent (Google ADK). Values come from .env
+connection:                   # how to reach the agent (Google ADK). Values come from env/.env
   base_url: ${MY_AGENT_BASE_URL:-http://localhost:8080}
   base_path: ${MY_AGENT_BASE_PATH:-}
   app_name: ${MY_AGENT_APP_NAME:-my_agent}

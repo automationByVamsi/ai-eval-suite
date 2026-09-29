@@ -16,12 +16,12 @@ You need [uv](https://docs.astral.sh/uv/) and Python 3.12+.
 
 ```bash
 git clone <this repo> && cd ai-eval-suite
-make setup                                                       # installs everything, creates .env
+make setup                                                       # installs everything, creates env/.env
 make run AGENT=fact_find_workflow SUITE=sanity OFFLINE=1 JUDGES=0  # works right away, no network
 ```
 
 That replays saved traces from `outputs/traces/` and runs the deterministic checks.
-To call the real agent and the judges, fill in `.env` (see `.env.example`) and drop the flags:
+To call the real agent and the judges, fill in `env/.env` (see `env/.env.example`) and drop the flags:
 
 ```bash
 make run AGENT=knowledge_agent SUITE=sanity
@@ -37,7 +37,7 @@ which engine scored it.
 | I want to…                                        | Change this |
 |---------------------------------------------------|-------------|
 | add a new agent                                   | `make new-agent NAME=my_agent INPUT_FIELD=question` |
-| point an agent at a different URL / app / headers | `.env`, or `connection:` in `agents/<agent>/agent.yaml` |
+| point an agent at a different URL / app / headers | `env/.env`, or `connection:` in `agents/<agent>/agent.yaml` |
 | add or edit test cases                            | `agents/<agent>/testdata/<suite>/*.json` |
 | add a suite (regression, goldens, …)              | `suites:` in `agents/<agent>/agent.yaml` + a `testdata/<suite>/` folder |
 | choose which metrics a suite runs                 | `suites:` → `metrics: [...]` in `agents/<agent>/agent.yaml` |
@@ -48,7 +48,7 @@ which engine scored it.
 | add a deterministic check for one agent           | `checks()` in `agents/<agent>/parser.py` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
-| judge model / CORTEX / Pegasus / Athena settings  | `.env` |
+| judge model / CORTEX / Pegasus / Athena settings  | `env/.env` |
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `evalkit/verdict.py` |
 
 You should never need to edit `evalkit/` to onboard an agent or change metrics.
@@ -181,7 +181,7 @@ make new-agent NAME=claims_agent INPUT_FIELD=claim_id
 ```
 
 This creates `agents/claims_agent/` from the template and prints the next steps: put its URL in
-`.env`, choose metrics and suites in `agent.yaml`, add test cases, `make run AGENT=claims_agent SUITE=sanity`.
+`env/.env`, choose metrics and suites in `agent.yaml`, add test cases, `make run AGENT=claims_agent SUITE=sanity`.
 Add `parser.py` logic only when you want stage fields or agent-specific checks —
 `agents/knowledge_agent/parser.py` (40 lines) is a good example. For an agent that is not Google ADK,
 rename `client.py.example` to `client.py` and fill in the three TODOs.
@@ -189,7 +189,7 @@ rename `client.py.example` to `client.py` and fill in the three TODOs.
 ## Synthesizer (generate test cases)
 
 Generate many realistic test cases for any agent from source documents, with DeepEval's Synthesizer
-(the generator model is the CORTEX model from `.env`). Three independent parts, all configured in the
+(the generator model is the CORTEX model from `env/.env`). Three independent parts, all configured in the
 agent's `synth/synth.yaml`:
 
 ```
@@ -220,7 +220,7 @@ make run     AGENT=knowledge_agent SUITE=golden                     # evaluate t
 
 | `source: {type: …}` | For | Settings |
 |---|---|---|
-| `athena_mcp` | knowledge-base pages from the Hive Athena MCP server | `ids_file`; `HIVE_ATHENA_*` in `.env` |
+| `athena_mcp` | knowledge-base pages from the Hive Athena MCP server | `ids_file`; `HIVE_ATHENA_*` in `env/.env` |
 | `files` | a folder of `.txt` / `.md` / `.json` files; sub-folders become groups | `folder` (default `documents`) |
 | `json_records` | one JSON file with a list of records (an API export, a table) | `file`, `records_key`, `id_field`, `group_field`, `title_field`, `text_fields` |
 | your own | any other system | `sources/<name>.py` with `fetch(settings, ids, folder) -> [documents]` |
@@ -288,7 +288,7 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 | `configs/metrics/<agent>/catalog.yaml` | `metrics:` in `agents/<agent>/agent.yaml` |
 | `configs/evaluations/<agent>/<suite>.yaml` | `suites:` in `agents/<agent>/agent.yaml` |
 | `configs/criteria/<agent>/*.md` | `agents/<agent>/rubrics/*.md` |
-| `configs/cortex.yaml` | `.env` |
+| `configs/cortex.yaml` (timeout, retries, verify, auth header) | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_VERIFY_TLS`, `CORTEX_API_KEY` in `env/.env` |
 | `testdata/<agent>/<suite>/` | `agents/<agent>/testdata/<suite>/` |
 | `data/fact_find_workflow/aggregated_payloads/` | `agents/fact_find_workflow/ground_truth/` (case key: `expected.ground_truth`) |
 | `make new-agent name=x` | `make new-agent NAME=x` |
@@ -303,13 +303,13 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 | `make synth-ka-generate-page PAGE_ID=…` / `-domain DOMAIN=…` | `make goldens AGENT=knowledge_agent IDS=…` / `GROUP=…` |
 | synthesized cases' `reference.answer` | `expected.expected_answer` (set in the output template) |
 | `testdata/knowledge_agent/golden/` | `agents/knowledge_agent/testdata/golden/` (suite `golden`, key `expected_answer`) |
-| `HIVE_ATHENA_CLIENT_ID` / `HIVE_ATHENA_CLIENT_SECRET` (Athena MCP) | same names, in `.env`; the server URL is now `HIVE_ATHENA_BASE_URL` |
+| `HIVE_ATHENA_CLIENT_ID` / `HIVE_ATHENA_CLIENT_SECRET` (Athena MCP) | same names, in `env/.env`; the server URL is now `HIVE_ATHENA_BASE_URL` |
 
-Rename these in your `.env` if you still have the old names:
+Rename these in your `env/.env` if you still have the old names:
 `KNOWLEDGE_BASE_URL_LOCAL` → `KNOWLEDGE_ADK_BASE_URL`, `KNOWLEDGE_BASE_PATH_LOCAL` → `KNOWLEDGE_ADK_BASE_PATH`,
 `KNOWLEDGE_APP_NAME_LOCAL` → `KNOWLEDGE_ADK_APP_NAME`, `KNOWLEDGE_USER_ID_LOCAL` → `KNOWLEDGE_ADK_USER_ID`,
 `ADK_BASE_HOST` → `FACTFIND_ADK_BASE_URL`, `ADK_APP_NAME` → `FACTFIND_ADK_APP_NAME`, `ADK_USER_ID` → `FACTFIND_ADK_USER_ID`.
-Only `.env` is read now (v1 also read `env/.env.factfind.api`) — copy the CORTEX values you need into `.env`.
+Settings are read from `env/.env` (shared) and `env/.env.<agent>` (one agent, overrides the shared file); a root `.env` is still read when `env/.env` doesn't exist. `env/.env.factfind.api` is no longer read — copy the CORTEX values you need into `env/.env`.
 Traces saved by v1 in `outputs/traces/` still replay with `OFFLINE=1`.
 
 Not carried over (still in git history on `main`): the Fact Find ground-truth payload generator,

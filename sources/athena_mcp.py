@@ -7,7 +7,7 @@ Source `athena_mcp`: knowledge-base pages from the Hive Athena MCP server.
 
 For every page id: JSON-RPC `tools/call` -> athena_get_page_content -> page HTML -> readable text.
 
-.env:
+env/.env:
   HIVE_ATHENA_BASE_URL        e.g. https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/athena-mcp-server
   HIVE_ATHENA_CLIENT_ID       sent as x-lbg-client-id
   HIVE_ATHENA_CLIENT_SECRET   sent as x-lbg-client-secret
@@ -41,7 +41,7 @@ def get_page_content(http, page_id):
     """One athena_get_page_content call; returns the page JSON (@title, body, @revision)."""
     base_url = os.environ.get("HIVE_ATHENA_BASE_URL", "").rstrip("/")
     if not base_url:
-        raise ValueError("HIVE_ATHENA_BASE_URL is not set in .env")
+        raise ValueError("HIVE_ATHENA_BASE_URL is not set in env/.env")
     response = http.post(f"{base_url}/v1/mcp", json={
         "jsonrpc": "2.0",
         "id": 1,
@@ -108,7 +108,7 @@ def _headers():
     client_id = os.environ.get("HIVE_ATHENA_CLIENT_ID", "").strip()
     client_secret = os.environ.get("HIVE_ATHENA_CLIENT_SECRET", "").strip()
     if not client_id or not client_secret:
-        raise ValueError("Set HIVE_ATHENA_CLIENT_ID and HIVE_ATHENA_CLIENT_SECRET in .env")
+        raise ValueError("Set HIVE_ATHENA_CLIENT_ID and HIVE_ATHENA_CLIENT_SECRET in env/.env")
     return {"accept": "application/json, text/event-stream",
             "x-lbg-client-id": client_id, "x-lbg-client-secret": client_secret}
 

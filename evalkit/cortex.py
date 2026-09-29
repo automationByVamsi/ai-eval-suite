@@ -4,7 +4,7 @@ The judge model. Both engines call the same LLM through the CORTEX gateway.
   DeepEval -> CortexLLM (below), which POSTs to {CORTEX_HOST}/chat/completions
   Pegasus  -> pegasus_llm(), built with Pegasus' own CORTEX adapter
 
-All settings come from .env — see .env.example.
+All settings come from env/.env — see env/.env.example.
 """
 
 from __future__ import annotations
@@ -12,20 +12,24 @@ from __future__ import annotations
 import functools
 import json
 import os
+import time
 from typing import Any
 
 import httpx
 from deepeval.models import DeepEvalBaseLLM
 
 
+RETRY_STATUS = {429, 500, 502, 503, 504}   # busy or temporarily broken gateway: worth another try
+
+
 class JudgeConfigError(Exception):
-    """A CORTEX / Pegasus setting is missing from .env."""
+    """A CORTEX / Pegasus setting is missing from env/.env."""
 
 
 def _require(var: str) -> str:
     value = os.environ.get(var, "").strip()
     if not value:
-        raise JudgeConfigError(f"{var} is not set — add it to .env (see .env.example)")
+        raise JudgeConfigError(f"{var} is not set — add it to env/.env (see env/.env.example)")
     return value
 
 
@@ -42,10 +46,11 @@ class CortexLLM(DeepEvalBaseLLM):
     def __init__(self) -> None:
         self.model_id = os.environ.get("CORTEX_MODEL", "vertex_ai/gemini-2.5-pro")
         self.url = _require("CORTEX_HOST").rstrip("/") + "/chat/completions"
+        self.retries = int(os.environ.get("CORTEX_RETRIES", "2"))
         self.http = httpx.Client(
-            timeout=90,
+            timeout=float(os.environ.get("CORTEX_TIMEOUT_S", "60")),
             verify=_verify_tls(),
-            headers={"x-lbg-origin-client-id": _require("CORTEX_CLIENT_ID")},
+            headers=cortex_headers(),
         )
         super().__init__(self.model_id)
 
@@ -56,17 +61,33 @@ class CortexLLM(DeepEvalBaseLLM):
         return self.model_id
 
     def generate(self, prompt: str, schema: Any = None) -> Any:
-        response = self.http.post(self.url, json={
-            "model": self.model_id,
-            "temperature": 0.0,
-            "messages": [{"role": "user", "content": prompt}],
-        })
-        response.raise_for_status()
+        body = {"model": self.model_id, "temperature": 0.0, "messages": [{"role": "user", "content": prompt}]}
+        for attempt in range(self.retries + 1):
+            try:
+                response = self.http.post(self.url, json=body)
+                if response.status_code in RETRY_STATUS and attempt < self.retries:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                response.raise_for_status()
+                break
+            except httpx.TransportError:
+                if attempt >= self.retries:
+                    raise
+                time.sleep(2 * (attempt + 1))
         text = _strip_fence(response.json()["choices"][0]["message"]["content"])
         return text if schema is None else _to_schema(text, schema)
 
     async def a_generate(self, prompt: str, schema: Any = None) -> Any:
         return self.generate(prompt, schema)
+
+
+def cortex_headers() -> dict[str, str]:
+    """x-lbg-origin-client-id always; Authorization: Bearer <CORTEX_API_KEY> when a key is set (CorteX 2.0)."""
+    headers = {"x-lbg-origin-client-id": _require("CORTEX_CLIENT_ID")}
+    api_key = os.environ.get("CORTEX_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
 
 
 @functools.cache
@@ -98,7 +119,7 @@ def pegasus_llm() -> Any:
     }
     kwargs.update({k: v.strip() for k, v in optional.items() if v.strip()})
     if not (api_key or kwargs.get("cert_path") or (kwargs.get("client_id") and kwargs.get("client_secret"))):
-        raise JudgeConfigError("Pegasus needs CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET in .env")
+        raise JudgeConfigError("Pegasus needs CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET in env/.env")
     try:
         return get_model(**kwargs)
     except TypeError:  # older Pegasus versions don't accept ssl_verify

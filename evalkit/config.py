@@ -1,5 +1,5 @@
 """
-Read an agent's folder: agents/<name>/agent.yaml (+ values from .env).
+Read an agent's folder: agents/<name>/agent.yaml (+ values from env/.env).
 
 Everything about one agent lives in its own folder:
 
@@ -10,7 +10,12 @@ Everything about one agent lives in its own folder:
       rubrics/*.md   optional: custom judge criteria
       testdata/<suite>/*.json
 
-`${VAR}` and `${VAR:-default}` in agent.yaml are filled from the environment / .env.
+`${VAR}` and `${VAR:-default}` in agent.yaml are filled from the environment and the env files:
+
+    env/.env           shared settings (CORTEX, Athena, ...), loaded at start-up
+    env/.env.<agent>   optional, one agent's settings; loaded when that agent is loaded and
+                       overrides env/.env. Variables set in your shell always win over both.
+    .env               old location, still read if env/.env doesn't exist
 """
 
 from __future__ import annotations
@@ -22,14 +27,15 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parent.parent
 AGENTS_DIR = ROOT / "agents"
 OUTPUTS_DIR = ROOT / "outputs"
 BASELINES_DIR = ROOT / "baselines"
+ENV_DIR = ROOT / "env"
 
-load_dotenv(ROOT / ".env")
+_SHELL_VARS = set(os.environ)   # set before any env file is read: these are never overridden
 
 _ENV_VAR = re.compile(r"\$\{(\w+)(?::-([^}]*))?\}")
 
@@ -62,6 +68,25 @@ class Agent:
         return self.suites[name]
 
 
+def load_env_file(path: Path) -> bool:
+    """Put one env file's values into os.environ (shell variables win). False if it doesn't exist."""
+    if not path.is_file():
+        return False
+    for key, value in dotenv_values(path).items():
+        if key not in _SHELL_VARS and value is not None:
+            os.environ[key] = value
+    return True
+
+
+def load_shared_env() -> None:
+    """env/.env, or the old root .env when env/.env doesn't exist yet."""
+    if not load_env_file(ENV_DIR / ".env"):
+        load_env_file(ROOT / ".env")
+
+
+load_shared_env()
+
+
 def list_agents() -> list[str]:
     """Every folder under agents/ that has an agent.yaml (folders starting with _ are templates)."""
     return sorted(
@@ -78,6 +103,7 @@ def load_agent(name: str) -> Agent:
     path = folder / "agent.yaml"
     if not path.is_file():
         raise ConfigError(f"No agent '{name}'. Available: {list_agents()}")
+    load_env_file(ENV_DIR / f".env.{name}")
     raw = _expand_env(yaml.safe_load(path.read_text()) or {})
 
     metrics: dict[str, dict[str, Any]] = {}
