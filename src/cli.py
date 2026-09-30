@@ -6,6 +6,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src new-agent <name> [--input-field question]
   python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
   python -m src goldens  <agent> [--group G] [--ids ID ...] [--replace]  generate test cases
+  python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
   python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
@@ -22,6 +23,7 @@ import sys
 from src.core.agent_config import list_agents, load_agent
 from src.core.exceptions import ConfigError
 from src.core.results import load_run
+from src.fields.preview import preview
 from src.importers.cases import import_cases
 from src.onboarding.doctor import run_doctor
 from src.onboarding.new_agent import create_agent
@@ -52,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "goldens":
             cmd.add_argument("--replace", action="store_true",
                              help="clear the folders being generated into (after generation succeeds)")
+
+    fields = commands.add_parser("fields", help="show what fields.yaml (and the checks) give for saved traces")
+    fields.add_argument("agent")
+    fields.add_argument("--suite", default="sanity", help="whose saved traces to read (default: sanity)")
+    fields.add_argument("--case", action="append", dest="cases", help="only this test_case_id (repeatable)")
+    fields.add_argument("--trace", help="read this trace file instead")
 
     imp = commands.add_parser("import-cases", help="turn a spreadsheet of test cases into test case JSON files")
     imp.add_argument("agent")
@@ -102,6 +110,9 @@ def main(argv: list[str] | None = None) -> int:
         else:
             generator.generate_goldens(args.agent, groups, args.ids, replace=args.replace)
         return 0
+
+    if args.command == "fields":
+        return preview(args.agent, args.suite, args.cases, args.trace)
 
     if args.command == "import-cases":
         import_cases(args.agent, args.file, mapping=args.mapping, sheet=args.sheet, dry_run=args.dry_run)

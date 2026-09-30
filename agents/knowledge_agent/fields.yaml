@@ -1,0 +1,81 @@
+# Knowledge Agent — the fields evaluation reads from each trace.
+#
+# Every field is one line: where to look (`from`) and what to take there (`path`).
+# The syntax is explained at the top of src/fields/extract.py; paths are JMESPath (jmespath.org).
+# Check what every field gives for a saved trace, without calling the agent or any judge:
+#
+#     make fields AGENT=knowledge_agent CASE=TC_002
+#
+# When the trace format changes: run that, see which fields came back empty, fix their paths here.
+#
+# Judges and checks use these names (agent.yaml): a metric reads `answer`, `question`, `contexts`
+# and `expected_answer` by default, and can point at any field below, e.g. answer: rewritten_query.
+# Written for the trace format of 29 Sep 2026 (knowledge_agent_workflow@1/... node paths).
+
+fields:
+  # --- Final output (what the caller receives) ---------------------------------------------
+  answer:            {from: final, path: answer.summary, required: true}
+  cited_page_ids:    {from: final, path: answer.page_ids}
+  question_type:     {from: final, path: question_type}
+  confidence:        {from: final, path: confidence}
+  caveats:           {from: final, path: caveats}
+  user_warnings:     {from: final, path: user_warnings}
+  disclosures:       {from: final, path: [caveats, user_warnings]}     # caveats, or else user warnings
+  evidence_page_ids: {from: final, path: "evidence[].page_id"}
+  evidence_titles:   {from: final, path: "evidence[].title"}
+
+  # --- 1. Input normalisation -----------------------------------------------------------------
+  agent_query:       {from: state, path: query}            # the question as the agent received it
+  business_area:     {from: state, path: business_area}
+
+  # --- 2. Query rewrite -----------------------------------------------------------------------
+  query_type:        {from: state, path: query_type}       # simple | complex
+  rewritten_queries: {from: state, path: rewritten_query}  # list of sub-queries
+  rewritten_query:   {from: state, path: rewritten_query, join: "\n"}   # the same, one per line (for judges)
+
+  # --- 3. Athena search: one branch per sub-query ------------------------------------------------
+  branch_sub_queries:  {from: state, path: "search_branches.*.sub_query"}
+  branch_count:        {from: state, path: "search_branches.*.sub_query", count: true}
+  search_candidates:   {from: state, path: "search_branches.*.filtered_page_ids[]", unique: true}
+  metadata_missing:    {from: state, path: "search_branches.*.has_missing_candidate_metadata"}   # one per branch
+
+  # --- 4. Anchor selection ----------------------------------------------------------------------
+  branch_anchor_ids:   {from: state, path: "search_branches.*.anchor_page_id"}
+  anchor_page_ids:     {from: state, path: evidence_set.anchor_page_ids}
+  anchor_titles:       {from: final, path: evidence, where: {page_id: anchor_page_ids}, pick: title}
+  anchor_rationales:   {from: node, node: _anchor_branch_worker, path: rationale}
+  anchor_fallback:     {from: node, node: _anchor_branch_worker, path: rationale, matches: "top Athena result"}
+
+  # --- 5. Relation expansion --------------------------------------------------------------------
+  expanded_page_ids:    {from: state, path: evidence_set.expanded_page_ids}
+  expanded_titles:      {from: final, path: evidence, where: {page_id: expanded_page_ids}, pick: title}
+  expansion_labels:     {from: state, path: "search_branches.*.llm_selected_expansion[][1]"}
+  rule_based_expansion: {from: state, path: "search_branches.*.rule_based_expansion[]"}
+  expansion_candidates: {from: node, node: _relation_branch_worker, path: candidate_labels}
+  expansion_rationales: {from: node, node: _relation_branch_worker, path: rationale}
+  expansion_skipped:    {from: node, node: _relation_branch_worker, path: rationale, matches: "Skipped relation expansion"}
+
+  # --- 6. Page retrieval ------------------------------------------------------------------------
+  dropped_page_count:      {from: message, contains: "Page retrieval complete", regex: 'dropped_count=(\d+)'}
+  evidence_content_length: {from: message, contains: "Validation complete", regex: 'content_length=(\d+)'}
+
+  # --- 7. Validation (the agent's own scores: diagnostics, not quality judges) ------------------
+  relevance_score:      {from: state, path: context_relevance}
+  applicability_score:  {from: state, path: context_applicability}
+  sufficiency_score:    {from: state, path: context_sufficiency}
+  relevance_reason:     {from: state, path: relevance_reason}
+  applicability_reason: {from: state, path: applicability_reason}
+  sufficiency_reason:   {from: state, path: sufficiency_reason}
+
+  # --- 8. Synthesis and guardrails --------------------------------------------------------------
+  synthesizer_page_ids: {from: model, agent: general_synthesizer_agent, path: page_ids, first: true}
+  output_guardrail:     {from: message, contains: "Synthesis complete", regex: 'output_guardrail=(\w+)'}
+
+  # --- Timing -----------------------------------------------------------------------------------
+  latency_ms:          {from: trace, path: latency_ms}
+  stage_seconds:       {from: timing}
+
+  # --- Not in the trace today (asked of the developers) -----------------------------------------
+  # contexts:  the text of the evidence pages — Faithfulness needs it. Add it here when the trace
+  #            carries it, e.g. {from: node, node: fetch_page_workflow, path: "pages[].content"}
+  # decision / suggested_next_step:  FINISH | FAIL and the retry hint from the validation router

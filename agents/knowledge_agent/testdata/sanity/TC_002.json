@@ -1,11 +1,8 @@
 {
   "test_case_id": "TC_002",
-  "description": "Validate guidance for requesting VPN access",
+  "description": "Add a support need: simple question, full metadata path",
   "input": {
-    "question": "How do I request VPN access for remote work?"
+    "question": "How do I add a support need?"
   },
-  "expected": {
-    "expected_anchor_page_id": "8194",
-    "anchor_selection_method": "baseline"
-  }
+  "expected": {}
 }

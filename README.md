@@ -82,8 +82,10 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | change a threshold                                | `metrics:` in `agents/<agent>/agent.yaml` |
 | add / remove a **Pegasus** (or DeepEval) metric   | `metric_library.yaml` — then use it by name in any agent |
 | add a custom judge for one agent                  | a rubric in `agents/<agent>/rubrics/` + one line under `metrics:` |
-| judge a stage output (rewritten query, tool, …)   | expose it in `agents/<agent>/parser.py`, point the metric at it (`answer: rewritten_query`) |
-| add a deterministic check for one agent           | `checks()` in `agents/<agent>/parser.py` |
+| read a value from the trace (a stage output, …)   | one line in `agents/<agent>/fields.yaml`; preview with `make fields` — see [Trace fields and checks](#trace-fields-and-checks) |
+| judge a stage output (rewritten query, tool, …)   | a field in `fields.yaml`, then point the metric at it (`answer: rewritten_query`) |
+| add a deterministic check for one agent           | `checks:` in `agents/<agent>/agent.yaml` (YAML), or `checks()` in `parser.py` for real logic |
+| the agent's trace format changed                  | `make fields AGENT=.. CASE=..` shows which fields came back empty; fix their paths in `fields.yaml` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
 | turn a spreadsheet of test cases into JSON        | `agents/<agent>/importers/<name>.yaml` — see [Import test cases from a spreadsheet](#import-test-cases-from-a-spreadsheet) |
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
@@ -136,7 +138,8 @@ agents/
     agent.yaml                  connection, metrics (+ thresholds), suites
     testdata/<suite>/*.json     test cases, one per file
     rubrics/*.md                custom judge criteria, in plain English     (optional)
-    parser.py                   stage fields from the trace + own checks    (optional)
+    fields.yaml                 what to read from the trace, one line per field (optional)
+    parser.py                   Python for what fields.yaml / checks: can't express  (optional, rare)
     client.py                   only for agents that are not Google ADK     (optional)
     synth/                      test-case generator: synth.yaml, styles/, instructions.md (optional)
   _template/                    what `make new-agent` copies
@@ -145,6 +148,8 @@ src/                            the framework — src/__init__.py has a map of i
   core/                         paths, env files, HTTPS certificates (tls), agent.yaml loading, results, errors
   clients/                      adk_client (the agent), cortex_client (judge model: API key or DevKit), athena_client
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
+  fields/                       path (JMESPath subset), extract (fields.yaml), checks (checks:), preview (make fields)
+  importers/                    spreadsheet -> test cases (make import-cases)
   metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
   verdict/                      baseline (save), compare (verdict + tolerances)
   reporting/                    console report, dashboard.py (Streamlit)
@@ -187,7 +192,7 @@ from src.utils.adk_trace import state, find_event, event_json, tool_calls  # rea
 - `input.<input_field>` (from agent.yaml) is sent to the agent. Use `message_template:` in agent.yaml
   if the agent needs the input wrapped in a sentence.
 - Everything in `expected` is optional. `keywords` are checked for every agent; anything else is
-  used by that agent's `parser.py` checks or by judges.
+  used by that agent's `checks:` (or `parser.py`) or by judges.
 - A judge that needs something the case doesn't have (e.g. `correctness` without `expected_answer`)
   is **skipped** for that case and shown as skipped.
 - One file can also hold many cases: `{"cases": [ {...}, {...} ]}`.
@@ -238,8 +243,8 @@ runs on **Pegasus if it has a `pegasus:` class and Pegasus is installed**, other
 | `contexts`        | the trace's `context` (retrieved documents), if any |
 | `expected_answer` | the case's `expected.expected_answer` |
 
-`parser.py` can override them or add more fields (e.g. `rewritten_query`, `anchor_page_content`), and
-a metric can read a standard field from any of them (`answer: rewritten_query`). Custom rubrics
+`fields.yaml` can override them and add more (e.g. `rewritten_query`, `anchor_titles`), and a metric
+can read a standard field from any of them (`answer: rewritten_query`). Custom rubrics
 judge `question` + `answer` unless you list more: `needs: [question, answer, contexts]`.
 
 ## Add an agent
@@ -250,9 +255,61 @@ make new-agent NAME=claims_agent INPUT_FIELD=claim_id
 
 This creates `agents/claims_agent/` from the template and prints the next steps: put its URL in
 `env/.env`, choose metrics and suites in `agent.yaml`, add test cases, `make run AGENT=claims_agent SUITE=sanity`.
-Add `parser.py` logic only when you want stage fields or agent-specific checks —
-`agents/knowledge_agent/parser.py` (40 lines) is a good example. For an agent that is not Google ADK,
-rename `client.py.example` to `client.py` and fill in the three TODOs.
+Add `fields.yaml` entries when you want stage fields, and `checks:` in `agent.yaml` for
+agent-specific checks — `agents/knowledge_agent/` is a full example. For an agent that is not Google
+ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
+
+## Trace fields and checks
+
+Everything evaluation reads from a trace is listed in `agents/<agent>/fields.yaml` — one line per
+field, no Python. Each line says **where** to look and **what** to take there:
+
+```yaml
+fields:
+  answer:            {from: final, path: answer.summary, required: true}
+  rewritten_query:   {from: state, path: rewritten_query, join: "\n"}
+  branch_anchor_ids: {from: state, path: "search_branches.*.anchor_page_id"}   # every branch
+  anchor_titles:     {from: final, path: evidence, where: {page_id: anchor_page_ids}, pick: title}
+  anchor_rationales: {from: node,  node: _anchor_branch_worker, path: rationale}
+  content_length:    {from: message, contains: "Validation complete", regex: 'content_length=(\d+)'}
+```
+
+- `from:` handles the ADK trace layout once, for every agent: `state` (session state, latest value
+  wins), `final` (the workflow's final output), `node` (outputs of matching nodes, one per branch),
+  `model` (a model agent's JSON reply), `message` (status text), `timing`, `trace` (the file itself).
+- `path:` is [JMESPath](https://jmespath.org) — `a.b`, `list[].key`, `dict.*.key`, `list[0]`. Try
+  expressions on the website; ours give the same results. A list of paths means "the first that finds
+  something", handy while a trace format is changing.
+- More options (`where`, `pick`, `join`, `count`, `first`, `unique`, `matches`, `default`, `required`)
+  are explained at the top of `src/fields/extract.py`.
+
+**Preview** what every field gives for saved traces, and what the checks make of it — no agent call,
+no judges:
+
+```bash
+make fields AGENT=knowledge_agent CASE=TC_002      # NOT FOUND = the path found nothing
+```
+
+When the agent's trace format changes, run this, fix the paths that come back `NOT FOUND`, run it
+again. A field marked `required: true` that finds nothing makes the case an ERROR ("has the trace
+format changed?") instead of silently skipping judges.
+
+**Checks** are YAML too, under `checks:` in `agent.yaml`, on any field:
+
+```yaml
+checks:
+  confidence_valid:   {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
+  fallback_disclosed: {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
+  anchor_hit:
+    type: any_in
+    compare:                                    # the first pair the case has an expected value for
+      - {field: anchor_page_ids, expected: expected_anchor_page_ids}
+      - {field: anchor_titles,   expected: expected_anchor_page_titles}
+```
+
+Types: `present`, `one_of`, `equals`, `min_words`, `not_contains`, `range`, `same_count`, `subset`,
+`any_in`, `all_in`, `precision`, `recall` (see `src/fields/checks.py`). A check whose expected value
+the case lacks is SKIPPED. `parser.py` is still there for logic YAML can't express.
 
 ## Import test cases from a spreadsheet
 
