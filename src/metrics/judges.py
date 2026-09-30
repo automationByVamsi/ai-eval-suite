@@ -100,13 +100,13 @@ def pick_engine(metric: dict[str, Any]) -> str:
             _warn_once("Pegasus is not installed — Pegasus metrics are running on DeepEval on this machine.")
         elif metric.get("pegasus"):
             _warn_once("Pegasus has no CORTEX credentials (CORTEX_API_KEY, or CORTEX_CLIENT_ID + "
-                       "CORTEX_CLIENT_SECRET) — Pegasus metrics are running on DeepEval.")
+                       "CORTEX_CLIENT_SECRET, or CORTEX_AUTH=devkit) — Pegasus metrics are running on DeepEval.")
         return "deepeval"
     raise RuntimeError("this metric only exists in Pegasus, and Pegasus is not installed or has no credentials")
 
 
 def pegasus_has_credentials() -> bool:
-    """Pegasus signs its own CORTEX calls; without a key (e.g. DevKit-only setups) it can't run."""
+    """Pegasus signs its own CORTEX calls: an API key / client id + secret, or the DevKit sign-in."""
     return cortex_client.pegasus_can_authenticate()
 
 

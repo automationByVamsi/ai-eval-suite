@@ -19,9 +19,10 @@ Two ways to reach CORTEX — pick one with CORTEX_AUTH in env/.env:
 Both: CORTEX_MODEL (e.g. vertex_ai/gemini-2.5-pro), CORTEX_TIMEOUT_S (60), CORTEX_RETRIES (2: retries on
 429 / 5xx / network errors). Certificate checks: VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
 
-Pegasus uses its own adapter and needs CORTEX_API_KEY (or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET, or
-PEGASUS_CERT_PATH); CORTEX_BASE_URL (default CORTEX_HOST), PEGASUS_CORTEX_MODEL. In DevKit mode without
-those, Pegasus metrics run on DeepEval (through the DevKit) and a warning says so.
+Pegasus uses its own `cortex_api` adapter (PEGASUS_CORTEX_MODEL picks its model):
+  api_key mode  CORTEX_API_KEY (or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET, or PEGASUS_CERT_PATH),
+                base URL CORTEX_BASE_URL (default CORTEX_HOST)
+  devkit mode   no key needed: it gets the DevKit sign-in token and the DevKit's CorteX address.
 """
 
 from __future__ import annotations
@@ -152,11 +153,54 @@ def _devkit_chat_path(client: Any) -> str:
 
 
 def pegasus_can_authenticate() -> bool:
-    """Pegasus has its own CORTEX adapter: it needs an API key, a client id + secret, or a certificate."""
+    """
+    Can Pegasus sign its CORTEX calls? In devkit mode: yes, with the DevKit sign-in (see pegasus_llm).
+    In api_key mode: it needs an API key, a client id + secret, or a certificate.
+    """
+    if auth_mode() == "devkit":
+        return True
     env = {k: os.environ.get(k, "").strip() for k in
            ("CORTEX_API_KEY", "CORTEX_CLIENT_ID", "CORTEX_CLIENT_SECRET", "PEGASUS_CERT_PATH")}
     return bool(env["CORTEX_API_KEY"] or env["PEGASUS_CERT_PATH"]
                 or (env["CORTEX_CLIENT_ID"] and env["CORTEX_CLIENT_SECRET"]))
+
+
+# --- DevKit sign-in for Pegasus ---------------------------------------------------------------
+# Pegasus can't use cortex.Client() — its `cortex_api` adapter only takes an API key. So in devkit mode
+# we hand it the same sign-in the DevKit client uses: the CorteX token (from `make cortex-login`) as the
+# key, and the DevKit's CorteX address as the base URL. The token is read again for every Pegasus judge,
+# so a refreshed token is picked up during long runs.
+
+@functools.cache
+def _shared_devkit_client() -> Any:
+    return _devkit_client(float(os.environ.get("CORTEX_TIMEOUT_S", "60")))
+
+
+def devkit_token() -> str:
+    """The CorteX token the DevKit client signs requests with (never printed or saved)."""
+    client = _shared_devkit_client()
+    headers = getattr(client, "headers", None) or {}
+    header = headers.get("Authorization") or headers.get("authorization") or ""
+    auth = getattr(client, "auth", None)
+    if not header and auth is not None and hasattr(client, "build_request"):
+        # httpx-style auth: sign a throw-away request (nothing is sent) and read its header.
+        request = client.build_request("POST", _devkit_chat_path(client))
+        flow = auth.sync_auth_flow(request)
+        try:
+            header = next(flow).headers.get("Authorization", "")
+        finally:
+            flow.close()
+    if not header:
+        raise JudgeConfigError("Could not read the CorteX DevKit sign-in for Pegasus. Run make cortex-login; "
+                               "if it persists, run make doctor and share its output.")
+    return header.split(" ", 1)[1] if header.lower().startswith("bearer ") else header
+
+
+def devkit_api_base() -> str:
+    """The DevKit's CorteX API address ending in /v1 — what Pegasus appends /chat/completions to."""
+    client = _shared_devkit_client()
+    path = os.environ.get("CORTEX_DEVKIT_CHAT_PATH") or _devkit_chat_path(client)
+    return (str(getattr(client, "base_url", "")).rstrip("/") + path).removesuffix("/chat/completions")
 
 
 @functools.cache
@@ -165,35 +209,46 @@ def deepeval_llm() -> CortexLLM:
     return CortexLLM()
 
 
-@functools.cache
 def pegasus_llm() -> Any:
     """
     The LLM object Pegasus metrics take, from Pegasus' own `cortex_api` adapter.
 
-    Auth: CORTEX_API_KEY (CorteX 2.0), or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET, or PEGASUS_CERT_PATH.
+    devkit mode:  the DevKit sign-in token as the key, the DevKit's CorteX address as the base URL.
+    api_key mode: CORTEX_API_KEY (CorteX 2.0), or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET, or
+                  PEGASUS_CERT_PATH; base URL CORTEX_BASE_URL or CORTEX_HOST.
     """
+    model = os.environ.get("PEGASUS_CORTEX_MODEL") or os.environ.get("CORTEX_MODEL") or "gemini-2.5-flash"
+    if auth_mode() == "devkit":
+        return _pegasus_model(model, devkit_api_base(), api_key=devkit_token())
+    if not pegasus_can_authenticate():
+        raise JudgeConfigError("Pegasus needs CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET in env/.env "
+                               "(or use CORTEX_AUTH=devkit)")
+    return _pegasus_model(
+        model,
+        os.environ.get("CORTEX_BASE_URL") or require("CORTEX_HOST", JudgeConfigError),
+        api_key=os.environ.get("CORTEX_API_KEY", "").strip(),
+        client_id=os.environ.get("CORTEX_CLIENT_ID", "").strip(),
+        client_secret=os.environ.get("CORTEX_CLIENT_SECRET", "").strip(),
+        cert_path=os.environ.get("PEGASUS_CERT_PATH", "").strip(),
+    )
+
+
+@functools.lru_cache(maxsize=4)   # one model per sign-in; a refreshed DevKit token builds a new one
+def _pegasus_model(model: str, base_url: str, api_key: str = "", client_id: str = "",
+                   client_secret: str = "", cert_path: str = "") -> Any:
     from pegasus.utils.adapters import get_model  # internal package: only imported when Pegasus runs
 
-    api_key = os.environ.get("CORTEX_API_KEY", "").strip()
-    model = os.environ.get("PEGASUS_CORTEX_MODEL") or os.environ.get("CORTEX_MODEL") or "gemini-2.5-flash"
     if not api_key and not model.startswith("vertex_ai/"):
         model = f"vertex_ai/{model}"   # the client-id/secret gateway expects the provider prefix
     kwargs: dict[str, Any] = {
         "adapter": "cortex_api",
         "model_type": "llm",
         "model_name": model,
-        "base_url": os.environ.get("CORTEX_BASE_URL") or require("CORTEX_HOST", JudgeConfigError),
+        "base_url": base_url,
         "ssl_verify": tls.verify_enabled(),
     }
-    optional = {
-        "api_key": api_key,
-        "client_id": os.environ.get("CORTEX_CLIENT_ID", ""),
-        "client_secret": os.environ.get("CORTEX_CLIENT_SECRET", ""),
-        "cert_path": os.environ.get("PEGASUS_CERT_PATH", ""),
-    }
-    kwargs.update({k: v.strip() for k, v in optional.items() if v.strip()})
-    if not pegasus_can_authenticate():
-        raise JudgeConfigError("Pegasus needs CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET in env/.env")
+    optional = {"api_key": api_key, "client_id": client_id, "client_secret": client_secret, "cert_path": cert_path}
+    kwargs.update({k: v for k, v in optional.items() if v})
     try:
         return get_model(**kwargs)
     except TypeError:  # older Pegasus versions don't accept ssl_verify

@@ -90,10 +90,18 @@ def run_doctor(ping: bool = True) -> int:
             line(OK if is_set else (FAIL if name == "CORTEX_CLIENT_ID" else WARN), name,
                  "set" if is_set else "not set in env/.env")
     if _installed("pegasus"):
-        from src.clients.cortex_client import pegasus_can_authenticate
-        line(OK if pegasus_can_authenticate() else WARN, "Pegasus credentials",
-             "set" if pegasus_can_authenticate()
-             else "none (CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET) — Pegasus metrics run on DeepEval")
+        from src.clients import cortex_client
+        if mode == "devkit" and ready:
+            # Pegasus takes the DevKit sign-in as its key: check it can be read (never printed).
+            try:
+                cortex_client.devkit_token()
+                line(OK, "Pegasus credentials", f"DevKit sign-in -> {cortex_client.devkit_api_base()}")
+            except Exception as exc:  # noqa: BLE001
+                line(FAIL, "Pegasus credentials", f"{type(exc).__name__}: {str(exc)[:200]}  -> run make cortex-login")
+        elif mode != "devkit":
+            ok = cortex_client.pegasus_can_authenticate()
+            line(OK if ok else WARN, "Pegasus credentials", "set" if ok else
+                 "none (CORTEX_API_KEY, or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET) — Pegasus metrics run on DeepEval")
     if ping and ready:
         try:
             from src.clients import cortex_client

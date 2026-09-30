@@ -146,3 +146,74 @@ def test_devkit_chat_path_follows_the_client_base_address():
     assert _devkit_chat_path(SimpleNamespace(base_url=f"{host}/api")) == "/v1/chat/completions"
     assert _devkit_chat_path(SimpleNamespace(base_url=f"{host}/api/v1/")) == "/chat/completions"
     assert _devkit_chat_path(SimpleNamespace(base_url=host)) == "/api/v1/chat/completions"
+
+
+# --- Pegasus through the CorteX DevKit (no API key) ------------------------------------------
+
+def _fake_devkit_and_pegasus(monkeypatch, client):
+    """Install a fake `cortex` DevKit module and a fake Pegasus adapter; returns get_model's kwargs."""
+    import sys
+    import types
+
+    from src.clients import cortex_client
+    seen = {}
+    adapters = types.SimpleNamespace(get_model=lambda **kwargs: seen.update(kwargs) or "pegasus-llm")
+    monkeypatch.setitem(sys.modules, "cortex", types.SimpleNamespace(Client=lambda **kw: client))
+    monkeypatch.setitem(sys.modules, "pegasus", types.ModuleType("pegasus"))
+    monkeypatch.setitem(sys.modules, "pegasus.utils", types.SimpleNamespace(adapters=adapters))
+    monkeypatch.setitem(sys.modules, "pegasus.utils.adapters", adapters)
+    for name in ("CORTEX_API_KEY", "CORTEX_CLIENT_ID", "CORTEX_CLIENT_SECRET", "PEGASUS_CERT_PATH",
+                 "CORTEX_DEVKIT_CHAT_PATH"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setenv("PEGASUS_CORTEX_MODEL", "gemini-2.5-flash")
+    cortex_client._shared_devkit_client.cache_clear()
+    cortex_client._pegasus_model.cache_clear()
+    return seen
+
+
+def test_pegasus_uses_the_devkit_sign_in_as_its_key(monkeypatch):
+    """A DevKit client that signs with an httpx auth flow (the token is added per request)."""
+    import httpx
+
+    from src.clients import cortex_client
+
+    class SsoAuth(httpx.Auth):
+        def auth_flow(self, request):
+            request.headers["Authorization"] = "Bearer jwt-from-cx-auth-login"
+            yield request
+
+    client = httpx.Client(base_url="https://cortex.lloydsbanking.cloud/api", auth=SsoAuth())
+    seen = _fake_devkit_and_pegasus(monkeypatch, client)
+    try:
+        assert cortex_client.pegasus_can_authenticate()                 # no CORTEX_API_KEY needed
+        assert cortex_client.pegasus_llm() == "pegasus-llm"
+    finally:
+        cortex_client._shared_devkit_client.cache_clear()
+        cortex_client._pegasus_model.cache_clear()
+    assert seen["api_key"] == "jwt-from-cx-auth-login"
+    assert seen["base_url"] == "https://cortex.lloydsbanking.cloud/api/v1"   # Pegasus adds /chat/completions
+    assert seen["model_name"] == "gemini-2.5-flash" and seen["adapter"] == "cortex_api"
+
+
+def test_devkit_token_from_a_fixed_header(monkeypatch):
+    """A DevKit client that carries the token as a default header."""
+    import httpx
+
+    from src.clients import cortex_client
+    client = httpx.Client(base_url="https://cortex-int.lloydsbanking.cloud/api/v1",
+                          headers={"Authorization": "Bearer abc"})
+    _fake_devkit_and_pegasus(monkeypatch, client)
+    try:
+        assert cortex_client.devkit_token() == "abc"
+        assert cortex_client.devkit_api_base() == "https://cortex-int.lloydsbanking.cloud/api/v1"
+    finally:
+        cortex_client._shared_devkit_client.cache_clear()
+
+
+def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    for name in ("CORTEX_API_KEY", "CORTEX_CLIENT_ID", "CORTEX_CLIENT_SECRET", "PEGASUS_CERT_PATH"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    assert judges.pick_engine(definition("relevance", {})) == "pegasus"
