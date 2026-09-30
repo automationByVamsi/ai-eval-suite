@@ -28,9 +28,16 @@ make run AGENT=knowledge_agent SUITE=sanity
 make dashboard
 ```
 
-**Pegasus** is an internal package: install it into the environment (`uv pip install <pegasus package>`).
-Without it, Pegasus metrics run on DeepEval, a warning is printed, and every result records
-which engine scored it.
+**Pegasus** is an internal package, so `make setup` can't install it for you. Install it into this
+project's environment the same way you install it today, e.g. `uv pip install <pegasus package or .whl>`
+(`make setup` keeps it). Or activate the virtual env that already has Pegasus before running `make` —
+the commands then use that env. Without Pegasus, Pegasus metrics run on DeepEval, a warning is printed,
+and every result records which engine scored it.
+
+**Check a new machine with `make doctor`**: it shows which Python is used, whether Pegasus and DeepEval
+are installed there, which env files were found, the certificate settings, and makes one test call to
+CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TLS=false` in `env/.env`
+(the default, same as main) or set `CA_BUNDLE=<corporate CA file>`.
 
 ## Where do I change…?
 
@@ -50,7 +57,9 @@ which engine scored it.
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
 | judge model / CORTEX / Pegasus / Athena settings  | `env/.env` |
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `src/verdict/compare.py` |
-| CORTEX timeout / retries / TLS / API key          | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_VERIFY_TLS`, `CORTEX_API_KEY` in `env/.env` |
+| CORTEX timeout / retries / API key                | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_API_KEY` in `env/.env` |
+| SSL certificate errors (office proxy)             | `VERIFY_TLS=false` or `CA_BUNDLE=...` in `env/.env` (one setting for every call) |
+| Pegasus "not installed" warning                    | install Pegasus into this env, then check with `make doctor` |
 | an endpoint, header or auth scheme changed        | the matching file in `src/clients/` |
 | add a new kind of synthesizer source (an API, …)  | one new file in `src/synthesizer/sources/` (copy `json_records.py`) |
 
@@ -60,6 +69,7 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 
 | I want to…                                  | Command |
 |---------------------------------------------|---------|
+| check this machine is ready                 | `make doctor` |
 | see agents, suites and their metrics        | `make list` |
 | create a new agent                          | `make new-agent NAME=claims_agent INPUT_FIELD=claim_id` |
 | run a suite                                 | `make run AGENT=knowledge_agent SUITE=sanity` |
@@ -96,7 +106,7 @@ agents/
   _template/                    what `make new-agent` copies
 src/                            the framework — src/__init__.py has a map of it
   cli.py                        every make command lands here (python -m src ...)
-  core/                         paths, env files, agent.yaml loading, result types, errors
+  core/                         paths, env files, HTTPS certificates (tls), agent.yaml loading, results, errors
   clients/                      adk_client (the agent), cortex_client (judge model), athena_client
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
   metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
@@ -104,7 +114,7 @@ src/                            the framework — src/__init__.py has a map of i
   reporting/                    console report, dashboard.py (Streamlit)
   synthesizer/                  generator, settings, documents, output_template,
                                 sources/ (athena_mcp, files, json_records)
-  onboarding/                   new_agent (make new-agent)
+  onboarding/                   new_agent (make new-agent), doctor (make doctor)
   utils/                        adk_trace (helpers for parser.py), text, html_text
 tests/                          test_runner, test_metrics, test_verdict, test_synthesizer, test_clients
 baselines/<agent>/<suite>.json  committed, so the team compares against the same baseline
@@ -330,7 +340,7 @@ Same behaviour, new places. `make` commands are unchanged; `python -m evalkit` i
 | `configs/metrics/<agent>/catalog.yaml` | `metrics:` in `agents/<agent>/agent.yaml` |
 | `configs/evaluations/<agent>/<suite>.yaml` | `suites:` in `agents/<agent>/agent.yaml` |
 | `configs/criteria/<agent>/*.md` | `agents/<agent>/rubrics/*.md` |
-| `configs/cortex.yaml` (timeout, retries, verify, auth header) | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_VERIFY_TLS`, `CORTEX_API_KEY` in `env/.env` |
+| `configs/cortex.yaml` (timeout, retries, verify, auth header) | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_API_KEY`, `VERIFY_TLS` in `env/.env` |
 | `testdata/<agent>/<suite>/` | `agents/<agent>/testdata/<suite>/` |
 | `make new-agent name=x` | `make new-agent NAME=x` |
 | `make test-ka-sanity-judges` | `make run AGENT=knowledge_agent SUITE=sanity` |

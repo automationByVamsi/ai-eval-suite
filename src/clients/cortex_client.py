@@ -11,7 +11,7 @@ Settings (env/.env — see env/.env.example):
   CORTEX_CLIENT_ID   sent as x-lbg-origin-client-id
   CORTEX_API_KEY     CorteX 2.0: sent as Authorization: Bearer <key>
   CORTEX_TIMEOUT_S   default 60        CORTEX_RETRIES   default 2 (429 / 5xx / network errors)
-  CORTEX_VERIFY_TLS  default true      CORTEX_CA_BUNDLE path to a CA file (better than turning TLS off)
+  Certificate checks: VERIFY_TLS / CA_BUNDLE, shared by every client (src/core/tls.py)
   Pegasus only: CORTEX_BASE_URL (default CORTEX_HOST), CORTEX_CLIENT_SECRET, PEGASUS_CORTEX_MODEL,
                 PEGASUS_CERT_PATH
 """
@@ -27,11 +27,16 @@ from typing import Any
 import httpx
 from deepeval.models import DeepEvalBaseLLM
 
-from src.core.env import require, tls_setting
+from src.core import tls
+from src.core.env import require
 from src.core.exceptions import JudgeConfigError
 from src.utils.text import strip_code_fence
 
 RETRY_STATUS = {429, 500, 502, 503, 504}   # busy or briefly broken gateway: worth another try
+
+# DeepEval (and ragas inside Pegasus) insist an OpenAI key exists even when, as here, every call goes
+# to CORTEX. A placeholder stops them failing at start-up; it is never sent anywhere. (main did the same.)
+os.environ.setdefault("OPENAI_API_KEY", "sk-not-used-all-calls-go-to-cortex")
 
 
 def cortex_headers() -> dict[str, str]:
@@ -41,11 +46,6 @@ def cortex_headers() -> dict[str, str]:
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     return headers
-
-
-def cortex_verify_tls() -> bool | str:
-    """CORTEX_CA_BUNDLE if set, else CORTEX_VERIFY_TLS (default true)."""
-    return os.environ.get("CORTEX_CA_BUNDLE") or tls_setting(os.environ.get("CORTEX_VERIFY_TLS", "true"))
 
 
 class CortexLLM(DeepEvalBaseLLM):
@@ -58,7 +58,7 @@ class CortexLLM(DeepEvalBaseLLM):
         self.retries = int(os.environ.get("CORTEX_RETRIES", "2"))
         self.http = httpx.Client(
             timeout=float(os.environ.get("CORTEX_TIMEOUT_S", "60")),
-            verify=cortex_verify_tls(),
+            verify=tls.httpx_verify(),
             headers=cortex_headers(),
         )
         super().__init__(self.model_id)
@@ -124,7 +124,7 @@ def pegasus_llm() -> Any:
         "model_type": "llm",
         "model_name": model,
         "base_url": os.environ.get("CORTEX_BASE_URL") or require("CORTEX_HOST", JudgeConfigError),
-        "ssl_verify": cortex_verify_tls() is not False,
+        "ssl_verify": tls.verify_enabled(),
     }
     optional = {
         "api_key": api_key,

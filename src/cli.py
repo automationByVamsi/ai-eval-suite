@@ -1,6 +1,7 @@
 """
 Command line. Every `make` target runs one of these (`make help` shows the make versions):
 
+  python -m src doctor [--no-ping]                                     check this machine is ready
   python -m src list
   python -m src new-agent <name> [--input-field question]
   python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
@@ -20,6 +21,7 @@ import sys
 from src.core.agent_config import list_agents, load_agent
 from src.core.exceptions import ConfigError
 from src.core.results import load_run
+from src.onboarding.doctor import run_doctor
 from src.onboarding.new_agent import create_agent
 from src.reporting.console import print_run, print_verdict
 from src.runners.suite_runner import run_suite
@@ -31,6 +33,8 @@ from src.verdict.compare import compare
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m src", description="Evaluate AI agents.")
     commands = parser.add_subparsers(dest="command", required=True)
+    doctor = commands.add_parser("doctor", help="check Python env, Pegasus, env files, certificates and CORTEX")
+    doctor.add_argument("--no-ping", action="store_true", help="skip the test call to CORTEX")
     commands.add_parser("list", help="show agents and their suites")
 
     new = commands.add_parser("new-agent", help="create agents/<name>/ from the template")
@@ -66,6 +70,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     """Run one command; returns the exit code."""
     args = build_parser().parse_args(argv)
+
+    if args.command == "doctor":
+        return run_doctor(ping=not args.no_ping)
 
     if args.command == "list":
         for agent_name in list_agents():

@@ -18,7 +18,7 @@ from typing import Any
 
 import httpx
 
-from src.core.env import tls_setting
+from src.core import tls
 from src.core.exceptions import AgentCallError
 from src.utils.adk_trace import final_text
 
@@ -37,7 +37,7 @@ def call_agent(connection: dict[str, Any], message: str) -> dict[str, Any]:
     retries = int(connection.get("retries", 1))
     client_args = {
         "timeout": float(connection.get("timeout_s", 120)),
-        "verify": tls_setting(connection.get("verify_tls", True)),
+        "verify": tls.httpx_verify(connection.get("verify_tls", True)),
         "headers": _headers(connection.get("headers") or {}),
     }
 

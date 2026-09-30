@@ -65,3 +65,46 @@ def test_athena_mcp_source_calls_the_mcp_server(monkeypatch, event_stream):
                                        "arguments": {"pageId": "8708", "format": "json"}})]
     assert documents[0]["text"].startswith("Types of Accessible Format Statements")
     assert documents[0]["metadata"]["revision"] == str(page["@revision"])
+
+
+# --- HTTPS certificates (src/core/tls.py) -----------------------------------------------------
+
+def test_certificate_checks_are_off_by_default_like_main(monkeypatch):
+    import ssl
+
+    from src.core import tls
+    monkeypatch.setattr(tls.os, "environ", {})                     # no VERIFY_TLS / CA_BUNDLE set
+    monkeypatch.setattr(tls, "_PATCHED", False)
+    monkeypatch.setattr(ssl, "create_default_context", ssl.create_default_context)   # restored after
+    tls.configure()
+    assert ssl.create_default_context().verify_mode == ssl.CERT_NONE   # DeepEval / Pegasus clients too
+    assert tls.httpx_verify(True) is False
+
+
+def test_ca_bundle_is_shared_with_every_library(monkeypatch, tmp_path):
+    from src.core import tls
+    bundle = str(tmp_path / "corporate-ca.pem")
+    environ = {"CA_BUNDLE": bundle}
+    monkeypatch.setattr(tls.os, "environ", environ)
+    tls.configure()
+    assert environ["SSL_CERT_FILE"] == bundle and environ["REQUESTS_CA_BUNDLE"] == bundle
+    assert tls.verify_enabled()
+
+
+def test_verify_tls_true_keeps_checks_on(monkeypatch):
+    from src.core import tls
+    monkeypatch.setattr(tls.os, "environ", {"VERIFY_TLS": "true"})
+    assert tls.httpx_verify(True) is True and tls.httpx_verify("false") is False
+
+
+# --- make doctor ------------------------------------------------------------------------------
+
+def test_doctor_reports_pegasus_and_reaches_cortex(fake_cortex, monkeypatch, tmp_path, capsys):
+    from src.core import paths
+    from src.onboarding.doctor import run_doctor
+    (tmp_path / ".env").write_text("")
+    monkeypatch.setattr(paths, "ENV_DIR", tmp_path)
+    assert run_doctor() == 0                                         # Pegasus missing is a warning
+    out = capsys.readouterr().out
+    assert "[WARN] pegasus" in out and "[OK  ] CORTEX call" in out
+    assert "key-123" not in out                                      # secrets are never printed

@@ -11,7 +11,8 @@ Settings (env/.env):
   HIVE_ATHENA_BASE_URL        e.g. https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/athena-mcp-server
   HIVE_ATHENA_CLIENT_ID       sent as x-lbg-client-id
   HIVE_ATHENA_CLIENT_SECRET   sent as x-lbg-client-secret
-  HIVE_ATHENA_VERIFY_TLS      true (default) | false | /path/to/ca-bundle.pem
+
+Certificate checks follow VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
 
 Used by: synthesizer/sources/athena_mcp.py.
 """
@@ -19,19 +20,19 @@ Used by: synthesizer/sources/athena_mcp.py.
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 
 import httpx
 
-from src.core.env import require, tls_setting
+from src.core import tls
+from src.core.env import require
 
 
 def athena_http(timeout_s: float = 60) -> httpx.Client:
     """An HTTP client with the Athena auth headers. Use it in a `with` block."""
     return httpx.Client(
         timeout=timeout_s,
-        verify=tls_setting(os.environ.get("HIVE_ATHENA_VERIFY_TLS", "true")),
+        verify=tls.httpx_verify(),
         headers={
             # MCP servers may answer as plain JSON or as a server-sent event; accept both.
             "accept": "application/json, text/event-stream",

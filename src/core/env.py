@@ -9,7 +9,8 @@ Where values come from, strongest first:
 
 env/.env.example lists every variable. `make setup` copies it to env/.env.
 
-Importing this module loads env/.env once, so every command sees the shared values.
+Importing this module loads env/.env once, so every command sees the shared values, and then
+applies the HTTPS certificate settings (src/core/tls.py).
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ from typing import Any
 
 from dotenv import dotenv_values
 
-from src.core import paths
+from src.core import paths, tls
 from src.core.exceptions import ConfigError
 
 # Taken before any env file is read: whatever is in here came from the shell and always wins.
@@ -76,17 +77,5 @@ def require(name: str, error: type[Exception] = ConfigError) -> str:
     return value
 
 
-def tls_setting(value: Any) -> bool | str:
-    """
-    Turn a verify-TLS setting into what httpx expects:
-      true / "" -> True (check certificates)   false -> False   anything else -> a CA bundle path
-    """
-    if isinstance(value, bool):
-        return value
-    text = str(value if value is not None else "").strip()
-    if text.lower() in ("true", "false", ""):
-        return text.lower() != "false"
-    return text
-
-
 load_shared_env()
+tls.configure()      # HTTPS certificate settings (VERIFY_TLS / CA_BUNDLE) — see src/core/tls.py

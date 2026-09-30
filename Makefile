@@ -23,12 +23,16 @@ REPLACE ?=
 
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
-EVAL  = uv run python -m src          # the CLI: src/cli.py
+# Which Python runs the commands: the project's .venv (made by make setup), or — if you activated a
+# virtual env first, e.g. one that already has Pegasus — that one (uv adds any missing packages to it).
+UV_RUN = uv run $(if $(VIRTUAL_ENV),--active)
+EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup list new-agent run baseline verdict sources goldens dashboard test
+.PHONY: help setup doctor list new-agent run baseline verdict sources goldens dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
+	@echo "make doctor                                 check Python env, Pegasus, env files, certificates, CORTEX"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
 	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n] [CASE="TC_001 TC_002"]"
@@ -40,8 +44,11 @@ help:
 	@echo "make test                                   test the framework itself (offline)"
 
 setup:
-	uv sync
+	uv sync --inexact          # --inexact: keep packages installed by hand, e.g. Pegasus
 	@test -f env/.env || (cp env/.env.example env/.env && echo "Created env/.env - fill in your values")
+
+doctor:
+	$(EVAL) doctor
 
 list:
 	$(EVAL) list
@@ -68,7 +75,7 @@ goldens:
 	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
 
 dashboard:
-	uv run streamlit run src/reporting/dashboard.py
+	$(UV_RUN) streamlit run src/reporting/dashboard.py
 
 test:
-	uv run pytest -q
+	$(UV_RUN) pytest -q
