@@ -7,15 +7,21 @@ Optional. Delete this file if the standard fields are enough:
 
 Add a parse() to expose more fields from the trace (judges can point at them in agent.yaml),
 and a checks() for deterministic checks specific to this agent.
+
+  parse(trace, case)   -> dict of extra fields (may also override the standard ones)
+  checks(fields, case) -> list of check(...) results
+
+Trace helpers (state, find_event, event_json, tool_calls) are in src/utils/adk_trace.py.
 """
 
-from evalkit import adk, check  # noqa: F401 — used by the commented examples below
+from src.core.results import check  # noqa: F401 — used by the commented examples below
+from src.utils.adk_trace import state, tool_calls  # noqa: F401 — more helpers in src/utils/adk_trace.py
 
 
 def parse(trace, case):
     return {
-        # "rewritten_query": adk.state(trace, "rewritten_query", ""),
-        # "tools_called": [c["name"] for c in adk.tool_calls(trace)],
+        # "rewritten_query": state(trace, "rewritten_query", ""),
+        # "tools_called": [c["name"] for c in tool_calls(trace)],
     }
 
 

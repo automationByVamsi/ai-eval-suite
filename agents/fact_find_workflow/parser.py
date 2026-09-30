@@ -10,7 +10,8 @@ That payload becomes `contexts` (for faithfulness and the rubrics) and `source_d
 import json
 from pathlib import Path
 
-from evalkit import adk, check
+from src.core.results import check
+from src.utils.adk_trace import state, tool_calls
 
 HERE = Path(__file__).parent
 INVALID_MARKERS = ("InvalidComplaintId", "valid complaint reference must begin")
@@ -23,7 +24,7 @@ def parse(trace, case):
     is_invalid = any(m in answer for m in INVALID_MARKERS)
     payload = _ground_truth(case)
     contexts = payload_to_context(payload) if payload else []
-    calls = adk.tool_calls(trace)
+    calls = tool_calls(trace)
     return {
         # The judges' "question" is the task, not the bare reference number.
         "question": f"Produce a Customer FactFind Summary for complaint reference {ref}",
@@ -32,7 +33,7 @@ def parse(trace, case):
         "invalid_message": answer if is_invalid else "",   # only invalid-path cases get validation_message_clarity
         "is_invalid_message": is_invalid,
         "looks_like_summary": any(m in answer for m in SUMMARY_MARKERS),
-        "validation_failed": bool(adk.state(trace, "complaint_validation_failed", False)),
+        "validation_failed": bool(state(trace, "complaint_validation_failed", False)),
         "tools_called": [c["name"] for c in calls],
         "party_id_used": next((str(c["args"]["partyId"]) for c in calls if c["args"].get("partyId")), ""),
         "facts": key_facts(payload) if payload else {},

@@ -21,7 +21,7 @@ GROUP ?=
 REPLACE ?=
 
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges)
-EVAL  = uv run python -m evalkit
+EVAL  = uv run python -m src          # the CLI: src/cli.py
 
 .PHONY: help setup list new-agent run baseline verdict sources goldens dashboard test
 
@@ -66,7 +66,7 @@ goldens:
 	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
 
 dashboard:
-	uv run streamlit run dashboard.py
+	uv run streamlit run src/reporting/dashboard.py
 
 test:
 	uv run pytest -q

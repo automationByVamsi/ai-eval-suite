@@ -19,6 +19,13 @@
 #                            has an equivalent, so machines without Pegasus can still run it).
 #  Remove a metric:          delete its entry, and remove it from any agents/*/agent.yaml.
 #  Agent-specific judges:    don't add them here — give them a `rubric:` in that agent's agent.yaml.
+#
+#  Per agent (in agents/<agent>/agent.yaml, not here), a metric can also set:
+#    threshold: 0.8              pass mark, 0..1 (default 0.7)
+#    engine: deepeval|pegasus    force one engine
+#    method: pegasus|ragas|deepeval   which of Pegasus' own methods computes it (default pegasus)
+#
+#  Read by: src/metrics/library.py (checked when an agent loads, so a typo fails straight away).
 # ============================================================================================
 
 relevance:

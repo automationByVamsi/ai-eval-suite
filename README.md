@@ -49,9 +49,12 @@ which engine scored it.
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
 | judge model / CORTEX / Pegasus / Athena settings  | `env/.env` |
-| regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `evalkit/verdict.py` |
+| regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `src/verdict/compare.py` |
+| CORTEX timeout / retries / TLS / API key          | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_VERIFY_TLS`, `CORTEX_API_KEY` in `env/.env` |
+| an endpoint, header or auth scheme changed        | the matching file in `src/clients/` |
+| add a new kind of synthesizer source (an API, …)  | one new file in `src/synthesizer/sources/` (copy `json_records.py`) |
 
-You should never need to edit `evalkit/` to onboard an agent or change metrics.
+You should never need to edit `src/` to onboard an agent or change metrics.
 
 ## Everyday commands
 
@@ -75,7 +78,12 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 ## Project layout
 
 ```
+Makefile                        every command (make help)
 metric_library.yaml             built-in metrics: Pegasus class, DeepEval fallback, fields they need
+env/
+  .env.example                  every setting, documented — `make setup` copies it to env/.env
+  .env                          your values: CORTEX, Athena, agent URLs            (not committed)
+  .env.<agent>                  optional, one agent's values; override env/.env    (not committed)
 agents/
   <agent>/                      everything about one agent lives in its folder
     agent.yaml                  connection, metrics (+ thresholds), suites
@@ -85,20 +93,34 @@ agents/
     client.py                   only for agents that are not Google ADK     (optional)
     synth/                      test-case generator: synth.yaml, styles/, instructions.md (optional)
   _template/                    what `make new-agent` copies
-evalkit/                        the framework (~1,350 lines) — start with runner.py
-  runner.py                     steps 1–6
-  judges.py                     how a metric is scored (engine rule, fields, skip/error)
-  verdict.py                    baseline + verdict (step 7)
-  adk.py                        Google ADK client + trace helpers for parsers
-  cortex.py                     the judge LLM (CORTEX gateway) for DeepEval and Pegasus
-  synth.py                      the synthesizer (make sources / make goldens)
-  sources/                      built-in synthesizer sources: files, json_records
-sources/                        the team's own synthesizer sources: athena_mcp.py
-  results.py, config.py, new_agent.py, __main__.py
+src/                            the framework — src/__init__.py has a map of it
+  cli.py                        every make command lands here (python -m src ...)
+  core/                         paths, env files, agent.yaml loading, result types, errors
+  clients/                      adk_client (the agent), cortex_client (judge model), athena_client
+  runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
+  metrics/                      library (metric_library.yaml), judge (engine rule, skip/error),
+                                deepeval_judge, pegasus_judge
+  verdict/                      baseline (save), compare (verdict + tolerances)
+  reporting/                    console report, dashboard.py (Streamlit)
+  synthesizer/                  generator, settings, documents, output_template,
+                                sources/ (athena_mcp, files, json_records)
+  onboarding/                   new_agent (make new-agent)
+  utils/                        adk_trace (helpers for parser.py), text, html_text
+tests/                          test_runner, test_metrics, test_verdict, test_synthesizer, test_clients
 baselines/<agent>/<suite>.json  committed, so the team compares against the same baseline
 outputs/traces/                 latest trace per case (committed ones are offline fixtures)
 outputs/runs/<run id>/          results.json + that run's traces (not committed)
-dashboard.py  Makefile  tests/
+```
+
+Every file starts with a comment saying what it does, who uses it and what you'd change there.
+Reading order for the code: `src/runners/suite_runner.py` → `src/metrics/judge.py` →
+`src/verdict/compare.py` → `src/clients/`.
+
+**In a parser**, import the helpers from the framework:
+
+```python
+from src.core.results import check                                    # a deterministic check
+from src.utils.adk_trace import state, find_event, event_json, tool_calls  # read the ADK trace
 ```
 
 ## A test case
@@ -223,7 +245,7 @@ make run     AGENT=knowledge_agent SUITE=golden                     # evaluate t
 | `athena_mcp` | knowledge-base pages from the Hive Athena MCP server | `ids_file`; `HIVE_ATHENA_*` in `env/.env` |
 | `files` | a folder of `.txt` / `.md` / `.json` files; sub-folders become groups | `folder` (default `documents`) |
 | `json_records` | one JSON file with a list of records (an API export, a table) | `file`, `records_key`, `id_field`, `group_field`, `title_field`, `text_fields` |
-| your own | any other system | `sources/<name>.py` with `fetch(settings, ids, folder) -> [documents]` |
+| your own | any other system | `src/synthesizer/sources/<name>.py` with `fetch(settings, ids, folder) -> [documents]` |
 
 `ids_file` (any id-based source) groups ids: `[{"domain": "…", "page_ids": ["…"]}]` (`group`/`ids` also work).
 `GROUP=` picks groups, `IDS=` picks ids. `make goldens` fetches whatever isn't in `cache/` yet;
@@ -266,7 +288,7 @@ case × check/judge the baseline stores the pass rate and mean score. The verdic
 - something in the baseline didn't run at all, or the run had agent/judge errors.
 
 It also flags when a score came from a different engine than the baseline (not comparable).
-To reuse a run instead of running again: `uv run python -m evalkit verdict AGENT SUITE --from-run latest`.
+To reuse a run instead of running again: `uv run python -m src verdict AGENT SUITE --from-run latest`.
 A baseline is refused if its run had errors.
 
 ## Pass, fail, skip, error
@@ -279,6 +301,26 @@ A baseline is refused if its run had errors.
 | error | the agent or the judge couldn't run (network, auth, crash) | case errors |
 
 An unreachable agent or judge is an **error** — never a pass, a skip, or a score of 0.
+
+## Coming from the earlier `evalkit/` layout of this branch
+
+Same behaviour, new places. `make` commands are unchanged; `python -m evalkit` is now `python -m src`.
+
+| was | now |
+|---|---|
+| `evalkit/runner.py` | `src/runners/suite_runner.py` + `src/runners/test_cases.py` |
+| `evalkit/judges.py` | `src/metrics/judge.py`, `library.py`, `deepeval_judge.py`, `pegasus_judge.py` |
+| `evalkit/verdict.py` | `src/verdict/baseline.py` + `src/verdict/compare.py` (+ printing in `src/reporting/console.py`) |
+| `evalkit/adk.py` | `src/clients/adk_client.py` + trace helpers in `src/utils/adk_trace.py` |
+| `evalkit/cortex.py` | `src/clients/cortex_client.py` |
+| `evalkit/config.py` | `src/core/agent_config.py`, `src/core/env.py`, `src/core/paths.py` |
+| `evalkit/results.py` | `src/core/results.py` (+ `src/reporting/console.py`) |
+| `evalkit/synth.py` | `src/synthesizer/` (generator, settings, documents, output_template) |
+| `evalkit/sources/`, `sources/athena_mcp.py` | `src/synthesizer/sources/` (+ `src/clients/athena_client.py`) |
+| `evalkit/new_agent.py` | `src/onboarding/new_agent.py` |
+| `dashboard.py` | `src/reporting/dashboard.py` |
+| `.env`, `.env.example` | `env/.env`, `env/.env.example` (a root `.env` is still read if `env/.env` is missing) |
+| in parser.py: `from evalkit import adk, check` | `from src.core.results import check` and `from src.utils.adk_trace import state, ...` |
 
 ## Coming from the v1 framework (`main` before this branch)
 
@@ -298,7 +340,7 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 | `make verdict-baseline` / `verdict-check` | `make baseline` / `make verdict` |
 | `configs/synthesizers/knowledge_agent/*` (config, evolution, filtration yaml) | one `agents/knowledge_agent/synth/synth.yaml` + `instructions.md` + `styles/` |
 | `data/knowledge_agent/source_docs/`, `configs/synthesizers/knowledge_agent/page_ids.json` | `agents/knowledge_agent/synth/cache/`, `…/synth/page_ids.json` |
-| `src/clients/hive_athena_mcp_client.py` + `src/synthesizer/clean.py` | `sources/athena_mcp.py` |
+| `src/clients/hive_athena_mcp_client.py` + `src/synthesizer/clean.py` | `src/clients/athena_client.py` + `src/synthesizer/sources/athena_mcp.py` |
 | `make synth-ka-prepare` / `synth-ka-generate` | `make sources AGENT=knowledge_agent` / `make goldens AGENT=knowledge_agent` |
 | `make synth-ka-generate-page PAGE_ID=…` / `-domain DOMAIN=…` | `make goldens AGENT=knowledge_agent IDS=…` / `GROUP=…` |
 | synthesized cases' `reference.answer` | `expected.expected_answer` (set in the output template) |

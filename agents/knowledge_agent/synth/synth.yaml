@@ -6,7 +6,7 @@
 #
 # Paths are relative to this folder. The generator model is the CORTEX model in .env.
 
-# 1. SOURCE — where the documents come from.  Other types: files, json_records, or your own in sources/
+# 1. SOURCE — where the documents come from.  Other types: files, json_records, or your own in src/synthesizer/sources/
 source:
   type: athena_mcp
   ids_file: page_ids.json            # page ids grouped by domain; GROUP= picks domains, IDS= picks pages
