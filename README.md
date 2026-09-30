@@ -28,18 +28,32 @@ make run AGENT=knowledge_agent SUITE=sanity
 make dashboard
 ```
 
+### CorteX: API key or DevKit
+
+All judges and the synthesizer talk to CORTEX. Choose how in `env/.env`:
+
+| `CORTEX_AUTH=` | What you set up | Notes |
+|---|---|---|
+| `api_key` (default) | `CORTEX_HOST`, `CORTEX_CLIENT_ID`, `CORTEX_API_KEY` | calls the gateway directly, as before |
+| `devkit` | the SAR token (below), `make setup`, then `make cortex-login` once | CorteX DevKit: SSO in the browser, no API key; the DevKit finds the CorteX host itself (`CORTEX_ENV=int\|pre\|prd` pins one) |
+
+Pegasus signs its own CORTEX calls and still needs `CORTEX_API_KEY` (or client id + secret). With the
+DevKit and no key, Pegasus metrics run on DeepEval through the DevKit, and a warning says so.
+`make doctor` checks whichever mode you chose and makes one test call.
+
 ### Pegasus (one-time, per machine)
 
-Pegasus (`lbg-pegasus`) comes from SAR, so it needs your SAR token — the same token the Pegasus guide
-puts in `pip.conf`. The project is already set up for it (`pyproject.toml`: the `lbg-pegasus` index and
-the `pegasus` group, the guide's "uv option"). You only add the token:
+Pegasus (`lbg-pegasus`) and the CorteX DevKit (`cortex-devkit`) come from SAR, so they need your SAR
+token — the same token the Pegasus guide puts in `pip.conf`. The project is already set up for both
+(`pyproject.toml`: their SAR indexes and the `pegasus` / `devkit` groups, the guides' "uv option").
+You only add the token:
 
 1. In `env/.env` (created by `make setup` if it isn't there):
    ```
    SAR_TOKEN_NAME=<USER_TOKEN_NAME>
    SAR_TOKEN_PASS_CODE=<USER_TOKEN_PASS_CODE>
    ```
-2. `make setup` — runs `uv sync` with Pegasus included (the steps are in `scripts/setup.sh`).
+2. `make setup` — runs `uv sync` with Pegasus and the DevKit included (the steps are in `scripts/setup.sh`).
 3. `make doctor` — should show `[OK] pegasus <version>`.
 
 No token or no SAR access? `make setup` still installs everything else and says so; Pegasus metrics then
@@ -72,6 +86,7 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
 | judge model / CORTEX / Pegasus / Athena settings  | `env/.env` |
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `src/verdict/compare.py` |
+| CORTEX with an API key, or with the DevKit        | `CORTEX_AUTH=api_key` or `devkit` in `env/.env` (see CorteX above) |
 | CORTEX timeout / retries / API key                | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_API_KEY` in `env/.env` |
 | SSL certificate errors (office proxy)             | `VERIFY_TLS=false` or `CA_BUNDLE=...` in `env/.env` (one setting for every call) |
 | Pegasus "not installed" warning                    | SAR token in `env/.env`, then `make setup` (see Pegasus above); check with `make doctor` |
@@ -85,6 +100,7 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 | I want to…                                  | Command |
 |---------------------------------------------|---------|
 | check this machine is ready                 | `make doctor` |
+| sign in to CORTEX with the DevKit (once)    | `make cortex-login` |
 | see agents, suites and their metrics        | `make list` |
 | create a new agent                          | `make new-agent NAME=claims_agent INPUT_FIELD=claim_id` |
 | run a suite                                 | `make run AGENT=knowledge_agent SUITE=sanity` |
@@ -105,7 +121,7 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 
 ```
 Makefile                        every command (make help)
-scripts/setup.sh                what `make setup` does (uv sync + Pegasus)
+scripts/setup.sh                what `make setup` does (uv sync + Pegasus + CorteX DevKit)
 metric_library.yaml             built-in metrics: Pegasus class, DeepEval fallback, fields they need
 env/
   .env.example                  every setting, documented — `make setup` copies it to env/.env
@@ -123,7 +139,7 @@ agents/
 src/                            the framework — src/__init__.py has a map of it
   cli.py                        every make command lands here (python -m src ...)
   core/                         paths, env files, HTTPS certificates (tls), agent.yaml loading, results, errors
-  clients/                      adk_client (the agent), cortex_client (judge model), athena_client
+  clients/                      adk_client (the agent), cortex_client (judge model: API key or DevKit), athena_client
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
   metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
   verdict/                      baseline (save), compare (verdict + tolerances)

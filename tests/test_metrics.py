@@ -44,12 +44,16 @@ def test_judge_crash_is_an_error_not_a_low_score(monkeypatch):
 
 def test_engine_rule(monkeypatch):
     monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    monkeypatch.setattr(judges, "pegasus_has_credentials", lambda: True)
     assert judges.pick_engine(definition("relevance", {})) == "pegasus"
     assert judges.pick_engine(definition("summarization", {})) == "deepeval"     # not in Pegasus
     assert judges.pick_engine(definition("mine", {"rubric": RUBRIC})) == "deepeval"
     assert judges.pick_engine(definition("relevance", {"engine": "deepeval"})) == "deepeval"
     monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
     assert judges.pick_engine(definition("relevance", {})) == "deepeval"         # fallback
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    monkeypatch.setattr(judges, "pegasus_has_credentials", lambda: False)        # e.g. DevKit only, no key
+    assert judges.pick_engine(definition("relevance", {})) == "deepeval"
 
 
 def test_deepeval_judges_run_through_cortex(fake_cortex):
@@ -71,3 +75,62 @@ def test_a_nan_score_is_an_error_not_a_fail(monkeypatch):
     monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
     result = judges.run_judge("relevance", {}, {"question": "q", "answer": "a"})
     assert result.status == results.ERROR and result.score is None
+
+
+def test_devkit_mode_uses_cortex_client_instead_of_the_api_key(monkeypatch):
+    """CORTEX_AUTH=devkit: calls go through cortex.Client() (fake here); no host, client id or key needed."""
+    import sys
+    import types
+
+    from src.clients import cortex_client
+    calls = []
+
+    class FakeResponse:
+        def __init__(self, status, body):
+            self.status_code, self._body = status, body
+
+        def json(self):
+            return self._body
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise RuntimeError(f"HTTP {self.status_code}")
+
+    class FakeDevkitClient:
+        def __init__(self, timeout=None):
+            pass
+
+        def post(self, path, json):
+            calls.append((path, json["model"]))
+            if len(calls) == 1:
+                return FakeResponse(503, {})                       # busy: retried
+            return FakeResponse(200, {"choices": [{"message": {"content": "OK"}}]})
+
+    monkeypatch.setitem(sys.modules, "cortex", types.SimpleNamespace(Client=FakeDevkitClient))
+    monkeypatch.setattr(cortex_client.time, "sleep", lambda s: None)
+    for name in ("CORTEX_HOST", "CORTEX_CLIENT_ID", "CORTEX_API_KEY", "CORTEX_DEVKIT_CHAT_PATH"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setenv("CORTEX_MODEL", "vertex_ai/gemini-2.5-pro")
+    cortex_client.deepeval_llm.cache_clear()
+    try:
+        assert cortex_client.deepeval_llm().generate("hi") == "OK"
+    finally:
+        cortex_client.deepeval_llm.cache_clear()
+    assert calls == [("/api/v1/chat/completions", "vertex_ai/gemini-2.5-pro")] * 2
+
+
+def test_devkit_mode_without_the_package_says_how_to_install(monkeypatch):
+    import sys
+
+    from src.clients import cortex_client
+    from src.core.exceptions import JudgeConfigError
+    monkeypatch.setitem(sys.modules, "cortex", None)                   # import cortex -> ImportError
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    cortex_client.deepeval_llm.cache_clear()
+    try:
+        import pytest
+        with pytest.raises(JudgeConfigError, match="make setup"):
+            cortex_client.deepeval_llm()
+    finally:
+        cortex_client.deepeval_llm.cache_clear()

@@ -10,7 +10,8 @@ This file has three parts, top to bottom:
 
 Which engine scores a metric — the whole rule:
   custom rubric / criteria                             -> DeepEval (GEval)
-  library metric with `pegasus:` and Pegasus installed -> Pegasus
+  library metric with `pegasus:`, Pegasus installed
+    and CORTEX credentials Pegasus can use             -> Pegasus
   otherwise                                            -> DeepEval (with a one-time warning if it
                                                           was meant to be Pegasus)
   `engine: deepeval|pegasus` on a metric in agent.yaml forces one (rarely needed).
@@ -92,13 +93,21 @@ def pick_engine(metric: dict[str, Any]) -> str:
     """'pegasus' or 'deepeval' for a metric definition — see the rule at the top of this file."""
     if metric.get("engine"):
         return metric["engine"]
-    if metric.get("pegasus") and pegasus_installed():
+    if metric.get("pegasus") and pegasus_installed() and pegasus_has_credentials():
         return "pegasus"
     if metric.get("deepeval") or metric.get("criteria"):
-        if metric.get("pegasus"):
+        if metric.get("pegasus") and not pegasus_installed():
             _warn_once("Pegasus is not installed — Pegasus metrics are running on DeepEval on this machine.")
+        elif metric.get("pegasus"):
+            _warn_once("Pegasus has no CORTEX credentials (CORTEX_API_KEY, or CORTEX_CLIENT_ID + "
+                       "CORTEX_CLIENT_SECRET) — Pegasus metrics are running on DeepEval.")
         return "deepeval"
-    raise RuntimeError("this metric only exists in Pegasus, and Pegasus is not installed")
+    raise RuntimeError("this metric only exists in Pegasus, and Pegasus is not installed or has no credentials")
+
+
+def pegasus_has_credentials() -> bool:
+    """Pegasus signs its own CORTEX calls; without a key (e.g. DevKit-only setups) it can't run."""
+    return cortex_client.pegasus_can_authenticate()
 
 
 @functools.cache

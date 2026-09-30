@@ -19,9 +19,14 @@ dev = ["pytest>=8.0"]
 # Pegasus metrics run on DeepEval. Kept in its own group so people without SAR access can still
 # install everything else.
 pegasus = ["lbg-pegasus>=2.2.0"]
+# CorteX DevKit (`import cortex` + the `cx` CLI): sign in to CORTEX with SSO instead of an API key.
+# Installed by `make setup` the same way as Pegasus; only needed when CORTEX_AUTH=devkit.
+devkit = ["cortex-devkit"]
 
 [tool.uv]
 package = false
+# Use the operating system's certificates, so uv trusts the LBG internal CA chain (CorteX DevKit guide).
+native-tls = true
 
 # Where lbg-pegasus comes from (from the Pegasus installation guide, "uv option"). `explicit = true`:
 # only lbg-pegasus is looked up here — every other package still comes from the normal index.
@@ -30,8 +35,15 @@ name = "lbg-pegasus"
 url = "https://artefacts.lloydsbanking.cloud/repository/innersource-anlaip_pegas-python/simple/"
 explicit = true
 
+# Where cortex-devkit comes from (CorteX DevKit guide, "Configure your project"). Explicit, like above.
+[[tool.uv.index]]
+name = "innersource-gentex"
+url = "https://artefacts.lloydsbanking.cloud/repository/innersource-anlaip_gentex-python/simple/"
+explicit = true
+
 [tool.uv.sources]
 lbg-pegasus = { index = "lbg-pegasus" }
+cortex-devkit = { index = "innersource-gentex" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

@@ -29,10 +29,11 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup doctor list new-agent run baseline verdict sources goldens dashboard test
+.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
+	@echo "make cortex-login                           CorteX DevKit only: sign in with SSO (once; CORTEX_AUTH=devkit)"
 	@echo "make doctor                                 check Python env, Pegasus, env files, certificates, CORTEX"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
@@ -48,6 +49,11 @@ help:
 # The steps are in scripts/setup.sh (readable, commented).
 setup:
 	@sh scripts/setup.sh
+
+# CorteX DevKit sign-in (only when CORTEX_AUTH=devkit): opens the browser for SSO, then stores the
+# token in your OS keyring. Every command after this reaches CORTEX without an API key.
+cortex-login:
+	$(UV_RUN) cx auth login
 
 doctor:
 	$(EVAL) doctor
