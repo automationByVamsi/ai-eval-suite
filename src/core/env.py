@@ -37,6 +37,9 @@ def load_env_file(path: Path) -> bool:
     if not path.is_file():
         return False
     for key, value in dotenv_values(path).items():
+        if value is not None and value.lstrip().startswith("#"):
+            # `KEY=      # a comment` — python-dotenv keeps the comment as the value. It means "empty".
+            value = ""
         if key not in _SHELL_VARS and value is not None:
             os.environ[key] = value
     return True

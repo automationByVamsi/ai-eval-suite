@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import functools
 import importlib.util
+import math
 import os
 from typing import Any
 
@@ -76,6 +77,11 @@ def run_judge(name: str, spec: dict[str, Any], fields: dict[str, Any]) -> Result
         result.status, result.reason = ERROR, f"{type(exc).__name__}: {exc}"
         return result
 
+    if score is None or math.isnan(float(score)):
+        # Pegasus returns NaN instead of raising when its LLM call failed: that's an ERROR, not a FAIL.
+        result.status = ERROR
+        result.reason = f"no score (the judge's LLM call failed — see the log above) {reason or ''}".strip()
+        return result
     result.score = round(float(score), 4)
     result.status = PASS if result.score >= threshold else FAIL
     result.reason = reason or ""

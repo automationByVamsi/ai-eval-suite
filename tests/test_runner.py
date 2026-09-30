@@ -153,3 +153,15 @@ def test_cli_runs_and_reports_config_errors_in_one_line(outputs, capsys, monkeyp
     monkeypatch.setattr("sys.argv", ["src", "run", "no_such_agent", "sanity"])
     assert cli.run_cli() == 1
     assert capsys.readouterr().err.startswith("ERROR: No agent 'no_such_agent'")
+
+
+def test_comment_after_an_empty_env_value_is_not_the_value(tmp_path, monkeypatch):
+    import os
+
+    from src.core import env
+    (tmp_path / ".env").write_text("CORTEX_BASE_URL=        # optional; defaults to CORTEX_HOST\nX_KEEP=v  # x\n")
+    monkeypatch.delenv("CORTEX_BASE_URL", raising=False)
+    monkeypatch.delenv("X_KEEP", raising=False)
+    monkeypatch.setattr(env, "_SHELL_VARS", set())
+    env.load_env_file(tmp_path / ".env")
+    assert os.environ["CORTEX_BASE_URL"] == "" and os.environ["X_KEEP"] == "v"

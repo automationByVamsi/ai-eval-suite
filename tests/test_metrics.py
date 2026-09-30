@@ -64,3 +64,10 @@ def test_deepeval_judges_run_through_cortex(fake_cortex):
     last = fake_cortex[-1]
     assert last["x-lbg-origin-client-id"] == "test"
     assert last["authorization"] == "Bearer key-123"     # CorteX 2.0 API key
+
+
+def test_a_nan_score_is_an_error_not_a_fail(monkeypatch):
+    monkeypatch.setattr(judges, "score_with_deepeval", lambda *args: (float("nan"), ""))
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
+    result = judges.run_judge("relevance", {}, {"question": "q", "answer": "a"})
+    assert result.status == results.ERROR and result.score is None
