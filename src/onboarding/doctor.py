@@ -8,6 +8,7 @@ It checks, in order:
   4. the HTTPS certificate settings (VERIFY_TLS / CA_BUNDLE)
   5. the CORTEX settings for the chosen CORTEX_AUTH (api_key or devkit), then one tiny call to
      CORTEX to prove the judge model is reachable
+  6. one real Pegasus metric (answer relevancy on a two-line example), when Pegasus is installed
 
 Secrets are never printed — only whether they are set.
 """
@@ -52,7 +53,8 @@ def run_doctor(ping: bool = True) -> int:
     # 3. Judge libraries
     line(OK if _installed("deepeval") else FAIL, "deepeval", _version("deepeval") or "not installed — run make setup")
     if _installed("pegasus"):
-        where = importlib.util.find_spec("pegasus").origin or ""
+        spec = importlib.util.find_spec("pegasus")
+        where = (spec.origin if spec else "") or ""
         line(OK, "pegasus", f"{_version_of_module('pegasus')}  {os.path.dirname(where)}")
     else:
         line(WARN, "pegasus", "not installed in this environment — Pegasus metrics will run on DeepEval.\n"
@@ -95,7 +97,8 @@ def run_doctor(ping: bool = True) -> int:
             # Pegasus takes the DevKit sign-in as its key: check it can be read (never printed).
             try:
                 cortex_client.devkit_token()
-                line(OK, "Pegasus credentials", f"DevKit sign-in -> {cortex_client.devkit_api_base()}")
+                base = os.environ.get("CORTEX_BASE_URL") or cortex_client.devkit_api_base()
+                line(OK, "Pegasus credentials", f"DevKit token (auth_token) -> {base}")
             except Exception as exc:  # noqa: BLE001
                 line(FAIL, "Pegasus credentials", f"{type(exc).__name__}: {str(exc)[:200]}  -> run make cortex-login")
         elif mode != "devkit":
@@ -114,6 +117,20 @@ def run_doctor(ping: bool = True) -> int:
             elif mode == "devkit" and any(w in str(exc).lower() for w in ("login", "credential", "401", "token")):
                 hint = "  -> run make cortex-login"
             line(FAIL, "CORTEX call", f"{type(exc).__name__}: {str(exc)[:300]}{hint}")
+
+    # 6. One real Pegasus metric on a tiny example — proves Pegasus + its CORTEX sign-in end to end.
+    if ping and ready and _installed("pegasus"):
+        from src.clients import cortex_client
+        from src.metrics import judges
+        if cortex_client.pegasus_can_authenticate():
+            result = judges.run_judge("relevance", {"engine": "pegasus"}, {
+                "question": "What is the capital of France?",
+                "answer": "Paris is the capital of France.",
+            })
+            if result.score is not None:
+                line(OK, "Pegasus metric", f"relevance score={result.score:.2f} [pegasus]")
+            else:
+                line(FAIL, "Pegasus metric", f"relevance: {result.reason[:300]}")
 
     print("-" * 72)
     print("All good.\n" if not problems else f"{problems} problem(s) above.\n")

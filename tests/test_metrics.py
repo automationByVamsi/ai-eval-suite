@@ -172,28 +172,55 @@ def _fake_devkit_and_pegasus(monkeypatch, client):
     return seen
 
 
-def test_pegasus_uses_the_devkit_sign_in_as_its_key(monkeypatch):
-    """A DevKit client that signs with an httpx auth flow (the token is added per request)."""
+def test_pegasus_gets_the_devkit_token_as_auth_token(monkeypatch):
+    """As in the CorteX DevKit + Pegasus guidance: client.get_token() -> get_model(..., auth_token=...)."""
     import httpx
 
     from src.clients import cortex_client
 
-    class SsoAuth(httpx.Auth):
-        def auth_flow(self, request):
-            request.headers["Authorization"] = "Bearer jwt-from-cx-auth-login"
-            yield request
+    class DevkitClient(httpx.Client):
+        def get_token(self):
+            return "jwt-from-cx-auth-login"
 
-    client = httpx.Client(base_url="https://cortex.lloydsbanking.cloud/api", auth=SsoAuth())
-    seen = _fake_devkit_and_pegasus(monkeypatch, client)
+    seen = _fake_devkit_and_pegasus(monkeypatch, DevkitClient(base_url="https://cortex.lloydsbanking.cloud/api"))
     try:
         assert cortex_client.pegasus_can_authenticate()                 # no CORTEX_API_KEY needed
         assert cortex_client.pegasus_llm() == "pegasus-llm"
     finally:
         cortex_client._shared_devkit_client.cache_clear()
         cortex_client._pegasus_model.cache_clear()
-    assert seen["api_key"] == "jwt-from-cx-auth-login"
+    assert seen["auth_token"] == "jwt-from-cx-auth-login" and "api_key" not in seen
     assert seen["base_url"] == "https://cortex.lloydsbanking.cloud/api/v1"   # Pegasus adds /chat/completions
-    assert seen["model_name"] == "gemini-2.5-flash" and seen["adapter"] == "cortex_api"
+    assert seen["model_name"] == "vertex_ai/gemini-2.5-flash" and seen["adapter"] == "cortex_api"
+
+
+def test_older_pegasus_without_auth_token_gets_the_token_as_api_key(monkeypatch):
+    """A client that only signs requests (httpx auth flow), and a Pegasus whose get_model has no auth_token."""
+    import sys
+
+    import httpx
+
+    from src.clients import cortex_client
+
+    class SsoAuth(httpx.Auth):
+        def auth_flow(self, request):
+            request.headers["Authorization"] = "Bearer jwt-2"
+            yield request
+
+    seen = _fake_devkit_and_pegasus(monkeypatch, httpx.Client(base_url="https://cortex.lloydsbanking.cloud/api",
+                                                               auth=SsoAuth()))
+
+    def old_get_model(adapter, model_type, model_name, base_url, ssl_verify=True, api_key=None):
+        seen.update(api_key=api_key, model_name=model_name)
+        return "old-pegasus-llm"
+
+    sys.modules["pegasus.utils.adapters"].get_model = old_get_model
+    try:
+        assert cortex_client.pegasus_llm() == "old-pegasus-llm"
+    finally:
+        cortex_client._shared_devkit_client.cache_clear()
+        cortex_client._pegasus_model.cache_clear()
+    assert seen["api_key"] == "jwt-2"
 
 
 def test_devkit_token_from_a_fixed_header(monkeypatch):
