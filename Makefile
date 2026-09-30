@@ -16,11 +16,13 @@ OFFLINE ?=
 JUDGES ?= 1
 NAME ?=
 INPUT_FIELD ?= question
+CASE ?=
 IDS ?=
 GROUP ?=
 REPLACE ?=
 
-FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges)
+FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
+        $(foreach c,$(CASE),--case $(c))
 EVAL  = uv run python -m src          # the CLI: src/cli.py
 
 .PHONY: help setup list new-agent run baseline verdict sources goldens dashboard test
@@ -29,7 +31,7 @@ help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
-	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n]"
+	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n] [CASE="TC_001 TC_002"]"
 	@echo "make baseline AGENT=.. SUITE=.. BUILD=..    run a stable build and save it as the baseline [REPS=5]"
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
 	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"

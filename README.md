@@ -17,7 +17,7 @@ You need [uv](https://docs.astral.sh/uv/) and Python 3.12+.
 ```bash
 git clone <this repo> && cd ai-eval-suite
 make setup                                                       # installs everything, creates env/.env
-make run AGENT=fact_find_workflow SUITE=sanity OFFLINE=1 JUDGES=0  # works right away, no network
+make run AGENT=knowledge_agent SUITE=sanity OFFLINE=1 JUDGES=0 CASE="TC_001 TC_002"  # works right away, no network
 ```
 
 That replays saved traces from `outputs/traces/` and runs the deterministic checks.
@@ -62,7 +62,8 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 |---------------------------------------------|---------|
 | see agents, suites and their metrics        | `make list` |
 | create a new agent                          | `make new-agent NAME=claims_agent INPUT_FIELD=claim_id` |
-| run a suite                                 | `make run AGENT=fact_find_workflow SUITE=sanity` |
+| run a suite                                 | `make run AGENT=knowledge_agent SUITE=sanity` |
+| run only some cases                         | `... CASE="TC_001 TC_002"` |
 | rerun without calling the agent             | `... OFFLINE=1` |
 | skip the LLM judges (fast, free)            | `... JUDGES=0` |
 | run every case several times                | `... REPS=5` |
@@ -331,7 +332,6 @@ Same behaviour, new places. `make` commands are unchanged; `python -m evalkit` i
 | `configs/criteria/<agent>/*.md` | `agents/<agent>/rubrics/*.md` |
 | `configs/cortex.yaml` (timeout, retries, verify, auth header) | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_VERIFY_TLS`, `CORTEX_API_KEY` in `env/.env` |
 | `testdata/<agent>/<suite>/` | `agents/<agent>/testdata/<suite>/` |
-| `data/fact_find_workflow/aggregated_payloads/` | `agents/fact_find_workflow/ground_truth/` (case key: `expected.ground_truth`) |
 | `make new-agent name=x` | `make new-agent NAME=x` |
 | `make test-ka-sanity-judges` | `make run AGENT=knowledge_agent SUITE=sanity` |
 | `EVAL_MODE=cache` / `RUN_JUDGES=false` | `OFFLINE=1` / `JUDGES=0` |
@@ -348,10 +348,11 @@ Same behaviour, new places. `make` commands are unchanged; `python -m evalkit` i
 
 Rename these in your `env/.env` if you still have the old names:
 `KNOWLEDGE_BASE_URL_LOCAL` → `KNOWLEDGE_ADK_BASE_URL`, `KNOWLEDGE_BASE_PATH_LOCAL` → `KNOWLEDGE_ADK_BASE_PATH`,
-`KNOWLEDGE_APP_NAME_LOCAL` → `KNOWLEDGE_ADK_APP_NAME`, `KNOWLEDGE_USER_ID_LOCAL` → `KNOWLEDGE_ADK_USER_ID`,
-`ADK_BASE_HOST` → `FACTFIND_ADK_BASE_URL`, `ADK_APP_NAME` → `FACTFIND_ADK_APP_NAME`, `ADK_USER_ID` → `FACTFIND_ADK_USER_ID`.
+`KNOWLEDGE_APP_NAME_LOCAL` → `KNOWLEDGE_ADK_APP_NAME`, `KNOWLEDGE_USER_ID_LOCAL` → `KNOWLEDGE_ADK_USER_ID`.
 Settings are read from `env/.env` (shared) and `env/.env.<agent>` (one agent, overrides the shared file); a root `.env` is still read when `env/.env` doesn't exist. `env/.env.factfind.api` is no longer read — copy the CORTEX values you need into `env/.env`.
 Traces saved by v1 in `outputs/traces/` still replay with `OFFLINE=1`.
 
-Not carried over (still in git history on `main`): the Fact Find ground-truth payload generator,
-the A/B comparison and Excel export branches.
+Not carried over (still in git history on `main`): the Fact Find Workflow agent (being decommissioned —
+its agent folder, parser, rubrics, ground-truth payloads and payload generator), the A/B comparison and
+Excel export branches. To bring an agent like it back later: `make new-agent`, then copy its rubrics and
+parser logic from `main`.

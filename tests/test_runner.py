@@ -18,10 +18,12 @@ from src.runners.test_cases import load_cases
 
 # --- config ---------------------------------------------------------------------------------
 
+# The Knowledge Agent sanity cases that have a committed trace (TC_012 has none yet).
+WITH_TRACES = ["TC_001", "TC_002"]
+
 
 def test_every_agent_config_loads():
-    for name in ("knowledge_agent", "fact_find_workflow"):
-        assert load_agent(name).suites, name
+    assert load_agent("knowledge_agent").suites
 
 
 def test_typo_in_metric_is_caught_at_load(temp_agents):
@@ -39,10 +41,10 @@ def test_typo_in_metric_is_caught_at_load(temp_agents):
 # --- runs -----------------------------------------------------------------------------------
 
 def test_offline_run_passes_deterministic_checks(outputs):
-    run = run_suite("fact_find_workflow", "sanity", offline=True, judges=False)
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=WITH_TRACES)
     assert run.passed
     names = {r.name for c in run.cases for r in c.results}
-    assert {"fact:party_id", "fact:postcode", "invalid_complaint_signal"} <= names
+    assert {"answer_non_empty", "rewritten_query_present", "anchor_page_id_present"} <= names
 
 
 def test_missing_trace_is_an_error_not_a_skip(outputs):
@@ -145,7 +147,8 @@ def test_agent_env_file_overrides_shared_but_not_shell(temp_agents, monkeypatch)
 # --- command line ---------------------------------------------------------------------------
 
 def test_cli_runs_and_reports_config_errors_in_one_line(outputs, capsys, monkeypatch):
-    assert cli.main(["run", "fact_find_workflow", "sanity", "--offline", "--no-judges"]) == 0
+    only_traced = [arg for case in WITH_TRACES for arg in ("--case", case)]
+    assert cli.main(["run", "knowledge_agent", "sanity", "--offline", "--no-judges", *only_traced]) == 0
     assert "2 passed" in capsys.readouterr().out
     monkeypatch.setattr("sys.argv", ["src", "run", "no_such_agent", "sanity"])
     assert cli.run_cli() == 1

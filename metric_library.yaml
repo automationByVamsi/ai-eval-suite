@@ -61,5 +61,5 @@ contextual_relevancy:
 
 summarization:                      # is `answer` a good summary of the source text?
   needs: [question, answer]
-  question: source_document         # the parser provides source_document
+  question: source_document         # the agent's parser.py must provide the source text as source_document
   deepeval: SummarizationMetric

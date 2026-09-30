@@ -8,9 +8,12 @@ from src.runners.suite_runner import run_suite
 from src.verdict.baseline import save_baseline
 from src.verdict.compare import compare
 
+# The Knowledge Agent sanity cases that have a committed trace (TC_012 has none yet).
+WITH_TRACES = ["TC_001", "TC_002"]
+
 
 def test_verdict_passes_against_itself_and_catches_a_regression(outputs):
-    stable = run_suite("fact_find_workflow", "sanity", offline=True, judges=False, build="1.0")
+    stable = run_suite("knowledge_agent", "sanity", offline=True, judges=False, build="1.0", case_ids=WITH_TRACES)
     save_baseline(stable)
 
     passed, rows, _ = compare(stable)
@@ -24,7 +27,7 @@ def test_verdict_passes_against_itself_and_catches_a_regression(outputs):
 
 
 def test_score_drop_is_a_regression_even_above_threshold(outputs):
-    run = run_suite("fact_find_workflow", "sanity", offline=True, judges=False)
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=WITH_TRACES)
     judge = results.Result("faithfulness", "judge", results.PASS, score=0.95, threshold=0.7, engine="pegasus")
     run.cases[0].results.append(judge)
     save_baseline(run)
