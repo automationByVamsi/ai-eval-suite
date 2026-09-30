@@ -9,7 +9,7 @@ Run a suite. For every test case (and every repetition, with REPS=n):
   4. pull fields from trace     question / answer / contexts / expected_answer
                                 + whatever agents/<agent>/parser.py parse() adds
   5. checks and judges          answer_non_empty, expected.keywords, parser.py checks(),
-                                then the suite's judge metrics (metrics/judge.py)
+                                then the suite's judge metrics (metrics/judges.py)
   6. record everything          outputs/runs/<run_id>/results.json
 
 Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belongs in the agent's
@@ -29,7 +29,7 @@ from src.clients.adk_client import call_agent
 from src.core import paths
 from src.core.agent_config import Agent, Suite, load_agent
 from src.core.results import CaseResult, Result, Run, check
-from src.metrics.judge import run_judge
+from src.metrics.judges import run_judge
 from src.runners.test_cases import load_cases
 
 

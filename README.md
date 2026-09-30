@@ -98,8 +98,7 @@ src/                            the framework — src/__init__.py has a map of i
   core/                         paths, env files, agent.yaml loading, result types, errors
   clients/                      adk_client (the agent), cortex_client (judge model), athena_client
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
-  metrics/                      library (metric_library.yaml), judge (engine rule, skip/error),
-                                deepeval_judge, pegasus_judge
+  metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
   verdict/                      baseline (save), compare (verdict + tolerances)
   reporting/                    console report, dashboard.py (Streamlit)
   synthesizer/                  generator, settings, documents, output_template,
@@ -113,7 +112,7 @@ outputs/runs/<run id>/          results.json + that run's traces (not committed)
 ```
 
 Every file starts with a comment saying what it does, who uses it and what you'd change there.
-Reading order for the code: `src/runners/suite_runner.py` → `src/metrics/judge.py` →
+Reading order for the code: `src/runners/suite_runner.py` → `src/metrics/judges.py` →
 `src/verdict/compare.py` → `src/clients/`.
 
 **In a parser**, import the helpers from the framework:
@@ -309,7 +308,7 @@ Same behaviour, new places. `make` commands are unchanged; `python -m evalkit` i
 | was | now |
 |---|---|
 | `evalkit/runner.py` | `src/runners/suite_runner.py` + `src/runners/test_cases.py` |
-| `evalkit/judges.py` | `src/metrics/judge.py`, `library.py`, `deepeval_judge.py`, `pegasus_judge.py` |
+| `evalkit/judges.py` | `src/metrics/judges.py` + `src/metrics/library.py` |
 | `evalkit/verdict.py` | `src/verdict/baseline.py` + `src/verdict/compare.py` (+ printing in `src/reporting/console.py`) |
 | `evalkit/adk.py` | `src/clients/adk_client.py` + trace helpers in `src/utils/adk_trace.py` |
 | `evalkit/cortex.py` | `src/clients/cortex_client.py` |

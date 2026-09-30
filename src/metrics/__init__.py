@@ -1,10 +1,10 @@
 """
 LLM-as-a-judge.
 
-  library.py          reads metric_library.yaml and validates metric settings in agent.yaml
-  judge.py            scores one metric for one case: picks the engine, handles skip / error
-  deepeval_judge.py   scoring with DeepEval (library metrics + custom rubrics via GEval)
-  pegasus_judge.py    scoring with Pegasus (the team's standard RAG metrics)
+  library.py   which metrics exist: reads metric_library.yaml, checks metric settings in agent.yaml
+               when an agent loads (before anything runs)
+  judges.py    how one metric is scored for one case: picks Pegasus or DeepEval, runs it,
+               turns the score into pass / fail / skip / error
 
 To add, remove or re-map a built-in metric, edit metric_library.yaml — not these files.
 """

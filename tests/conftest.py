@@ -53,7 +53,7 @@ def fake_cortex(monkeypatch):
     The first request gets a 503, so the client's retry is exercised. Yields the request headers seen.
     """
     from src.clients import cortex_client
-    from src.metrics import pegasus_judge
+    from src.metrics import judges
 
     reply = {"statements": ["s"], "verdicts": [{"verdict": "yes", "reason": "ok"}], "truths": ["t"],
              "claims": ["c"], "steps": ["check the answer"], "score": 9, "reason": "looks right"}
@@ -77,7 +77,7 @@ def fake_cortex(monkeypatch):
     monkeypatch.setenv("CORTEX_HOST", f"{url}/v1")
     monkeypatch.setenv("CORTEX_CLIENT_ID", "test")
     monkeypatch.setenv("CORTEX_API_KEY", "key-123")
-    monkeypatch.setattr(pegasus_judge, "is_installed", lambda: False)
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
     monkeypatch.setattr(cortex_client.time, "sleep", lambda s: None)   # don't wait between retries
     cortex_client.deepeval_llm.cache_clear()
     yield seen
