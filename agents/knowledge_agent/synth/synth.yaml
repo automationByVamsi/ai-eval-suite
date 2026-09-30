@@ -1,8 +1,8 @@
 # Knowledge Agent — generate test cases from Athena knowledge-base pages.
 #
 #   make sources AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626"]   fetch pages -> cache/
-#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]                      generate -> testdata/golden/
-#   make run     AGENT=knowledge_agent SUITE=golden                                         evaluate the agent on them
+#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]                      generate -> testdata/synthetic/
+#   make run     AGENT=knowledge_agent SUITE=synthetic                                        evaluate the agent on them
 #
 # Paths are relative to this folder. The generator model is the CORTEX model in .env.
 
@@ -43,7 +43,7 @@ quality_filter:                      # regenerate questions the critic scores be
 #   {run.model} {agent.name} {agent.input_field} {id} {n:03}
 # folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
 output:
-  folder: testdata/golden/{style}/{group_slug}
+  folder: testdata/synthetic/{style}/{group_slug}
   id: "TC_SYN_{style}_{group_slug}_{n:03}"
   case:
     test_case_id: "{id}"

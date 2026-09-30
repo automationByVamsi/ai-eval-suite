@@ -7,6 +7,7 @@
 #   make new-agent NAME=my_agent INPUT_FIELD=question
 #   make sources  AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626 39696"]
 #   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]     (synthesizer)
+#   make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [SHEET=..] [MAPPING=..] [DRY_RUN=1]
 
 AGENT ?= knowledge_agent
 SUITE ?= sanity
@@ -20,6 +21,10 @@ CASE ?=
 IDS ?=
 GROUP ?=
 REPLACE ?=
+FILE ?=
+SHEET ?=
+MAPPING ?=
+DRY_RUN ?=
 
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
@@ -29,7 +34,7 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens dashboard test
+.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
@@ -42,6 +47,7 @@ help:
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
 	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"
 	@echo "make goldens  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: generate test cases [REPLACE=1]"
+	@echo "make import-cases AGENT=.. FILE=..          spreadsheet (.xlsx/.csv) -> test case JSON [SHEET=..] [MAPPING=..] [DRY_RUN=1]"
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
 
@@ -81,6 +87,12 @@ sources:
 
 goldens:
 	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
+
+# Spreadsheet -> test case JSON files. The column mapping and case template are per agent:
+# agents/<AGENT>/importers/<MAPPING>.yaml. FILE may contain spaces: quote it.
+import-cases:
+	@test -n "$(FILE)" || { echo 'Give the spreadsheet: make import-cases AGENT=$(AGENT) FILE="path/to/file.xlsx"'; exit 1; }
+	$(EVAL) import-cases $(AGENT) "$(FILE)" $(if $(MAPPING),--mapping $(MAPPING)) $(if $(SHEET),--sheet "$(SHEET)") $(if $(DRY_RUN),--dry-run)
 
 dashboard:
 	$(UV_RUN) streamlit run src/reporting/dashboard.py

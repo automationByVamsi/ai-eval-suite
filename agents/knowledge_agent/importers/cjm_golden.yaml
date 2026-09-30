@@ -1,0 +1,79 @@
+# Knowledge Agent — import the CJM golden spreadsheet into test cases.
+#
+#   make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx"             write the cases
+#   make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx" DRY_RUN=1   preview only
+#   make run          AGENT=knowledge_agent SUITE=golden                                  evaluate them
+#
+# The importer (src/importers/cases.py) is the same for every agent; this file says what this
+# spreadsheet's columns mean and what a Knowledge Agent test case looks like.
+#
+# Naming convention (golden cases from CJMs):
+#   test case id   KA_GLD_<DOMAIN>_<test id, 3 digits>      e.g. KA_GLD_CVH_030 = Excel Test ID 30, workstream CVH
+#   file           testdata/golden/<domain, lower case>/<test case id>.json
+#   domain codes   UPPER_SNAKE, set under domain.codes below
+# The Excel Test ID stays in the id, so any case can be found in the sheet again (and its row is
+# in metadata.source). Keep Test IDs unique across the sheet: duplicates stop the import.
+
+sheet: Sheet1                 # SHEET= on the command line overrides it
+header_row: 1                 # the row that holds the column headers
+
+columns:                      # our name: header text in the sheet (case and extra spaces don't matter)
+  test_id:          Test ID
+  workstream:       Workstream
+  query_type:       Query Type
+  question:         User Query
+  question_type:    Question Type
+  expected_answer:  Expected Golden Answer
+  anchor_pages:     Expected - Anchor Page
+  related_pages:    Expected Relational Page
+  page_ids:         Page Ids  # assumed: the Athena page ids of the expected anchor page(s)
+
+required: [test_id, question]          # rows missing these are skipped, and listed in the summary
+empty_values: [NA, N/A, "-", none, TBC]
+
+normalise:
+  query_type: lower           # Simple -> simple (the agent's own query_type values)
+  question_type: slug         # How -> how, Yes/No -> yes_no
+
+lists:                        # cells that can hold several values
+  anchor_pages: lines         # one page title per line (Alt+Enter in the cell)
+  related_pages: lines
+  page_ids: any               # separated by new lines, commas, semicolons or spaces
+
+domain:
+  column: workstream          # the domain is the Workstream column ...
+  codes:                      # ... shortened to these codes (used in ids and folders)
+    CVH: CVH
+    Brand Change: BRAND_CHANGE
+    Black horse: BLACK_HORSE
+  # A workstream not listed here still imports, as its text in UPPER_SNAKE, with a warning.
+
+warn_if_empty:                # reported after the import, so gaps in the sheet are visible
+  expected_answer: correctness judge will be skipped
+  anchor_pages: anchor check will be skipped
+
+output:
+  folder: testdata/golden/{domain_folder}
+  id: "KA_GLD_{domain}_{row.test_id:03}"
+  case:
+    test_case_id: "{id}"
+    description: "CJM golden, Test ID {row.test_id} ({row.workstream})"
+    input:
+      question: "{row.question}"
+    expected:
+      expected_answer: "{row.expected_answer}"
+      expected_anchor_page_titles: "{row.anchor_pages}"
+      expected_anchor_page_ids: "{row.page_ids}"
+      expected_related_page_titles: "{row.related_pages}"
+    metadata:
+      domain: "{domain}"
+      workstream: "{row.workstream}"
+      query_type: "{row.query_type}"
+      question_type: "{row.question_type}"
+      origin: CJM_GOLDEN
+      approval_status: APPROVED
+      source:
+        file: "{source.file}"
+        sheet: "{source.sheet}"
+        row: "{source.row}"
+        test_id: "{row.test_id}"

@@ -6,6 +6,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src new-agent <name> [--input-field question]
   python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
   python -m src goldens  <agent> [--group G] [--ids ID ...] [--replace]  generate test cases
+  python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
   python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
   python -m src verdict  <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
@@ -21,6 +22,7 @@ import sys
 from src.core.agent_config import list_agents, load_agent
 from src.core.exceptions import ConfigError
 from src.core.results import load_run
+from src.importers.cases import import_cases
 from src.onboarding.doctor import run_doctor
 from src.onboarding.new_agent import create_agent
 from src.reporting.console import print_run, print_verdict
@@ -50,6 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "goldens":
             cmd.add_argument("--replace", action="store_true",
                              help="clear the folders being generated into (after generation succeeds)")
+
+    imp = commands.add_parser("import-cases", help="turn a spreadsheet of test cases into test case JSON files")
+    imp.add_argument("agent")
+    imp.add_argument("file", help=".xlsx or .csv")
+    imp.add_argument("--mapping", help="agents/<agent>/importers/<mapping>.yaml (default: the only one)")
+    imp.add_argument("--sheet", help="sheet name (default: the mapping's sheet, else the first sheet)")
+    imp.add_argument("--dry-run", action="store_true", help="show what would be written, write nothing")
 
     for name, text in [("run", "run a suite and report pass/fail"),
                        ("baseline", "run (or reuse a run) and save it as the baseline"),
@@ -92,6 +101,10 @@ def main(argv: list[str] | None = None) -> int:
             generator.fetch_sources(args.agent, groups, args.ids)
         else:
             generator.generate_goldens(args.agent, groups, args.ids, replace=args.replace)
+        return 0
+
+    if args.command == "import-cases":
+        import_cases(args.agent, args.file, mapping=args.mapping, sheet=args.sheet, dry_run=args.dry_run)
         return 0
 
     # run / baseline / verdict: get a run (new, or a saved one), then act on it.

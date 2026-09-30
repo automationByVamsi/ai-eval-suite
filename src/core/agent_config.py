@@ -10,6 +10,7 @@ Everything about an agent lives in its own folder:
       rubrics/*.md     optional: custom judge criteria
       testdata/<suite>/*.json
       synth/           optional: synthesizer settings (make goldens)
+      importers/*.yaml optional: spreadsheet column mappings (make import-cases)
 
 Used by: the runner, the synthesizer and the CLI. To add or change an agent you edit its folder,
 never this file. This file only changes when agent.yaml gets a new top-level key.

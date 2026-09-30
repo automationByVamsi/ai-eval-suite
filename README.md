@@ -85,6 +85,7 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | judge a stage output (rewritten query, tool, …)   | expose it in `agents/<agent>/parser.py`, point the metric at it (`answer: rewritten_query`) |
 | add a deterministic check for one agent           | `checks()` in `agents/<agent>/parser.py` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
+| turn a spreadsheet of test cases into JSON        | `agents/<agent>/importers/<name>.yaml` — see [Import test cases from a spreadsheet](#import-test-cases-from-a-spreadsheet) |
 | generate test cases from documents (synthesizer)  | `agents/<agent>/synth/` — see [Synthesizer](#synthesizer-generate-test-cases) |
 | judge model / CORTEX / Pegasus / Athena settings  | `env/.env` |
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `src/verdict/compare.py` |
@@ -112,6 +113,7 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 | run every case several times                | `... REPS=5` |
 | save a stable build as the baseline         | `make baseline AGENT=.. SUITE=.. BUILD=1.4.0 REPS=5` |
 | check a new build against the baseline      | `make verdict  AGENT=.. SUITE=.. BUILD=1.5.0 REPS=5` |
+| import test cases from Excel / CSV          | `make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [DRY_RUN=1]` |
 | fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent [GROUP="…"] [IDS="36626"]` |
 | generate test cases from them               | `make goldens AGENT=knowledge_agent [GROUP=…] [IDS=…]` |
 | look at results                             | `make dashboard` |
@@ -251,6 +253,33 @@ This creates `agents/claims_agent/` from the template and prints the next steps:
 Add `parser.py` logic only when you want stage fields or agent-specific checks —
 `agents/knowledge_agent/parser.py` (40 lines) is a good example. For an agent that is not Google ADK,
 rename `client.py.example` to `client.py` and fill in the three TODOs.
+
+## Import test cases from a spreadsheet
+
+Golden cases often live in Excel. One command turns every row into a test case JSON file:
+
+```bash
+make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx" DRY_RUN=1   # preview
+make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx"             # write
+make run          AGENT=knowledge_agent SUITE=golden
+```
+
+The importer (`src/importers/`) is the same for every agent and reads `.xlsx` or `.csv` (no extra
+package needed). What the columns mean and what the case JSON looks like is set per agent in
+`agents/<agent>/importers/<name>.yaml` — copy `agents/knowledge_agent/importers/cjm_golden.yaml`
+for a new agent or a new sheet layout, and change `columns:` and `output:`. Pick one with
+`MAPPING=<name>` when an agent has several, and another sheet with `SHEET="Sheet 2"`.
+
+- **The sheet is the source of truth.** Re-importing overwrites the files it produced; the summary
+  says how many are new, updated or unchanged. JSON files no row produced are listed, never deleted.
+- **Empty cells are left out** of the JSON (`NA`, `N/A`, `-` count as empty), so a case without an
+  expected answer or anchor page SKIPs that judge or check. The summary lists which cases lack them.
+- **Stops before writing** when a column header isn't found (it prints the headers it did find) or
+  two rows give the same test case id.
+
+Knowledge Agent naming (CJM goldens): id `KA_GLD_<DOMAIN>_<Test ID, 3 digits>`, e.g. `KA_GLD_CVH_030`,
+in `testdata/golden/<domain>/`. The domain comes from the Workstream column (`domain.codes` in the
+mapping). Synthesized cases go to `testdata/synthetic/` (suite `synthetic`), so the two never mix.
 
 ## Synthesizer (generate test cases)
 

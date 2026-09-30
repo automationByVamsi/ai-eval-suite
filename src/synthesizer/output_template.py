@@ -79,25 +79,34 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
     raise ConfigError(f"Output template id '{output['id']}' never gives a free name — include {{n}} in it")
 
 
-def render(template: Any, context: dict[str, Any]) -> Any:
-    """Fill {placeholders} in every string of a template (dicts and lists included)."""
+def render(template: Any, context: dict[str, Any], roots: tuple[str, ...] = _ROOTS) -> Any:
+    """
+    Fill {placeholders} in every string of a template (dicts and lists included).
+    `roots` are the allowed first parts of a placeholder; the spreadsheet importer passes its own.
+    """
     if isinstance(template, dict):
-        return {key: render(value, context) for key, value in template.items()}
+        return {key: render(value, context, roots) for key, value in template.items()}
     if isinstance(template, list):
-        return [render(value, context) for value in template]
+        return [render(value, context, roots) for value in template]
     if not isinstance(template, str):
         return template
     whole = _PLACEHOLDER.fullmatch(template)
     if whole and not whole.group(2):
-        return _lookup(whole.group(1), context)
-    return _PLACEHOLDER.sub(lambda m: format(_lookup(m.group(1), context) or "", m.group(2) or ""), template)
+        return _lookup(whole.group(1), context, roots)
+    return _PLACEHOLDER.sub(lambda m: format(_or_blank(_lookup(m.group(1), context, roots)), m.group(2) or ""),
+                            template)
 
 
-def _lookup(path: str, context: dict[str, Any]) -> Any:
+def _or_blank(value: Any) -> Any:
+    """None or an empty list -> "" inside a longer string; 0 stays 0 (so {n:03} of 0 still works)."""
+    return "" if value is None or value == [] else value
+
+
+def _lookup(path: str, context: dict[str, Any], roots: tuple[str, ...] = _ROOTS) -> Any:
     """The value of one dotted placeholder, e.g. 'source.metadata.revision'."""
     root, *rest = path.split(".")
-    if root not in _ROOTS:
-        raise ConfigError(f"Output template: unknown placeholder '{{{path}}}'. Start with one of {list(_ROOTS)}")
+    if root not in roots:
+        raise ConfigError(f"Output template: unknown placeholder '{{{path}}}'. Start with one of {list(roots)}")
     value = context.get(root)
     for part in rest:
         if isinstance(value, str):

@@ -19,7 +19,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     assert "advisor" in fake_generator["styles"][0].scenario.lower()  # instructions.md folded in
     assert "colleague" in fake_generator["styles"][0].task            # additional_guidance folded in
 
-    folder = ka_copy / "testdata/golden/direct_query/recoveries_commercial_bank"
+    folder = ka_copy / "testdata/synthetic/direct_query/recoveries_commercial_bank"
     case = json.loads((folder / "TC_SYN_direct_query_recoveries_commercial_bank_001.json").read_text())
     assert case["input"] == {"question": "Question 1 about 36626?"}
     assert case["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626"}
@@ -28,7 +28,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     assert case["metadata"]["approval_status"] == "UNREVIEWED"
 
     agent = load_agent("knowledge_agent")
-    assert len(load_cases(agent, agent.suite("golden"))) == 12       # sub-folders are read
+    assert len(load_cases(agent, agent.suite("synthetic"))) == 12    # sub-folders are read
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
     assert manifest["generated"] == 12 and manifest["failed"] == []
 
@@ -37,7 +37,7 @@ def test_goldens_add_to_existing_cases_unless_replace(ka_copy, fake_generator):
     generate_goldens("knowledge_agent", ids=["36626"])
     fake_generator["contexts"].clear()                     # run again: new cases are numbered after the old ones
     generate_goldens("knowledge_agent", ids=["36626"])
-    folder = ka_copy / "testdata/golden/direct_query/recoveries_commercial_bank"
+    folder = ka_copy / "testdata/synthetic/direct_query/recoveries_commercial_bank"
     assert sorted(p.name[-8:] for p in folder.glob("*.json")) == ["001.json", "002.json"]
     generate_goldens("knowledge_agent", ids=["36626"], replace=True)
     assert len(list(folder.glob("*.json"))) == 1
