@@ -13,8 +13,8 @@ Two ways to reach CORTEX — pick one with CORTEX_AUTH in env/.env:
                                   No API key: run `make cortex-login` once (`cx auth login`, SSO in the
                                   browser); cortex.Client() then signs every call. The DevKit finds the
                                   CorteX host itself; CORTEX_ENV=int|pre|prd pins one.
-                                  CORTEX_DEVKIT_CHAT_PATH: the chat endpoint on that host
-                                  (default /api/v1/chat/completions).
+                                  The chat path is worked out from the DevKit's base address
+                                  (…/api -> /v1/chat/completions); CORTEX_DEVKIT_CHAT_PATH overrides it.
 
 Both: CORTEX_MODEL (e.g. vertex_ai/gemini-2.5-pro), CORTEX_TIMEOUT_S (60), CORTEX_RETRIES (2: retries on
 429 / 5xx / network errors). Certificate checks: VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
@@ -74,8 +74,8 @@ class CortexLLM(DeepEvalBaseLLM):
         timeout = float(os.environ.get("CORTEX_TIMEOUT_S", "60"))
         self.mode = auth_mode()
         if self.mode == "devkit":
-            self.url = os.environ.get("CORTEX_DEVKIT_CHAT_PATH") or "/api/v1/chat/completions"
             self.http = _devkit_client(timeout)
+            self.url = os.environ.get("CORTEX_DEVKIT_CHAT_PATH") or _devkit_chat_path(self.http)
         else:
             self.url = require("CORTEX_HOST", JudgeConfigError).rstrip("/") + "/chat/completions"
             self.http = httpx.Client(timeout=timeout, verify=tls.httpx_verify(), headers=cortex_headers())
@@ -135,6 +135,20 @@ def _devkit_client(timeout: float) -> Any:
         return cortex.Client(timeout=timeout)
     except TypeError:   # a DevKit version without the timeout argument
         return cortex.Client()
+
+
+def _devkit_chat_path(client: Any) -> str:
+    """
+    The chat endpoint, relative to the host the DevKit client already points at. The DevKit's base
+    address ends in /api on the LBG hosts (…/api + /v1/chat/completions); this also copes with a base
+    that already ends in /v1, or a bare host. CORTEX_DEVKIT_CHAT_PATH in env/.env overrides it.
+    """
+    base = str(getattr(client, "base_url", "") or "").rstrip("/")
+    if base.endswith("/v1"):
+        return "/chat/completions"
+    if base and not base.endswith("/api") and base.count("/") <= 2:   # bare host, e.g. https://cortex…cloud
+        return "/api/v1/chat/completions"
+    return "/v1/chat/completions"
 
 
 def pegasus_can_authenticate() -> bool:

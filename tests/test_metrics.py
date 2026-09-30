@@ -97,6 +97,8 @@ def test_devkit_mode_uses_cortex_client_instead_of_the_api_key(monkeypatch):
                 raise RuntimeError(f"HTTP {self.status_code}")
 
     class FakeDevkitClient:
+        base_url = "https://cortex.lloydsbanking.cloud/api/"      # what the real DevKit client points at
+
         def __init__(self, timeout=None):
             pass
 
@@ -117,7 +119,7 @@ def test_devkit_mode_uses_cortex_client_instead_of_the_api_key(monkeypatch):
         assert cortex_client.deepeval_llm().generate("hi") == "OK"
     finally:
         cortex_client.deepeval_llm.cache_clear()
-    assert calls == [("/api/v1/chat/completions", "vertex_ai/gemini-2.5-pro")] * 2
+    assert calls == [("/v1/chat/completions", "vertex_ai/gemini-2.5-pro")] * 2     # not /api/api/v1/...
 
 
 def test_devkit_mode_without_the_package_says_how_to_install(monkeypatch):
@@ -134,3 +136,13 @@ def test_devkit_mode_without_the_package_says_how_to_install(monkeypatch):
             cortex_client.deepeval_llm()
     finally:
         cortex_client.deepeval_llm.cache_clear()
+
+
+def test_devkit_chat_path_follows_the_client_base_address():
+    from types import SimpleNamespace
+
+    from src.clients.cortex_client import _devkit_chat_path
+    host = "https://cortex.lloydsbanking.cloud"
+    assert _devkit_chat_path(SimpleNamespace(base_url=f"{host}/api")) == "/v1/chat/completions"
+    assert _devkit_chat_path(SimpleNamespace(base_url=f"{host}/api/v1/")) == "/chat/completions"
+    assert _devkit_chat_path(SimpleNamespace(base_url=host)) == "/api/v1/chat/completions"
