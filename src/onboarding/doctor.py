@@ -55,9 +55,8 @@ def run_doctor(ping: bool = True) -> int:
         line(OK, "pegasus", f"{_version_of_module('pegasus')}  {os.path.dirname(where)}")
     else:
         line(WARN, "pegasus", "not installed in this environment — Pegasus metrics will run on DeepEval.\n"
-             "                              Fix: install it into this environment the way you install it today,\n"
-             "                              e.g. `uv pip install <pegasus package or .whl>` (make setup keeps it),\n"
-             "                              or activate the venv that already has it before running make.")
+             "                              Fix: put your SAR token in ~/.netrc (README: Pegasus), "
+             "then run make setup.")
 
     # 4. Certificates
     if tls.ca_bundle():

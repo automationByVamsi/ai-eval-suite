@@ -24,8 +24,9 @@ REPLACE ?=
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
 # Which Python runs the commands: the project's .venv (made by make setup), or — if you activated a
-# virtual env first, e.g. one that already has Pegasus — that one (uv adds any missing packages to it).
-UV_RUN = uv run $(if $(VIRTUAL_ENV),--active)
+# virtual env first — that one. --frozen: use uv.lock as it is, never re-resolve (so commands work
+# even on machines that can't reach SAR, where Pegasus lives).
+UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
 .PHONY: help setup doctor list new-agent run baseline verdict sources goldens dashboard test
@@ -43,8 +44,19 @@ help:
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
 
+# Installs everything, including Pegasus when SAR is reachable with your token (see README: Pegasus).
+# Without SAR access it still installs everything else; Pegasus metrics then run on DeepEval.
+# --inexact: never remove packages that are already installed (e.g. Pegasus installed another way).
 setup:
-	uv sync --inexact          # --inexact: keep packages installed by hand, e.g. Pegasus
+	@if uv sync --inexact --group pegasus; then \
+		echo "Installed everything, including Pegasus."; \
+	else \
+		echo ""; \
+		echo "WARNING: Pegasus could not be installed (no SAR access or token - see README: Pegasus)."; \
+		echo "Installing everything else. Pegasus metrics will run on DeepEval until Pegasus is installed."; \
+		echo ""; \
+		uv sync --inexact --frozen; \
+	fi
 	@test -f env/.env || (cp env/.env.example env/.env && echo "Created env/.env - fill in your values")
 
 doctor:

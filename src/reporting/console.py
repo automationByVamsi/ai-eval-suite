@@ -14,7 +14,7 @@ RULE = "-" * 72
 
 
 def print_run(run: Run) -> None:
-    """PASS / FAIL / ERROR per case, the failing checks and judges under it, then the totals."""
+    """Per case: PASS / FAIL / ERROR, then every judge (score + engine) and any failing check. Then totals."""
     icon = {PASS: "PASS ", FAIL: "FAIL ", ERROR: "ERROR"}
     print(f"\n{run.agent} / {run.suite}" + (f"  build={run.build}" if run.build else ""))
     print(RULE)
@@ -26,9 +26,14 @@ def print_run(run: Run) -> None:
         if case.error:
             print(f"        {case.error}")
         for r in case.results:
-            if r.status in (FAIL, ERROR):
+            # Judges: always shown, with score and engine (so you can see Pegasus vs DeepEval).
+            # Checks: only when they fail — passing checks would just be noise.
+            if r.kind == "judge" and r.status != SKIP:
                 score = f" score={r.score:.2f}/{r.threshold}" if r.score is not None else ""
-                print(f"        {r.status.upper()} {r.kind}:{r.name}{score} {r.reason}".rstrip())
+                reason = f" {r.reason}" if r.status in (FAIL, ERROR) else ""
+                print(f"        {r.status.upper():<5} judge:{r.name}{score} [{r.engine or '-'}]{reason}".rstrip())
+            elif r.status in (FAIL, ERROR):
+                print(f"        {r.status.upper():<5} {r.kind}:{r.name} {r.reason}".rstrip())
     counts = {s: sum(c.status == s for c in run.cases) for s in (PASS, FAIL, ERROR)}
     print(RULE)
     print(f"{counts[PASS]} passed, {counts[FAIL]} failed, {counts[ERROR]} errors"
