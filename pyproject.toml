@@ -14,9 +14,9 @@ dependencies = [
 
 [dependency-groups]
 dev = ["pytest>=8.0"]
-# Pegasus: the bank's internal metrics package, from SAR (Artifactory). `make setup` installs it when
-# this machine can reach SAR with your token (~/.netrc, see README); otherwise setup carries on without
-# it and Pegasus metrics run on DeepEval. Kept in its own group so people without SAR access can still
+# Pegasus: the bank's internal metrics package, from SAR (Artifactory). `make setup` installs it using
+# the SAR token in env/.env (SAR_TOKEN_NAME / SAR_TOKEN_PASS_CODE); without one it carries on and
+# Pegasus metrics run on DeepEval. Kept in its own group so people without SAR access can still
 # install everything else.
 pegasus = ["lbg-pegasus>=2.2.0"]
 

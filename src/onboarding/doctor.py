@@ -55,8 +55,8 @@ def run_doctor(ping: bool = True) -> int:
         line(OK, "pegasus", f"{_version_of_module('pegasus')}  {os.path.dirname(where)}")
     else:
         line(WARN, "pegasus", "not installed in this environment — Pegasus metrics will run on DeepEval.\n"
-             "                              Fix: put your SAR token in ~/.netrc (README: Pegasus), "
-             "then run make setup.")
+             "                              Fix: put your SAR token in env/.env (SAR_TOKEN_NAME / "
+             "SAR_TOKEN_PASS_CODE), then run make setup.")
 
     # 4. Certificates
     if tls.ca_bundle():

@@ -30,24 +30,24 @@ make dashboard
 
 ### Pegasus (one-time, per machine)
 
-Pegasus (`lbg-pegasus`) comes from SAR (Artifactory), so it needs your SAR token once per machine.
-The project is already set up for it (`pyproject.toml`: the `lbg-pegasus` index and the `pegasus`
-group, as in the Pegasus installation guide's "uv option"). You only add your token:
+Pegasus (`lbg-pegasus`) comes from SAR, so it needs your SAR token — the same token the Pegasus guide
+puts in `pip.conf`. The project is already set up for it (`pyproject.toml`: the `lbg-pegasus` index and
+the `pegasus` group, the guide's "uv option"). You only add the token:
 
-1. Create `~/.netrc` (Windows: `%USERPROFILE%\_netrc`) with your SAR token, then `chmod 600 ~/.netrc`:
+1. In `env/.env` (created by `make setup` if it isn't there):
    ```
-   machine artefacts.lloydsbanking.cloud
-   login <USER_TOKEN_NAME>
-   password <USER_TOKEN_PASS_CODE>
+   SAR_TOKEN_NAME=<USER_TOKEN_NAME>
+   SAR_TOKEN_PASS_CODE=<USER_TOKEN_PASS_CODE>
    ```
-   (Or set `UV_INDEX_LBG_PEGASUS_USERNAME` / `UV_INDEX_LBG_PEGASUS_PASSWORD` in your shell.)
-2. `make setup` — installs everything, Pegasus included.
+2. `make setup` — runs `uv sync` with Pegasus included (the steps are in `scripts/setup.sh`).
 3. `make doctor` — should show `[OK] pegasus <version>`.
 
-No SAR access? `make setup` still installs everything else and says so; Pegasus metrics then run
-on DeepEval and every result records which engine scored it.
+No token or no SAR access? `make setup` still installs everything else and says so; Pegasus metrics then
+run on DeepEval and every result records which engine scored it. The token is only handed to uv for that
+one command — it isn't stored anywhere else (`env/` is never committed, and `uv.lock` holds no credentials).
 
-The first `make setup` with SAR access updates `uv.lock` to include Pegasus — commit that change once.
+The first `make setup` with the token updates `uv.lock` to include Pegasus — commit that change once.
+Use `make setup`, not a bare `uv sync`: plain `uv sync` doesn't know your token and removes Pegasus.
 
 **Check a new machine with `make doctor`**: it shows which Python is used, whether Pegasus and DeepEval
 are installed there, which env files were found, the certificate settings, and makes one test call to
@@ -74,7 +74,7 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | regression tolerance for verdicts                 | `PASS_RATE_DROP`, `SCORE_DROP` at the top of `src/verdict/compare.py` |
 | CORTEX timeout / retries / API key                | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_API_KEY` in `env/.env` |
 | SSL certificate errors (office proxy)             | `VERIFY_TLS=false` or `CA_BUNDLE=...` in `env/.env` (one setting for every call) |
-| Pegasus "not installed" warning                    | SAR token in `~/.netrc`, then `make setup` (see Pegasus above); check with `make doctor` |
+| Pegasus "not installed" warning                    | SAR token in `env/.env`, then `make setup` (see Pegasus above); check with `make doctor` |
 | an endpoint, header or auth scheme changed        | the matching file in `src/clients/` |
 | add a new kind of synthesizer source (an API, …)  | one new file in `src/synthesizer/sources/` (copy `json_records.py`) |
 
@@ -105,6 +105,7 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 
 ```
 Makefile                        every command (make help)
+scripts/setup.sh                what `make setup` does (uv sync + Pegasus)
 metric_library.yaml             built-in metrics: Pegasus class, DeepEval fallback, fields they need
 env/
   .env.example                  every setting, documented — `make setup` copies it to env/.env

@@ -44,20 +44,10 @@ help:
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
 
-# Installs everything, including Pegasus when SAR is reachable with your token (see README: Pegasus).
-# Without SAR access it still installs everything else; Pegasus metrics then run on DeepEval.
-# --inexact: never remove packages that are already installed (e.g. Pegasus installed another way).
+# Installs everything with uv sync, Pegasus included when env/.env has your SAR token.
+# The steps are in scripts/setup.sh (readable, commented).
 setup:
-	@if uv sync --inexact --group pegasus; then \
-		echo "Installed everything, including Pegasus."; \
-	else \
-		echo ""; \
-		echo "WARNING: Pegasus could not be installed (no SAR access or token - see README: Pegasus)."; \
-		echo "Installing everything else. Pegasus metrics will run on DeepEval until Pegasus is installed."; \
-		echo ""; \
-		uv sync --inexact --frozen; \
-	fi
-	@test -f env/.env || (cp env/.env.example env/.env && echo "Created env/.env - fill in your values")
+	@sh scripts/setup.sh
 
 doctor:
 	$(EVAL) doctor
