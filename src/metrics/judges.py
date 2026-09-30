@@ -173,30 +173,35 @@ def _geval_param(field_name: str) -> Any:
 # =============================================================================================
 
 def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold: float) -> tuple[float, str]:
-    """(score 0..1, reason) for one case, from a one-row DataFrame in Pegasus' RAG column format."""
+    """
+    (score 0..1, reason) for one case — called the same way as the Knowledge Agent's own Pegasus
+    guardrails: a one-row DataFrame, Metric(llm=..., method=...).evaluate(frame)["score"].
+    The threshold is applied by run_judge, not by Pegasus.
+    """
     import pandas as pd
     from pegasus.metrics import rag
 
-    frame = pd.DataFrame([{
+    row = {
         "question": values.get("question") or "",
         "answer": values.get("answer") or "",
         "retrieved_contexts": list(values.get("contexts") or []),
-        "reference_answer": values.get("expected_answer") or "",
-    }])
-    try:  # Pegasus' own column normaliser, when this Pegasus version has it
-        from pegasus.utils.data_transformation import format_rag_data
-        frame = format_rag_data(frame, question_col="question", answer_col="answer",
-                                retrieved_contexts_col="retrieved_contexts",
-                                reference_answer_col="reference_answer")
-    except (ImportError, TypeError):
-        pass
+    }
+    if values.get("expected_answer"):
+        row["reference_answer"] = values["expected_answer"]      # correctness / context metrics use it
+    frame = pd.DataFrame([row])
 
-    judge = getattr(rag, metric["pegasus"])(llm=cortex_client.pegasus_llm(),
-                                            method=metric.get("method", "pegasus"), threshold=threshold)
+    judge = getattr(rag, metric["pegasus"])(llm=cortex_client.pegasus_llm(), method=metric.get("method", "pegasus"))
     out = judge.evaluate(frame)
-    score = first(out.get("score"))
-    if score is None:
-        raise RuntimeError(f"Pegasus returned no score: {out}")
+    score = first(out["score"])
+    if score is None or pd.isna(score):
+        raise RuntimeError(f"Pegasus returned no numeric score: {out}")
     # Different Pegasus metrics name their explanation differently.
-    reason = first(out.get("reasoning") or out.get("reasons") or out.get("details"))
+    reason = next((first(out[k]) for k in ("reasoning", "reasons", "details") if _has(out, k)), "")
     return float(score), str(reason or "")
+
+
+def _has(out: Any, key: str) -> bool:
+    try:
+        return key in out
+    except TypeError:
+        return False

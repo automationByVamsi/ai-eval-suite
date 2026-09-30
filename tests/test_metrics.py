@@ -150,92 +150,79 @@ def test_devkit_chat_path_follows_the_client_base_address():
 
 # --- Pegasus through the CorteX DevKit (no API key) ------------------------------------------
 
-def _fake_devkit_and_pegasus(monkeypatch, client):
-    """Install a fake `cortex` DevKit module and a fake Pegasus adapter; returns get_model's kwargs."""
+def _fake_pegasus(monkeypatch, metric_calls=None):
+    """A fake Pegasus: get_model records its arguments; rag.AnswerRelevancy scores 0.82."""
     import sys
     import types
 
     from src.clients import cortex_client
     seen = {}
+
+    class AnswerRelevancy:
+        def __init__(self, **kwargs):
+            if metric_calls is not None:
+                metric_calls.append(kwargs)
+
+        def evaluate(self, frame):
+            if metric_calls is not None:
+                metric_calls.append(list(frame.columns))
+            return {"score": 0.82}
+
     adapters = types.SimpleNamespace(get_model=lambda **kwargs: seen.update(kwargs) or "pegasus-llm")
-    monkeypatch.setitem(sys.modules, "cortex", types.SimpleNamespace(Client=lambda **kw: client))
+    rag = types.SimpleNamespace(AnswerRelevancy=AnswerRelevancy)
     monkeypatch.setitem(sys.modules, "pegasus", types.ModuleType("pegasus"))
     monkeypatch.setitem(sys.modules, "pegasus.utils", types.SimpleNamespace(adapters=adapters))
     monkeypatch.setitem(sys.modules, "pegasus.utils.adapters", adapters)
-    for name in ("CORTEX_API_KEY", "CORTEX_CLIENT_ID", "CORTEX_CLIENT_SECRET", "PEGASUS_CERT_PATH",
-                 "CORTEX_DEVKIT_CHAT_PATH"):
+    monkeypatch.setitem(sys.modules, "pegasus.metrics", types.SimpleNamespace(rag=rag))
+    monkeypatch.setitem(sys.modules, "pegasus.metrics.rag", rag)
+    for name in ("CORTEX_API_KEY", "CORTEX_CLIENT_ID", "CORTEX_CLIENT_SECRET", "PEGASUS_CERT_PATH", "CORTEX_ENV"):
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("CORTEX_AUTH", "devkit")
     monkeypatch.setenv("PEGASUS_CORTEX_MODEL", "gemini-2.5-flash")
-    cortex_client._shared_devkit_client.cache_clear()
     cortex_client._pegasus_model.cache_clear()
     return seen
 
 
-def test_pegasus_gets_the_devkit_token_as_auth_token(monkeypatch):
-    """As in the CorteX DevKit + Pegasus guidance: client.get_token() -> get_model(..., auth_token=...)."""
-    import httpx
-
+def test_pegasus_uses_its_own_devkit_support_like_the_knowledge_agent(monkeypatch):
+    """Same get_model call as the Knowledge Agent's guardrails: cortex_v2 + auth_mode=devkit, no key."""
     from src.clients import cortex_client
-
-    class DevkitClient(httpx.Client):
-        def get_token(self):
-            return "jwt-from-cx-auth-login"
-
-    seen = _fake_devkit_and_pegasus(monkeypatch, DevkitClient(base_url="https://cortex.lloydsbanking.cloud/api"))
+    seen = _fake_pegasus(monkeypatch)
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
     try:
-        assert cortex_client.pegasus_can_authenticate()                 # no CORTEX_API_KEY needed
+        assert cortex_client.pegasus_can_authenticate()
         assert cortex_client.pegasus_llm() == "pegasus-llm"
     finally:
-        cortex_client._shared_devkit_client.cache_clear()
         cortex_client._pegasus_model.cache_clear()
-    assert seen["auth_token"] == "jwt-from-cx-auth-login" and "api_key" not in seen
-    assert seen["base_url"] == "https://cortex.lloydsbanking.cloud/api/v1"   # Pegasus adds /chat/completions
-    assert seen["model_name"] == "vertex_ai/gemini-2.5-flash" and seen["adapter"] == "cortex_api"
+    assert seen == {"adapter": "cortex_v2", "model_type": "llm", "auth_mode": "devkit", "cortex_env": "prd",
+                    "model_name": "gemini-2.5-flash", "ssl_verify": False}
 
 
-def test_older_pegasus_without_auth_token_gets_the_token_as_api_key(monkeypatch):
-    """A client that only signs requests (httpx auth flow), and a Pegasus whose get_model has no auth_token."""
-    import sys
-
-    import httpx
-
+def test_pegasus_api_key_mode_is_unchanged(monkeypatch):
     from src.clients import cortex_client
-
-    class SsoAuth(httpx.Auth):
-        def auth_flow(self, request):
-            request.headers["Authorization"] = "Bearer jwt-2"
-            yield request
-
-    seen = _fake_devkit_and_pegasus(monkeypatch, httpx.Client(base_url="https://cortex.lloydsbanking.cloud/api",
-                                                               auth=SsoAuth()))
-
-    def old_get_model(adapter, model_type, model_name, base_url, ssl_verify=True, api_key=None):
-        seen.update(api_key=api_key, model_name=model_name)
-        return "old-pegasus-llm"
-
-    sys.modules["pegasus.utils.adapters"].get_model = old_get_model
+    seen = _fake_pegasus(monkeypatch)
+    monkeypatch.setenv("CORTEX_AUTH", "api_key")
+    monkeypatch.setenv("CORTEX_HOST", "https://cortex.example/api/v1")
+    monkeypatch.setenv("CORTEX_API_KEY", "k")
     try:
-        assert cortex_client.pegasus_llm() == "old-pegasus-llm"
+        cortex_client.pegasus_llm()
     finally:
-        cortex_client._shared_devkit_client.cache_clear()
         cortex_client._pegasus_model.cache_clear()
-    assert seen["api_key"] == "jwt-2"
+    assert seen["adapter"] == "cortex_api" and seen["api_key"] == "k" and "auth_mode" not in seen
 
 
-def test_devkit_token_from_a_fixed_header(monkeypatch):
-    """A DevKit client that carries the token as a default header."""
-    import httpx
-
-    from src.clients import cortex_client
-    client = httpx.Client(base_url="https://cortex-int.lloydsbanking.cloud/api/v1",
-                          headers={"Authorization": "Bearer abc"})
-    _fake_devkit_and_pegasus(monkeypatch, client)
+def test_pegasus_metric_is_called_like_the_knowledge_agent_guardrails(monkeypatch):
+    """Metric(llm=..., method=...) — no threshold (we apply it) — and evaluate(frame)["score"]."""
+    calls = []
+    _fake_pegasus(monkeypatch, calls)
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
     try:
-        assert cortex_client.devkit_token() == "abc"
-        assert cortex_client.devkit_api_base() == "https://cortex-int.lloydsbanking.cloud/api/v1"
+        result = judges.run_judge("relevance", {}, {"question": "q?", "answer": "a."})
     finally:
-        cortex_client._shared_devkit_client.cache_clear()
+        from src.clients import cortex_client
+        cortex_client._pegasus_model.cache_clear()
+    assert (result.status, result.score, result.engine) == (results.PASS, 0.82, "pegasus")
+    assert calls[0] == {"llm": "pegasus-llm", "method": "pegasus"}
+    assert calls[1] == ["question", "answer", "retrieved_contexts"]
 
 
 def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):

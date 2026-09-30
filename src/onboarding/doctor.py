@@ -94,13 +94,8 @@ def run_doctor(ping: bool = True) -> int:
     if _installed("pegasus"):
         from src.clients import cortex_client
         if mode == "devkit" and ready:
-            # Pegasus takes the DevKit sign-in as its key: check it can be read (never printed).
-            try:
-                cortex_client.devkit_token()
-                base = os.environ.get("CORTEX_BASE_URL") or cortex_client.devkit_api_base()
-                line(OK, "Pegasus credentials", f"DevKit token (auth_token) -> {base}")
-            except Exception as exc:  # noqa: BLE001
-                line(FAIL, "Pegasus credentials", f"{type(exc).__name__}: {str(exc)[:200]}  -> run make cortex-login")
+            env = os.environ.get("CORTEX_ENV", "").strip() or "prd"
+            line(OK, "Pegasus credentials", f"DevKit sign-in (Pegasus adapter cortex_v2, CORTEX_ENV={env})")
         elif mode != "devkit":
             ok = cortex_client.pegasus_can_authenticate()
             line(OK if ok else WARN, "Pegasus credentials", "set" if ok else

@@ -37,9 +37,10 @@ All judges and the synthesizer talk to CORTEX. Choose how in `env/.env`:
 | `api_key` (default) | `CORTEX_HOST`, `CORTEX_CLIENT_ID`, `CORTEX_API_KEY` | calls the gateway directly, as before |
 | `devkit` | the SAR token (below), `make setup`, then `make cortex-login` once | CorteX DevKit: SSO in the browser, no API key; the DevKit finds the CorteX host itself (`CORTEX_ENV=int\|pre\|prd` pins one) |
 
-Pegasus signs its own CORTEX calls. With `devkit` it needs no key either: the framework hands Pegasus
-the DevKit sign-in (the token from `make cortex-login`) and the DevKit's CorteX address. With `api_key`
-it uses `CORTEX_API_KEY` (or client id + secret).
+Pegasus signs its own CORTEX calls. With `devkit` it uses Pegasus' own DevKit support — the same
+`get_model(adapter="cortex_v2", auth_mode="devkit", cortex_env=...)` call as the Knowledge Agent's
+guardrails — so no key is needed (`CORTEX_ENV`, default `prd`). With `api_key` it uses `CORTEX_API_KEY`
+(or client id + secret).
 `make doctor` checks whichever mode you chose and makes one test call.
 
 ### Pegasus (one-time, per machine)
