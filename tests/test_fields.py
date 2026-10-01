@@ -11,6 +11,7 @@ from src.core.exceptions import ConfigError
 from src.core.results import FAIL, PASS, SKIP
 from src.fields import checks, extract
 from src.fields.path import get
+from src.runners.suite_runner import run_suite
 
 TRACES = ROOT / "outputs/traces/knowledge_agent/sanity"
 
@@ -179,3 +180,61 @@ def test_make_fields_previews_fields_and_checks(capsys):
     assert "FAIL      fallback_disclosed" in out
     with pytest.raises(ConfigError, match="No saved trace"):
         cli.main(["fields", "knowledge_agent", "--case", "TC_999"])
+
+
+# --- evidence text from Athena (from: athena) ----------------------------------------------------
+
+def test_evidence_text_is_fetched_once_and_saved(outputs, monkeypatch):
+    from conftest import fake_athena_page
+
+    from src.fields import evidence
+    calls = []
+    monkeypatch.setattr(evidence, "fetch_page", lambda pid: calls.append(pid) or fake_athena_page(pid))
+    for name in ("40345", "40017", "40015"):
+        (outputs / f"outputs/evidence/athena/{name}.json").unlink()               # start with no saved copies
+    fields = load_agent("knowledge_agent").fields
+
+    values, _ = extract.extract(trace("TC_002"), fields)                           # live run: fetch
+    assert values["contexts"] == ["How To Add a Support Need in MCP\n\nText of page 40345.",
+                                  "How to Add a Support Need\n\nText of page 40017.",
+                                  "Consent Needed for Adding Support Needs\n\nText of page 40015."]
+    assert sorted(calls) == ["40015", "40017", "40345"]
+    assert (outputs / "outputs/evidence/athena/40345.json").is_file()              # saved for OFFLINE runs
+
+    extract.extract(trace("TC_012"), fields)                                       # 40015 again: not refetched
+    assert sorted(calls) == ["40015", "40017", "40022", "40345"]
+
+    evidence.clear_cache()
+    calls.clear()
+    values, _ = extract.extract(trace("TC_002"), fields, offline=True)             # OFFLINE: saved copies only
+    assert len(values["contexts"]) == 3 and calls == []
+
+
+def test_missing_evidence_is_an_error_not_a_low_score(outputs):
+    (outputs / "outputs/evidence/athena/40017.json").unlink()
+    case = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"]).cases[0]
+    error = next(r for r in case.results if r.name == "evidence_fetch")
+    assert error.status == "error" and "page 40017" in error.reason and "OFFLINE" in error.reason
+    assert case.status == "error"
+
+
+def test_faithfulness_judge_gets_the_evidence_text(outputs, monkeypatch):
+    from src.metrics import judges
+    seen = {}
+
+    def fake_score(name, metric, values, threshold):
+        seen[name] = values
+        return 0.9, ""
+
+    monkeypatch.setattr(judges, "score_with_deepeval", fake_score)
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
+    case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
+    faithfulness = next(r for r in case.results if r.name == "faithfulness")
+    assert faithfulness.status == "pass"
+    assert seen["faithfulness"]["contexts"][0].startswith("How To Add a Support Need in MCP")
+    assert seen["faithfulness"]["answer"].startswith("To add a Support Need in Multi-Channel Processes")
+
+
+def test_athena_field_needs_ids_defined_above():
+    with pytest.raises(ConfigError, match="needs ids:"):
+        extract.validate({"contexts": {"from": "athena", "ids": "page_ids"}}, "fields.yaml")

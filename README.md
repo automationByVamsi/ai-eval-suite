@@ -282,6 +282,11 @@ fields:
   something", handy while a trace format is changing.
 - More options (`where`, `pick`, `join`, `count`, `first`, `unique`, `matches`, `default`, `required`)
   are explained at the top of `src/fields/extract.py`.
+- `from: athena` fetches the **text of Athena pages** whose ids are in another field — that is how
+  Faithfulness gets its evidence while the trace carries only page ids:
+  `contexts: {from: athena, ids: evidence_page_ids}`. Each page is fetched once per run and saved in
+  `outputs/evidence/athena/`; `OFFLINE=1` reuses the saved copies. If a page can't be fetched the case
+  shows an `evidence_fetch` ERROR (never a low score). Needs the `HIVE_ATHENA_*` settings in `env/.env`.
 
 **Preview** what every field gives for saved traces, and what the checks make of it — no agent call,
 no judges:

@@ -90,8 +90,10 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
         "contexts": list(trace.get("context") or []),
         "expected_answer": case.get("expected", {}).get("expected_answer", ""),
     }
+    fetch_errors: list[str] = []
     if agent.fields:
-        values, missing = extract(trace, agent.fields)
+        values, missing = extract(trace, agent.fields, offline=offline)
+        fetch_errors = values.pop("_fetch_errors", [])
         if missing:
             result.error = (f"required field(s) {missing} not found in the trace — has the trace format changed? "
                             f"Check with: make fields AGENT={agent.name} SUITE={suite.name} CASE={case_id}")
@@ -110,6 +112,8 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
     # 5a. Deterministic checks.
     result.results.extend(_standard_checks(fields, case))
     result.results.extend(run_checks(agent.checks, fields, case))
+    if fetch_errors:      # e.g. Athena unreachable: the judges that needed that evidence can't be trusted
+        result.results.append(Result("evidence_fetch", "check", "error", "; ".join(fetch_errors)))
     if parser and hasattr(parser, "checks"):
         try:
             result.results.extend(parser.checks(fields, case))

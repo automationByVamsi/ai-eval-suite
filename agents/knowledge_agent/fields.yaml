@@ -75,7 +75,12 @@ fields:
   latency_ms:          {from: trace, path: latency_ms}
   stage_seconds:       {from: timing}
 
+  # --- Evidence page text, for Faithfulness ---------------------------------------------------
+  # The trace has only the page ids, so the text is fetched from Athena (once per page per run,
+  # saved under outputs/evidence/athena/; OFFLINE=1 reuses the saved copies). When the developers
+  # log the text in the trace, read it from there instead, e.g.
+  #   contexts: {from: node, node: fetch_page_workflow, path: "pages[].content"}
+  contexts:          {from: athena, ids: evidence_page_ids}
+
   # --- Not in the trace today (asked of the developers) -----------------------------------------
-  # contexts:  the text of the evidence pages — Faithfulness needs it. Add it here when the trace
-  #            carries it, e.g. {from: node, node: fetch_page_workflow, path: "pages[].content"}
   # decision / suggested_next_step:  FINISH | FAIL and the retry hint from the validation router

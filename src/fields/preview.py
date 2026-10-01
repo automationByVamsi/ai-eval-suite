@@ -54,13 +54,16 @@ def preview(agent_name: str, suite_name: str = "sanity", case_ids: list[str] | N
     problems = 0
     for path, case in traces:
         trace = json.loads(path.read_text())
-        values, missing = extract(trace, agent.fields)
+        values, missing = extract(trace, agent.fields, offline=True)     # saved Athena copies only
+        fetch_errors = values.pop("_fetch_errors", [])
         problems += bool(missing)
         print(f"\n=== {path.name}" + ("" if case else "   (no test case found: checks not shown)"))
         for name, value in values.items():
             mark = ("MISSING" if name in missing else "NOT FOUND" if value is None
                     else "empty" if is_empty(value) else "")
             print(f"  {mark:<9} {name:<26} {_short(value)}")
+        for problem in fetch_errors:
+            print(f"  NOTE      {problem}")
         if case and agent.checks:
             fields = {"question": case["input"].get(agent.input_field, ""), **values}
             print("  --- checks (agent.yaml) ---")
