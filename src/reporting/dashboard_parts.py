@@ -60,7 +60,7 @@ def explain_result_error(result: Result) -> tuple[str, str]:
         return ("Evidence pages could not be fetched from Athena",
                 "Faithfulness needs the text of the pages the agent used, fetched from Athena. Check "
                 "HIVE_ATHENA_BASE_URL / _CLIENT_ID / _CLIENT_SECRET in env/.env and that you are on the "
-                "network. With OFFLINE=1 only pages saved by an earlier live run are available. Suites "
+                "network (OFFLINE=1 still fetches pages it has never saved). Suites "
                 "whose judges don't need page text (e.g. relevance only) never fetch it.")
     if result.kind == "judge":
         return (f"The {label(result.name)} judge could not score this case",
