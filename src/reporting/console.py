@@ -1,5 +1,6 @@
 """
-Console reports: one line per case, and the reason for everything that failed.
+Console reports: one line per case, the reason for everything that failed, then the rate of every
+check and judge across the run (src/reporting/summary.py).
 
 Used by: the CLI after make run / baseline / verdict.
 """
@@ -9,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.core.results import ERROR, FAIL, PASS, SKIP, Run
+from src.reporting.summary import print_summary, summarise
 
 RULE = "-" * 72
 
@@ -34,6 +36,8 @@ def print_run(run: Run) -> None:
                 print(f"        {r.status.upper():<5} judge:{r.name}{score} [{r.engine or '-'}]{reason}".rstrip())
             elif r.status in (FAIL, ERROR):
                 print(f"        {r.status.upper():<5} {r.kind}:{r.name} {r.reason}".rstrip())
+    reps = f" x {run.reps} reps" if run.reps > 1 else ""
+    print_summary(summarise([run]), f"Rates over {len({c.case_id for c in run.cases})} case(s){reps}")
     counts = {s: sum(c.status == s for c in run.cases) for s in (PASS, FAIL, ERROR)}
     print(RULE)
     print(f"{counts[PASS]} passed, {counts[FAIL]} failed, {counts[ERROR]} errors"

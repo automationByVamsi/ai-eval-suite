@@ -118,6 +118,7 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 | import test cases from Excel / CSV          | `make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [DRY_RUN=1]` |
 | fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent [GROUP="…"] [IDS="36626"]` |
 | generate test cases from them               | `make goldens AGENT=knowledge_agent [GROUP=…] [IDS=…]` |
+| pass rate of every check / judge (e.g. anchor hit rate) over the last N runs | `make summary AGENT=knowledge_agent SUITE=golden LAST=10` |
 | look at results                             | `make dashboard` |
 | test the framework itself                   | `make test` |
 

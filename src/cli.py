@@ -6,6 +6,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src new-agent <name> [--input-field question]
   python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
   python -m src goldens  <agent> [--group G] [--ids ID ...] [--replace]  generate test cases
+  python -m src summary  <agent> <suite> [--last N | --run ID ...]   rates across several saved runs
   python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
@@ -22,12 +23,13 @@ import sys
 
 from src.core.agent_config import list_agents, load_agent
 from src.core.exceptions import ConfigError
-from src.core.results import load_run
+from src.core.results import load_run, recent_runs
 from src.fields.preview import preview
 from src.importers.cases import import_cases
 from src.onboarding.doctor import run_doctor
 from src.onboarding.new_agent import create_agent
 from src.reporting.console import print_run, print_verdict
+from src.reporting.summary import print_summary, summarise
 from src.runners.suite_runner import run_suite
 from src.synthesizer import generator
 from src.verdict.baseline import save_baseline
@@ -54,6 +56,12 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "goldens":
             cmd.add_argument("--replace", action="store_true",
                              help="clear the folders being generated into (after generation succeeds)")
+
+    summary = commands.add_parser("summary", help="rates of every check and judge across saved runs")
+    summary.add_argument("agent")
+    summary.add_argument("suite")
+    summary.add_argument("--last", type=int, default=1, help="the N most recent runs of this agent + suite")
+    summary.add_argument("--run", action="append", dest="runs", help="a run id instead (repeatable)")
 
     fields = commands.add_parser("fields", help="show what fields.yaml (and the checks) give for saved traces")
     fields.add_argument("agent")
@@ -109,6 +117,16 @@ def main(argv: list[str] | None = None) -> int:
             generator.fetch_sources(args.agent, groups, args.ids)
         else:
             generator.generate_goldens(args.agent, groups, args.ids, replace=args.replace)
+        return 0
+
+    if args.command == "summary":
+        runs = [load_run(r) for r in args.runs] if args.runs else recent_runs(args.agent, args.suite, args.last)
+        for run in runs:
+            ok = sum(c.status == "pass" for c in run.cases)
+            print(f"  {run.run_id}  build={run.build or '-'}  {ok}/{len(run.cases)} cases passed")
+        reps = sum(len(r.cases) for r in runs)
+        print_summary(summarise(runs), f"Rates over {len(runs)} run(s), {reps} case runs")
+        print()
         return 0
 
     if args.command == "fields":

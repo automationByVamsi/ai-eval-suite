@@ -81,8 +81,13 @@ class Run:
             self.started_at = datetime.now().isoformat(timespec="seconds")
         if not self.run_id:
             # Sortable by time, and ends in _<agent>_<suite> so load_run('latest', agent, suite) can filter.
-            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            # Milliseconds too: quick runs in a row (e.g. OFFLINE=1 in a loop) must not overwrite each other.
+            now = datetime.now()
+            stamp = f"{now:%Y%m%d_%H%M%S}_{now.microsecond // 1000:03d}"
             self.run_id = f"{stamp}_{self.agent}_{self.suite}"
+            while (paths.OUTPUTS_DIR / "runs" / self.run_id).exists():   # same millisecond: next free id
+                now = datetime.fromtimestamp(now.timestamp() + 0.001)
+                self.run_id = f"{now:%Y%m%d_%H%M%S}_{now.microsecond // 1000:03d}_{self.agent}_{self.suite}"
 
     @property
     def folder(self) -> Path:
@@ -99,6 +104,8 @@ class Run:
         data = asdict(self)
         for case, raw in zip(self.cases, data["cases"], strict=True):
             raw["status"] = case.status
+        from src.reporting.summary import summarise  # here, not at the top: summary imports this file
+        data["summary"] = summarise([self])            # rates per check / judge (read-only, for readers)
         path.write_text(json.dumps(data, indent=2, default=str))
         return path
 
@@ -124,9 +131,18 @@ def load_run(ref: str, agent: str | None = None, suite: str | None = None) -> Ru
         if path.is_dir():
             path = path / "results.json"
     data = json.loads(path.read_text())
+    data.pop("summary", None)              # derived from the cases, recomputed when needed
     cases = []
     for raw in data.pop("cases"):
         raw.pop("status", None)            # derived from the results, not stored on the object
         results = [Result(**r) for r in raw.pop("results")]
         cases.append(CaseResult(**raw, results=results))
     return Run(**data, cases=cases)
+
+
+def recent_runs(agent: str, suite: str, count: int) -> list[Run]:
+    """The `count` most recent saved runs of one agent + suite, oldest first."""
+    found = sorted((paths.OUTPUTS_DIR / "runs").glob(f"*_{agent}_{suite}/results.json"))[-max(count, 1):]
+    if not found:
+        raise FileNotFoundError(f"No saved runs for {agent}/{suite} in {paths.OUTPUTS_DIR / 'runs'}")
+    return [load_run(str(p)) for p in found]
