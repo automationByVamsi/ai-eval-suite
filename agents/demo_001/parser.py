@@ -1,0 +1,26 @@
+"""
+Optional. Delete this file if the standard fields are enough:
+    question        = the case input sent to the agent
+    answer          = the agent's final answer
+    contexts        = trace["context"] if the agent returns one
+    expected_answer = case expected.expected_answer
+
+Add a parse() to expose more fields from the trace (judges can point at them in agent.yaml),
+and a checks() for deterministic checks specific to this agent.
+"""
+
+from src.core.results import check  # noqa: F401 — used by the commented examples below
+from src.utils.adk_trace import state, tool_calls  # noqa: F401 — more helpers in src/utils/adk_trace.py
+
+
+def parse(trace, case):
+    return {
+        # "rewritten_query": state(trace, "rewritten_query", ""),
+        # "tools_called": [c["name"] for c in tool_calls(trace)],
+    }
+
+
+def checks(fields, case):
+    return [
+        # check("mentions_customer", "customer" in fields["answer"].lower(), "no mention of the customer"),
+    ]

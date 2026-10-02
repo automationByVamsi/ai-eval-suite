@@ -1,0 +1,12 @@
+{
+  "test_case_id": "TC_001",
+  "description": "Validate guidance for supporting someone struggling with gambling",
+  "input": {
+    "question": "How do I support someone gambling?"
+  },
+  "expected": {
+    "keywords": ["gambling", "support"],
+    "expected_anchor_page_id": "9001",
+    "anchor_selection_method": "baseline"
+  }
+}
