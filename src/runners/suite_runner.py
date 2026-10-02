@@ -8,8 +8,9 @@ Run a suite. For every test case (and every repetition, with REPS=n):
   3. read input / expected      from the test case (runners/test_cases.py)
   4. pull fields from trace     question / answer / contexts / expected_answer, then every field
                                 in agents/<agent>/fields.yaml, then parser.py parse() if there is one
-  5. checks and judges          answer_non_empty, expected.keywords, the checks: in agent.yaml,
-                                parser.py checks(), then the suite's judge metrics (metrics/judges.py)
+  5. checks and judges          the deterministic checks the suite selects (`checks:` under the suite:
+                                all by default — answer_non_empty, expected.keywords, the checks: in
+                                agent.yaml, parser.py checks()), then the suite's judge metrics
   6. record everything          outputs/runs/<run_id>/results.json
 
 Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belongs in the agent's
@@ -29,9 +30,10 @@ from src.clients.adk_client import call_agent
 from src.core import paths
 from src.core.agent_config import Agent, Suite, load_agent
 from src.core.results import CaseResult, Result, Run, check
-from src.fields.checks import run_checks
+from src.fields.checks import fields_read, run_checks
 from src.fields.extract import extract, is_empty
 from src.metrics.judges import run_judge
+from src.metrics.library import definition
 from src.runners.test_cases import load_cases
 
 
@@ -52,7 +54,8 @@ def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: 
     if case_ids:
         cases = [c for c in cases if c["test_case_id"] in case_ids]
 
-    run = Run(agent=agent.name, suite=suite.name, build=build, reps=reps, offline=offline)
+    run = Run(agent=agent.name, suite=suite.name, build=build, reps=reps, offline=offline,
+              metrics=list(suite.metrics) if judges else [], checks=suite.checks)
     for case in cases:
         for rep in range(reps):
             label = case["test_case_id"] + (f" rep {rep + 1}/{reps}" if reps > 1 else "")
@@ -66,7 +69,8 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
              case: dict[str, Any], run: Run, rep: int, offline: bool, judges: bool) -> CaseResult:
     """Steps 1-5 for one case. Problems end up in the CaseResult; this never raises."""
     case_id = case["test_case_id"]
-    result = CaseResult(case_id=case_id, rep=rep)
+    result = CaseResult(case_id=case_id, rep=rep, description=str(case.get("description") or ""),
+                        input=dict(case.get("input") or {}), expected=dict(case.get("expected") or {}))
 
     # 1-2. Get the trace (call the agent, or replay) and save it.
     latest = paths.OUTPUTS_DIR / "traces" / agent.name / suite.name / f"{case_id}.json"
@@ -91,8 +95,10 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
         "expected_answer": case.get("expected", {}).get("expected_answer", ""),
     }
     fetch_errors: list[str] = []
+    selected_checks = agent.checks_for(suite)
     if agent.fields:
-        values, missing = extract(trace, agent.fields, offline=offline)
+        needed = _fields_needed(agent, suite, selected_checks, judges, parser)
+        values, missing = extract(trace, agent.fields, offline=offline, fetch=needed)
         fetch_errors = values.pop("_fetch_errors", [])
         if missing:
             result.error = (f"required field(s) {missing} not found in the trace — has the trace format changed? "
@@ -108,13 +114,17 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
     result.question = str(fields.get("question") or "")
     result.answer = str(fields.get("answer") or "")
     result.expected_answer = str(fields.get("expected_answer") or "")
+    result.details = _for_display(fields)
 
-    # 5a. Deterministic checks.
-    result.results.extend(_standard_checks(fields, case))
-    result.results.extend(run_checks(agent.checks, fields, case))
+    # 5a. Deterministic checks — the ones this suite selects (all, none, or a list of names / groups).
+    result.results.extend(_standard_checks(fields, case, suite.checks))
+    result.results.extend(run_checks(selected_checks, fields, case))
     if fetch_errors:      # e.g. Athena unreachable: the judges that needed that evidence can't be trusted
-        result.results.append(Result("evidence_fetch", "check", "error", "; ".join(fetch_errors)))
-    if parser and hasattr(parser, "checks"):
+        result.results.append(Result(
+            "evidence_fetch", "check", "error", group="setup",
+            reason="Could not get the text of the evidence pages from Athena, which "
+                   f"{_readers(agent, suite, judges, fetch_errors)} need: " + "; ".join(fetch_errors)))
+    if parser and hasattr(parser, "checks") and suite.checks is None:
         try:
             result.results.extend(parser.checks(fields, case))
         except Exception as exc:  # noqa: BLE001
@@ -127,14 +137,66 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
     return result
 
 
-def _standard_checks(fields: dict[str, Any], case: dict[str, Any]) -> list[Result]:
-    """Checks every agent gets: a non-empty answer, and each of expected.keywords in it."""
+def _standard_checks(fields: dict[str, Any], case: dict[str, Any], selected: list[str] | None) -> list[Result]:
+    """Checks every agent gets (group "basic"): a non-empty answer, and each of expected.keywords in it."""
+    def wanted(name: str) -> bool:
+        return selected is None or "basic" in selected or name in selected
+
     answer = str(fields.get("answer") or "")
-    checks = [check("answer_non_empty", bool(answer.strip()), "agent returned an empty answer")]
-    for keyword in case["expected"].get("keywords") or []:
-        checks.append(check(f"keyword:{keyword}", str(keyword).lower() in answer.lower(),
-                            f"'{keyword}' not found in answer"))
+    checks = []
+    if wanted("answer_non_empty"):
+        checks.append(check("answer_non_empty", bool(answer.strip()), "agent returned an empty answer", "basic"))
+    if wanted("keywords"):
+        for keyword in case["expected"].get("keywords") or []:
+            checks.append(check(f"keyword:{keyword}", str(keyword).lower() in answer.lower(),
+                                f"'{keyword}' not found in answer", "basic"))
     return checks
+
+
+def _judge_fields(agent: Agent, suite: Suite, judges: bool) -> dict[str, set[str]]:
+    """{field: the suite's judges that read it}, with agent.yaml re-mappings (answer: rewritten_query)."""
+    readers: dict[str, set[str]] = {}
+    for name in suite.metrics if judges else []:
+        metric = definition(name, agent.metrics[name])
+        for need in metric["needs"]:
+            readers.setdefault(metric.get(need, need), set()).add(name)
+    return readers
+
+
+def _fields_needed(agent: Agent, suite: Suite, checks: dict[str, dict[str, Any]], judges: bool,
+                   parser: ModuleType | None) -> set[str]:
+    """Every field this suite's judges and checks read: only those `from: athena` fields are fetched."""
+    needed = set(_judge_fields(agent, suite, judges))
+    for spec in checks.values():
+        needed |= fields_read(spec)
+    if suite.checks is None and parser and hasattr(parser, "checks"):   # parser.py checks may read anything
+        needed |= set(agent.fields)
+    return needed
+
+
+def _readers(agent: Agent, suite: Suite, judges: bool, fetch_errors: list[str]) -> str:
+    """Which judges needed the evidence that could not be fetched (errors read "<field>: <problem>")."""
+    readers = _judge_fields(agent, suite, judges)
+    names = sorted({j for e in fetch_errors for j in readers.get(e.split(":", 1)[0], set())})
+    return " and ".join(names) if names else "this suite's checks"
+
+
+DETAIL_TEXT_LIMIT = 4000
+
+
+def _for_display(fields: dict[str, Any]) -> dict[str, Any]:
+    """The extracted fields, saved with the case for the dashboard. Long texts are cut."""
+    def cut(value: Any) -> Any:
+        if isinstance(value, str) and len(value) > DETAIL_TEXT_LIMIT:
+            return value[:DETAIL_TEXT_LIMIT] + f"… [{len(value) - DETAIL_TEXT_LIMIT} more characters]"
+        if isinstance(value, list):
+            return [cut(v) for v in value[:50]]
+        if isinstance(value, dict):
+            return {k: cut(v) for k, v in list(value.items())[:50]}
+        return value
+
+    skip = {"question", "answer", "expected_answer"}
+    return {k: cut(v) for k, v in fields.items() if k not in skip}
 
 
 def _message(agent: Agent, case: dict[str, Any]) -> str:

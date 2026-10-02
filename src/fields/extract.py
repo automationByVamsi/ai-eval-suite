@@ -87,17 +87,21 @@ def validate(fields: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
 
 
 def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]],
-            offline: bool = False) -> tuple[dict[str, Any], list[str]]:
+            offline: bool = False, fetch: set[str] | None = None) -> tuple[dict[str, Any], list[str]]:
     """
     ({field: value}, [required fields that found nothing]). Never raises on odd trace content.
     offline: `from: athena` fields use saved page copies only. Problems fetching evidence are listed
     under the key "_fetch_errors" (the runner reports them as an ERROR).
+    fetch:   the `from: athena` fields to fetch (None: all). The runner passes only the ones the
+             suite's judges and checks read, so e.g. a relevance-only suite never calls Athena.
     """
     view = TraceView(trace)
     values: dict[str, Any] = {}
     missing: list[str] = []
     for name, spec in fields.items():
-        if spec["from"] == "athena":
+        if spec["from"] == "athena" and fetch is not None and name not in fetch:
+            value = None                                   # not needed by this suite: not fetched
+        elif spec["from"] == "athena":
             from src.fields.evidence import page_texts
             value, problems = page_texts(_as_list(values.get(spec["ids"])), offline)
             if problems:

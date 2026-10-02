@@ -31,7 +31,8 @@ def summarise(runs: list[Run]) -> list[dict[str, Any]]:
         for case in run.cases:
             for result in case.results:
                 key = (result.kind, result.name)
-                row = rows.setdefault(key, {"name": result.name, "kind": result.kind, PASS: 0, FAIL: 0,
+                row = rows.setdefault(key, {"name": result.name, "kind": result.kind, "group": result.group,
+                                            PASS: 0, FAIL: 0,
                                             SKIP: 0, ERROR: 0, "scores": []})
                 row[result.status] += 1
                 if result.score is not None:
