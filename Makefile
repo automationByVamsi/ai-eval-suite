@@ -7,6 +7,7 @@
 #   make new-agent NAME=my_agent INPUT_FIELD=question
 #   make sources  AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626 39696"]
 #   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]     (synthesizer)
+#   make fields   AGENT=knowledge_agent [SUITE=..] [CASE=..] [TRACE=file]   (what fields.yaml reads from traces)
 #   make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [SHEET=..] [MAPPING=..] [DRY_RUN=1]
 
 AGENT ?= knowledge_agent
@@ -25,6 +26,8 @@ FILE ?=
 SHEET ?=
 MAPPING ?=
 DRY_RUN ?=
+TRACE ?=
+LAST ?= 1
 
 FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
@@ -34,7 +37,7 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases dashboard test
+.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases fields summary dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
@@ -47,6 +50,8 @@ help:
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
 	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"
 	@echo "make goldens  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: generate test cases [REPLACE=1]"
+	@echo "make summary  AGENT=.. SUITE=.. [LAST=10]  pass rate of every check and judge across the last N runs"
+	@echo "make fields   AGENT=.. [SUITE=..] [CASE=..] preview the fields.yaml values + checks on saved traces [TRACE=file]"
 	@echo "make import-cases AGENT=.. FILE=..          spreadsheet (.xlsx/.csv) -> test case JSON [SHEET=..] [MAPPING=..] [DRY_RUN=1]"
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
@@ -87,6 +92,14 @@ sources:
 
 goldens:
 	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
+
+# Rates (e.g. anchor hit rate) across the last N saved runs of a suite — no agent call, no judges.
+summary:
+	$(EVAL) summary $(AGENT) $(SUITE) --last $(LAST)
+
+# What fields.yaml reads from saved traces (and what the checks make of it). No agent call, no judges.
+fields:
+	$(EVAL) fields $(AGENT) --suite $(SUITE) $(foreach c,$(CASE),--case $(c)) $(if $(TRACE),--trace "$(TRACE)")
 
 # Spreadsheet -> test case JSON files. The column mapping and case template are per agent:
 # agents/<AGENT>/importers/<MAPPING>.yaml. FILE may contain spaces: quote it.

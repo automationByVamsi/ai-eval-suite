@@ -18,8 +18,9 @@ from src.runners.test_cases import load_cases
 
 # --- config ---------------------------------------------------------------------------------
 
-# The Knowledge Agent sanity cases that have a committed trace (TC_012 has none yet).
-WITH_TRACES = ["TC_001", "TC_002"]
+# The Knowledge Agent sanity cases, with real traces committed in outputs/traces/ (29 Sep 2026 format).
+# TC_002 takes the full metadata path; TC_012 falls back silently (no KB metadata, nothing disclosed).
+WITH_TRACES = ["TC_002", "TC_012"]
 
 
 def test_every_agent_config_loads():
@@ -40,33 +41,47 @@ def test_typo_in_metric_is_caught_at_load(temp_agents):
 
 # --- runs -----------------------------------------------------------------------------------
 
-def test_offline_run_passes_deterministic_checks(outputs):
+def test_offline_run_uses_fields_yaml_and_yaml_checks(outputs):
     run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=WITH_TRACES)
-    assert run.passed
-    names = {r.name for c in run.cases for r in c.results}
-    assert {"answer_non_empty", "rewritten_query_present", "anchor_page_id_present"} <= names
+    by_id = {c.case_id: c for c in run.cases}
+    good, degraded = by_id["TC_002"], by_id["TC_012"]
+    assert good.status == results.PASS, [r for r in good.results if r.status != "pass"]
+    assert good.answer.startswith("To add a Support Need in Multi-Channel Processes")   # answer.summary, not JSON
+    names = {r.name for r in good.results}
+    assert {"answer_non_empty", "branch_per_sub_query", "citations_in_evidence_set", "anchor_hit"} <= names
+    failed = [r.name for r in degraded.results if r.status == results.FAIL]
+    assert failed == ["fallback_disclosed"]                       # the silent fallback is caught
+    assert not run.passed
 
 
 def test_missing_trace_is_an_error_not_a_skip(outputs):
+    (outputs / "outputs/traces/knowledge_agent/sanity/TC_012.json").unlink()
     run = run_suite("knowledge_agent", "sanity", offline=True, judges=False)
     by_id = {c.case_id: c for c in run.cases}
     assert by_id["TC_012"].status == results.ERROR
     assert not run.passed
 
 
+def test_changed_trace_format_is_an_error_that_says_so(outputs):
+    trace_file = outputs / "outputs/traces/knowledge_agent/sanity/TC_002.json"
+    trace = json.loads(trace_file.read_text())
+    trace["raw_events"][-1]["output"]["answer"] = {"text": "renamed"}      # answer.summary is gone
+    trace_file.write_text(json.dumps(trace))
+    case = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"]).cases[0]
+    assert case.status == results.ERROR
+    assert "['answer'] not found" in case.error and "make fields" in case.error
+
+
 def test_run_is_saved_and_reloaded(outputs):
-    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_001"])
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"])
     again = load_run("latest", "knowledge_agent", "sanity")
     assert again.run_id == run.run_id
     assert again.cases[0].results[0].name == "answer_non_empty"
 
 
 def test_live_run_calls_adk_and_saves_the_trace(outputs, monkeypatch):
-    events = [
-        {"author": "search_engine_workflow", "actions": {"stateDelta": {
-            "rewritten_query": "How to request VPN access", "anchor_page_id": "8194"}}},
-        {"author": "answer_agent", "content": {"role": "model", "parts": [{"text": "Raise a VPN ticket."}]}},
-    ]
+    # The fake agent replies with the events of the real TC_002 trace.
+    events = json.loads((ROOT / "outputs/traces/knowledge_agent/sanity/TC_002.json").read_text())["raw_events"]
     seen = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -75,7 +90,7 @@ def test_live_run_calls_adk_and_saves_the_trace(outputs, monkeypatch):
             seen.append(self.path)
             reply = {"id": "session-1"} if self.path.endswith("/sessions") else events
             if self.path == "/run":
-                assert body["new_message"]["parts"][0]["text"] == "How do I request VPN access for remote work?"
+                assert body["new_message"]["parts"][0]["text"] == "How do I add a support need?"
             self.send_response(200)
             self.end_headers()
             self.wfile.write(json.dumps(reply).encode())
@@ -92,7 +107,7 @@ def test_live_run_calls_adk_and_saves_the_trace(outputs, monkeypatch):
 
     case = run.cases[0]
     assert case.status == results.PASS, case.results
-    assert case.answer == "Raise a VPN ticket."
+    assert case.answer.startswith("To add a Support Need in Multi-Channel Processes")
     assert seen == ["/apps/knowledge_agent/users/eval_user/sessions", "/run"]
     assert json.loads(Path(case.trace).read_text())["sessionId"] == "session-1"
     assert (run.folder / "traces" / "TC_002__rep1.json").is_file()
@@ -148,8 +163,9 @@ def test_agent_env_file_overrides_shared_but_not_shell(temp_agents, monkeypatch)
 
 def test_cli_runs_and_reports_config_errors_in_one_line(outputs, capsys, monkeypatch):
     only_traced = [arg for case in WITH_TRACES for arg in ("--case", case)]
-    assert cli.main(["run", "knowledge_agent", "sanity", "--offline", "--no-judges", *only_traced]) == 0
-    assert "2 passed" in capsys.readouterr().out
+    assert cli.main(["run", "knowledge_agent", "sanity", "--offline", "--no-judges", "--case", "TC_002"]) == 0
+    assert "1 passed" in capsys.readouterr().out
+    assert cli.main(["run", "knowledge_agent", "sanity", "--offline", "--no-judges", *only_traced]) == 1
     monkeypatch.setattr("sys.argv", ["src", "run", "no_such_agent", "sanity"])
     assert cli.run_cli() == 1
     assert capsys.readouterr().err.startswith("ERROR: No agent 'no_such_agent'")

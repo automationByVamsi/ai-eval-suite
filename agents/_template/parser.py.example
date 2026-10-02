@@ -1,5 +1,7 @@
 """
-Optional. Delete this file if the standard fields are enough:
+Optional, and rarely needed: rename to parser.py only for logic that fields.yaml and the checks:
+in agent.yaml can't express (maths across fields, calling another service, ...).
+Reading values from the trace belongs in fields.yaml. The standard fields are:
     question        = the case input sent to the agent
     answer          = the agent's final answer
     contexts        = trace["context"] if the agent returns one

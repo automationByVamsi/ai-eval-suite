@@ -24,6 +24,12 @@ metrics:
   correctness: {threshold: 0.7}           # only runs for cases that have expected.expected_answer
   # tone:      {rubric: rubrics/tone.md, threshold: 0.8}
 
+# Deterministic checks (optional), on the standard fields and those in fields.yaml.
+# Types and options: see the top of src/fields/checks.py.
+# checks:
+#   answer_min_words: {type: min_words, field: answer, min: 8}
+#   cited_page_hit:   {type: any_in, field: cited_page_ids, expected: expected_page_ids}
+
 # Suites = which metrics run on which test data. testdata defaults to testdata/<suite name>.
 suites:
   sanity:

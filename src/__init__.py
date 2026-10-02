@@ -5,8 +5,9 @@ For every test case the framework
   1. calls the agent (Google ADK by default)      clients/adk_client.py
   2. saves the trace                              runners/suite_runner.py
   3. reads input / expected from the test case    runners/test_cases.py
-  4. pulls fields out of the trace                agents/<agent>/parser.py (optional)
-  5. runs checks and LLM judges                   metrics/  (Pegasus first, DeepEval otherwise)
+  4. pulls fields out of the trace                agents/<agent>/fields.yaml -> fields/extract.py
+  5. runs checks and LLM judges                   checks: in agent.yaml -> fields/checks.py;
+                                                  metrics/  (Pegasus first, DeepEval otherwise)
   6. reports pass / fail                          reporting/
   7. compares the build with a baseline           verdict/
 
@@ -16,6 +17,8 @@ Folder map (read top to bottom the first time):
   core/           paths, env files, agent.yaml loading, result types, errors
   clients/        talking to other systems: the agent (ADK), CORTEX (judge model), Athena
   runners/        the evaluation loop: test cases in, results out
+  fields/         fields.yaml (what to read from traces), YAML checks, make fields (preview)
+  importers/      spreadsheets -> test cases (make import-cases)
   metrics/        LLM judges: metric_library.yaml, engine choice, DeepEval and Pegasus scoring
   verdict/        baseline save + compare
   reporting/      console report and the Streamlit dashboard

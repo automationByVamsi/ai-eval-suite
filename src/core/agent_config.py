@@ -5,7 +5,8 @@ Everything about an agent lives in its own folder:
 
     agents/<name>/
       agent.yaml       how to reach it, which metrics it uses, which suites run which metrics
-      parser.py        optional: pull extra fields out of the trace + agent-specific checks
+      fields.yaml      optional: the fields evaluation reads from the trace (see src/fields/extract.py)
+      parser.py        optional: Python for what fields.yaml / checks: can't express
       client.py        optional: only for agents that are not Google ADK (see agents/_template)
       rubrics/*.md     optional: custom judge criteria
       testdata/<suite>/*.json
@@ -18,7 +19,7 @@ never this file. This file only changes when agent.yaml gets a new top-level key
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,8 @@ import yaml
 
 from src.core import env, paths
 from src.core.exceptions import ConfigError
+from src.fields import checks as yaml_checks
+from src.fields import extract
 from src.metrics.library import validate_metric
 
 
@@ -50,6 +53,8 @@ class Agent:
     message_template: str | None            # optional: wrap the input, e.g. "Look up {question}"
     metrics: dict[str, dict[str, Any]]      # metric name -> settings (threshold, rubric, ...)
     suites: dict[str, Suite]
+    fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
+    checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks: in agent.yaml
 
     def suite(self, name: str) -> Suite:
         """A suite by name, or a ConfigError that lists the ones that exist."""
@@ -109,6 +114,11 @@ def load_agent(name: str) -> Agent:
             only=dict(spec.get("only") or {}),
         )
 
+    fields_file = folder / "fields.yaml"
+    fields = {}
+    if fields_file.is_file():
+        fields = extract.validate((yaml.safe_load(fields_file.read_text()) or {}).get("fields") or {}, str(fields_file))
+
     return Agent(
         name=name,
         folder=folder,
@@ -117,4 +127,6 @@ def load_agent(name: str) -> Agent:
         message_template=raw.get("message_template"),
         metrics=metrics,
         suites=suites,
+        fields=fields,
+        checks=yaml_checks.validate(raw.get("checks") or {}, str(path)),
     )

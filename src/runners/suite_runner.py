@@ -6,14 +6,14 @@ Run a suite. For every test case (and every repetition, with REPS=n):
   2. save the trace             outputs/traces/<agent>/<suite>/<case_id>.json   (latest)
                                 outputs/runs/<run_id>/traces/<case_id>__rep<n>.json   (this run)
   3. read input / expected      from the test case (runners/test_cases.py)
-  4. pull fields from trace     question / answer / contexts / expected_answer
-                                + whatever agents/<agent>/parser.py parse() adds
-  5. checks and judges          answer_non_empty, expected.keywords, parser.py checks(),
-                                then the suite's judge metrics (metrics/judges.py)
+  4. pull fields from trace     question / answer / contexts / expected_answer, then every field
+                                in agents/<agent>/fields.yaml, then parser.py parse() if there is one
+  5. checks and judges          answer_non_empty, expected.keywords, the checks: in agent.yaml,
+                                parser.py checks(), then the suite's judge metrics (metrics/judges.py)
   6. record everything          outputs/runs/<run_id>/results.json
 
 Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belongs in the agent's
-parser.py or client.py, not here.
+fields.yaml, agent.yaml (checks:), parser.py or client.py — not here.
 """
 
 from __future__ import annotations
@@ -29,6 +29,8 @@ from src.clients.adk_client import call_agent
 from src.core import paths
 from src.core.agent_config import Agent, Suite, load_agent
 from src.core.results import CaseResult, Result, Run, check
+from src.fields.checks import run_checks
+from src.fields.extract import extract, is_empty
 from src.metrics.judges import run_judge
 from src.runners.test_cases import load_cases
 
@@ -88,6 +90,15 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
         "contexts": list(trace.get("context") or []),
         "expected_answer": case.get("expected", {}).get("expected_answer", ""),
     }
+    fetch_errors: list[str] = []
+    if agent.fields:
+        values, missing = extract(trace, agent.fields, offline=offline)
+        fetch_errors = values.pop("_fetch_errors", [])
+        if missing:
+            result.error = (f"required field(s) {missing} not found in the trace — has the trace format changed? "
+                            f"Check with: make fields AGENT={agent.name} SUITE={suite.name} CASE={case_id}")
+            return result
+        fields.update({k: v for k, v in values.items() if not is_empty(v) or k not in fields})
     try:
         if parser and hasattr(parser, "parse"):
             fields.update(parser.parse(trace, case) or {})
@@ -100,6 +111,9 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
 
     # 5a. Deterministic checks.
     result.results.extend(_standard_checks(fields, case))
+    result.results.extend(run_checks(agent.checks, fields, case))
+    if fetch_errors:      # e.g. Athena unreachable: the judges that needed that evidence can't be trusted
+        result.results.append(Result("evidence_fetch", "check", "error", "; ".join(fetch_errors)))
     if parser and hasattr(parser, "checks"):
         try:
             result.results.extend(parser.checks(fields, case))
