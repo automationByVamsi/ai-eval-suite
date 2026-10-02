@@ -77,6 +77,10 @@ def test_run_is_saved_and_reloaded(outputs):
     again = load_run("latest", "knowledge_agent", "sanity")
     assert again.run_id == run.run_id
     assert again.cases[0].results[0].name == "answer_non_empty"
+    assert again.cases[0].results[0].group == "basic"
+    assert again.cases[0].details["evidence_titles"][0] == "How To Add a Support Need in MCP"   # for the dashboard
+    assert again.cases[0].input == {"question": "How do I add a support need?"}
+    assert again.metrics == [] and again.checks is None
 
 
 def test_live_run_calls_adk_and_saves_the_trace(outputs, monkeypatch):

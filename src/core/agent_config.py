@@ -4,7 +4,7 @@ Load one agent's configuration: agents/<name>/agent.yaml.
 Everything about an agent lives in its own folder:
 
     agents/<name>/
-      agent.yaml       how to reach it, which metrics it uses, which suites run which metrics
+      agent.yaml       how to reach it, which metrics it uses, which suites run which metrics and checks
       fields.yaml      optional: the fields evaluation reads from the trace (see src/fields/extract.py)
       parser.py        optional: Python for what fields.yaml / checks: can't express
       client.py        optional: only for agents that are not Google ADK (see agents/_template)
@@ -40,6 +40,7 @@ class Suite:
     testdata: Path                # folder of test case JSON files (sub-folders included)
     metrics: list[str]            # judge metrics to run; names defined under the agent's `metrics:`
     only: dict[str, Any]          # optional filter, e.g. {"metadata.approval_status": "APPROVED"}
+    checks: list[str] | None = None   # deterministic checks to run: None = all, [] = none, else names/groups
 
 
 @dataclass
@@ -55,6 +56,13 @@ class Agent:
     suites: dict[str, Suite]
     fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks: in agent.yaml
+
+    def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
+        """The checks: from agent.yaml that this suite runs (a group name selects its whole group)."""
+        if suite.checks is None:
+            return dict(self.checks)
+        wanted = set(suite.checks)
+        return {n: s for n, s in self.checks.items() if n in wanted or s.get("group") in wanted}
 
     def suite(self, name: str) -> Suite:
         """A suite by name, or a ConfigError that lists the ones that exist."""
@@ -112,12 +120,21 @@ def load_agent(name: str) -> Agent:
             testdata=folder / spec.get("testdata", f"testdata/{suite_name}"),
             metrics=wanted,
             only=dict(spec.get("only") or {}),
+            checks=_suite_checks(spec.get("checks", "all"), f"{path}: suite '{suite_name}'"),
         )
 
     fields_file = folder / "fields.yaml"
     fields = {}
     if fields_file.is_file():
         fields = extract.validate((yaml.safe_load(fields_file.read_text()) or {}).get("fields") or {}, str(fields_file))
+
+    checks = yaml_checks.validate(raw.get("checks") or {}, str(path))
+    known = {*checks, *(s.get("group") for s in checks.values() if s.get("group")), *BASIC_CHECKS}
+    for suite in suites.values():
+        unknown = sorted(set(suite.checks or []) - known)
+        if unknown:
+            raise ConfigError(f"{path}: suite '{suite.name}' checks: {unknown} are neither checks nor groups. "
+                              f"Known: {sorted(known)}")
 
     return Agent(
         name=name,
@@ -128,5 +145,22 @@ def load_agent(name: str) -> Agent:
         metrics=metrics,
         suites=suites,
         fields=fields,
-        checks=yaml_checks.validate(raw.get("checks") or {}, str(path)),
+        checks=checks,
     )
+
+
+# The checks every agent gets (runner._standard_checks), selectable by name or as the group "basic".
+BASIC_CHECKS = ("basic", "answer_non_empty", "keywords")
+
+
+def _suite_checks(value: Any, where: str) -> list[str] | None:
+    """A suite's `checks:` -> None (all), [] (none) or the listed names."""
+    if value in ("all", None):
+        return None
+    if value in ("none", [], False):
+        return []
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ConfigError(f"{where}: checks: must be all, none, or a list of check / group names")
+    return list(value)

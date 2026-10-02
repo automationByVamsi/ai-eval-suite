@@ -210,29 +210,79 @@ def test_evidence_text_is_fetched_once_and_saved(outputs, monkeypatch):
     assert len(values["contexts"]) == 3 and calls == []
 
 
-def test_missing_evidence_is_an_error_not_a_low_score(outputs):
-    (outputs / "outputs/evidence/athena/40017.json").unlink()
-    case = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"]).cases[0]
-    error = next(r for r in case.results if r.name == "evidence_fetch")
-    assert error.status == "error" and "page 40017" in error.reason and "OFFLINE" in error.reason
-    assert case.status == "error"
-
-
-def test_faithfulness_judge_gets_the_evidence_text(outputs, monkeypatch):
+def _fake_judges(monkeypatch, seen=None):
     from src.metrics import judges
-    seen = {}
 
     def fake_score(name, metric, values, threshold):
-        seen[name] = values
+        if seen is not None:
+            seen[name] = values
         return 0.9, ""
 
     monkeypatch.setattr(judges, "score_with_deepeval", fake_score)
     monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
+
+
+def test_missing_evidence_is_an_error_not_a_low_score(outputs, monkeypatch):
+    _fake_judges(monkeypatch)
+    (outputs / "outputs/evidence/athena/40017.json").unlink()
+    case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
+    error = next(r for r in case.results if r.name == "evidence_fetch")
+    assert error.status == "error" and "page 40017" in error.reason and "OFFLINE" in error.reason
+    assert "faithfulness need" in error.reason                     # says which judge wanted the evidence
+    assert case.status == "error"
+
+
+def test_evidence_is_fetched_only_when_a_judge_needs_it(outputs, monkeypatch):
+    """A relevance-only suite never calls Athena — so Athena being down can't ERROR it."""
+    _fake_judges(monkeypatch)
+    from src.fields import evidence
+    evidence.clear_cache()
+    for saved in (outputs / "outputs/evidence/athena").glob("*.json"):
+        saved.unlink()                                             # no saved pages at all
+    monkeypatch.setattr(evidence, "fetch_page", lambda pid: pytest.fail("Athena was called"))
+    traces = outputs / "outputs/traces/knowledge_agent"
+    (traces / "relevance_only").mkdir()
+    (traces / "relevance_only" / "TC_002.json").write_text((traces / "sanity" / "TC_002.json").read_text())
+    case = run_suite("knowledge_agent", "relevance_only", offline=True, case_ids=["TC_002"]).cases[0]
+    assert [r.name for r in case.results] == ["relevance"]         # checks: none -> judges only
+    assert case.status == "pass" and not case.details["contexts"]
+
+
+def test_faithfulness_judge_gets_the_evidence_text(outputs, monkeypatch):
+    seen = {}
+    _fake_judges(monkeypatch, seen)
     case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
     faithfulness = next(r for r in case.results if r.name == "faithfulness")
     assert faithfulness.status == "pass"
     assert seen["faithfulness"]["contexts"][0].startswith("How To Add a Support Need in MCP")
     assert seen["faithfulness"]["answer"].startswith("To add a Support Need in Multi-Channel Processes")
+
+
+def test_checks_in_groups_and_suites_that_pick_them(temp_agents):
+    folder = temp_agents / "demo"
+    folder.mkdir()
+    (folder / "agent.yaml").write_text(
+        "connection: {base_url: http://x, app_name: demo}\n"
+        "metrics: {relevance: {threshold: 0.7}}\n"
+        "checks:\n"
+        "  answer:\n"
+        "    long_enough: {type: min_words, field: answer, min: 3}\n"
+        "    no_markers:  {type: not_contains, field: answer, values: [page_ids]}\n"
+        "  loose_check:   {type: present, field: answer}\n"
+        "suites:\n"
+        "  everything: {metrics: [relevance]}\n"
+        "  judges_only: {metrics: [relevance], checks: none}\n"
+        "  picked: {metrics: [relevance], checks: [answer, basic]}\n"
+    )
+    agent = load_agent("demo")
+    assert agent.checks["long_enough"]["group"] == "answer" and "group" not in agent.checks["loose_check"]
+    assert len(agent.checks_for(agent.suite("everything"))) == 3
+    assert agent.checks_for(agent.suite("judges_only")) == {}
+    assert sorted(agent.checks_for(agent.suite("picked"))) == ["long_enough", "no_markers"]
+
+    (folder / "agent.yaml").write_text((folder / "agent.yaml").read_text().replace("[answer, basic]", "[answr]"))
+    with pytest.raises(ConfigError, match="neither checks nor groups"):
+        load_agent("demo")
 
 
 def test_athena_field_needs_ids_defined_above():

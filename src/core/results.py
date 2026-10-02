@@ -33,12 +33,13 @@ class Result:
     score: float | None = None   # judges only
     threshold: float | None = None
     engine: str = ""             # judges only: "pegasus" or "deepeval"
+    group: str = ""              # checks only: the group it is written under in agent.yaml (dashboard)
 
 
-def check(name: str, passed: bool, reason_if_failed: str = "") -> Result:
+def check(name: str, passed: bool, reason_if_failed: str = "", group: str = "") -> Result:
     """A deterministic check — the helper agents' parser.py files use in checks()."""
     return Result(name=name, kind="check", status=PASS if passed else FAIL,
-                  reason="" if passed else reason_if_failed)
+                  reason="" if passed else reason_if_failed, group=group)
 
 
 @dataclass
@@ -54,6 +55,11 @@ class CaseResult:
     trace: str = ""              # path of the saved trace
     error: str = ""              # set when the agent or the parser failed: the case is an ERROR
     results: list[Result] = field(default_factory=list)
+    # For the dashboard (not used to decide pass/fail):
+    description: str = ""        # the test case's description
+    input: dict = field(default_factory=dict)       # the test case's input block
+    expected: dict = field(default_factory=dict)    # the test case's expected block
+    details: dict = field(default_factory=dict)     # every fields.yaml value for this case (long texts cut)
 
     @property
     def status(self) -> str:
@@ -74,6 +80,8 @@ class Run:
     offline: bool = False        # True when saved traces were replayed instead of calling the agent
     run_id: str = ""
     started_at: str = ""
+    metrics: list[str] = field(default_factory=list)       # the judges this suite runs
+    checks: list[str] | None = None                        # the checks it runs (None: all of them)
     cases: list[CaseResult] = field(default_factory=list)
 
     def __post_init__(self) -> None:

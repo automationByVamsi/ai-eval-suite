@@ -85,6 +85,7 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | read a value from the trace (a stage output, …)   | one line in `agents/<agent>/fields.yaml`; preview with `make fields` — see [Trace fields and checks](#trace-fields-and-checks) |
 | judge a stage output (rewritten query, tool, …)   | a field in `fields.yaml`, then point the metric at it (`answer: rewritten_query`) |
 | add a deterministic check for one agent           | `checks:` in `agents/<agent>/agent.yaml` (YAML), or `checks()` in `parser.py` for real logic |
+| choose which checks a suite runs                  | `checks: all \| none \| [groups or names]` under the suite in `agent.yaml` |
 | the agent's trace format changed                  | `make fields AGENT=.. CASE=..` shows which fields came back empty; fix their paths in `fields.yaml` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |
 | turn a spreadsheet of test cases into JSON        | `agents/<agent>/importers/<name>.yaml` — see [Import test cases from a spreadsheet](#import-test-cases-from-a-spreadsheet) |
@@ -316,6 +317,25 @@ checks:
 Types: `present`, `one_of`, `equals`, `min_words`, `not_contains`, `range`, `same_count`, `subset`,
 `any_in`, `all_in`, `precision`, `recall` (see `src/fields/checks.py`). A check whose expected value
 the case lacks is SKIPPED. `parser.py` is still there for logic YAML can't express.
+
+Checks can be written in groups (`answer:`, `citations:`, `retrieval:` …; the dashboard shows them by
+group), and **each suite chooses which checks it runs** — judges and checks are set separately:
+
+```yaml
+suites:
+  golden:          {metrics: [relevance, correctness, faithfulness]}            # checks: all (default)
+  relevance_only:  {metrics: [relevance], checks: none}                          # judges only
+  stages:          {metrics: [intent_preservation], checks: [basic, pipeline]}   # groups and/or check names
+```
+
+`basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Evidence page text
+(`from: athena`) is fetched only when one of the suite's judges or checks reads it, so a
+relevance-only suite never calls Athena.
+
+**Dashboard** (`make dashboard`): Overview (pass rates, every judge and check across the run, a
+case × result grid), Test cases (one accordion per case: question, answer, reference answer and
+evidence pages on the left; LLM judges and deterministic checks, kept apart, on the right; any error
+explained with how to fix it), Trends (recent runs of the same suite) and Baseline.
 
 ## Import test cases from a spreadsheet
 

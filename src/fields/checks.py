@@ -30,6 +30,15 @@ check is SKIPPED (never guessed). To accept one of several ways of labelling, li
 Text is compared ignoring case and extra spaces, so "How to Add a support need" matches
 "How To Add a Support Need".
 
+Checks can be grouped (the group name shows on the dashboard, and a suite can pick whole groups):
+      checks:
+        citations:
+          citations_in_evidence_set: {type: subset, field: cited_page_ids, of: [anchor_page_ids]}
+        retrieval:
+          anchor_hit: {type: any_in, field: anchor_page_ids, expected: expected_anchor_page_ids}
+Which checks a suite runs: `checks:` under the suite (all | none | [group or check names]),
+see src/core/agent_config.py.
+
 `when:` runs the check only if a condition holds, else SKIP:
       when: {field: confidence, in: [MEDIUM, LOW]}     the value is one of these
       when: {field: metadata_missing, is: true}         the value (or any item of a list) is true
@@ -47,23 +56,59 @@ from src.fields.extract import is_empty
 TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset",
          "any_in", "all_in", "precision", "recall"}
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
-        "threshold", "when", "description"}
+        "threshold", "when", "description", "group"}
 COMPARING = {"any_in", "all_in", "precision", "recall"}
 
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
-    """Check the `checks:` section when the agent loads."""
+    """
+    Check the `checks:` section when the agent loads. Returns one flat {name: spec}; a check written
+    inside a group gets `group: <group name>`.
+    """
+    flat: dict[str, dict[str, Any]] = {}
     for name, spec in (checks or {}).items():
-        if not isinstance(spec, dict):
-            raise ConfigError(f"{where}: check '{name}' must be a mapping like {{type: present, field: answer}}")
-        unknown = set(spec) - KEYS
-        if unknown:
-            raise ConfigError(f"{where}: check '{name}' has unknown keys {sorted(unknown)} (allowed: {sorted(KEYS)})")
-        if spec.get("type") not in TYPES:
-            raise ConfigError(f"{where}: check '{name}' needs type: one of {sorted(TYPES)} (got {spec.get('type')!r})")
-        if spec["type"] in COMPARING and not (spec.get("compare") or (spec.get("field") and spec.get("expected"))):
-            raise ConfigError(f"{where}: check '{name}' needs field: + expected: (or a compare: list)")
-    return dict(checks or {})
+        if _is_group(spec):
+            for check_name, check_spec in spec.items():
+                _add(flat, check_name, {**check_spec, "group": name}, where)
+        else:
+            _add(flat, name, spec, where)
+    groups = {spec.get("group") for spec in flat.values()} - {None}
+    clash = groups & set(flat)
+    if clash:
+        raise ConfigError(f"{where}: {sorted(clash)} used both as a group and as a check name")
+    return flat
+
+
+def _is_group(spec: Any) -> bool:
+    return (isinstance(spec, dict) and "type" not in spec and bool(spec)
+            and all(isinstance(v, dict) for v in spec.values()))
+
+
+def _add(flat: dict[str, dict[str, Any]], name: str, spec: Any, where: str) -> None:
+    if not isinstance(spec, dict):
+        raise ConfigError(f"{where}: check '{name}' must be a mapping like {{type: present, field: answer}}")
+    if name in flat:
+        raise ConfigError(f"{where}: check '{name}' is defined twice")
+    unknown = set(spec) - KEYS
+    if unknown:
+        raise ConfigError(f"{where}: check '{name}' has unknown keys {sorted(unknown)} (allowed: {sorted(KEYS)})")
+    if spec.get("type") not in TYPES:
+        raise ConfigError(f"{where}: check '{name}' needs type: one of {sorted(TYPES)} (got {spec.get('type')!r})")
+    if spec["type"] in COMPARING and not (spec.get("compare") or (spec.get("field") and spec.get("expected"))):
+        raise ConfigError(f"{where}: check '{name}' needs field: + expected: (or a compare: list)")
+    flat[name] = dict(spec)
+
+
+def fields_read(spec: dict[str, Any]) -> set[str]:
+    """The fields.yaml fields one check reads (used to fetch Athena evidence only when needed)."""
+    names = {spec.get("field"), spec.get("other"), (spec.get("when") or {}).get("field")}
+    names |= set(_as_names(spec.get("fields"))) | set(_as_names(spec.get("of")))
+    names |= {pair.get("field") for pair in spec.get("compare") or []}
+    return {n for n in names if n}
+
+
+def _as_names(value: Any) -> list[str]:
+    return value if isinstance(value, list) else [value] if value else []
 
 
 def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: dict[str, Any]) -> list[Result]:
@@ -73,7 +118,7 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
 
 
 def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any]) -> Result:
-    result = Result(name=name, kind="check", status=SKIP)
+    result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""))
     skip_reason = _when(spec.get("when"), fields)
     if skip_reason:
         result.reason = skip_reason

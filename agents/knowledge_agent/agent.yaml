@@ -31,63 +31,75 @@ metrics:
   anchor_grounding_quality: {rubric: rubrics/anchor_grounding_quality.md,
                              question: rewritten_query, answer: anchor_page_content}
 
-# Deterministic checks: run on every case of every suite, on the fields from fields.yaml.
-# A check whose expected value a case lacks is SKIPPED. Types: see src/fields/checks.py.
+# Deterministic checks, in groups (the dashboard shows them by group). They read the fields from
+# fields.yaml; a check whose expected value a case lacks is SKIPPED. Types: see src/fields/checks.py.
+# Each suite picks what it runs with `checks:` (below): all (the default), none, or groups / names.
+# "basic" (answer_non_empty, expected.keywords) is built in.
 checks:
-  # Workflow integrity: answer
-  answer_min_words:       {type: min_words, field: answer, min: 8}
-  no_internal_markers:    {type: not_contains, field: answer,
-                           values: [page_ids, anchor_page, artifact_id, rewritten_query, search_branches]}
-  question_passed_through: {type: equals, field: agent_query, other: question}
-  confidence_valid:       {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
+  answer:                     # the answer the caller receives is well-formed
+    answer_min_words:       {type: min_words, field: answer, min: 8}
+    no_internal_markers:    {type: not_contains, field: answer,
+                             values: [page_ids, anchor_page, artifact_id, rewritten_query, search_branches]}
+    question_passed_through: {type: equals, field: agent_query, other: question}
+    confidence_valid:       {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
 
-  # Workflow integrity: stages
-  rewrite_present:        {type: present, field: rewritten_queries}
-  branch_per_sub_query:   {type: same_count, fields: [rewritten_queries, branch_sub_queries]}
-  anchor_per_branch:      {type: same_count, fields: [branch_sub_queries, branch_anchor_ids]}
-  anchor_from_search:     {type: subset, field: anchor_page_ids, of: [search_candidates]}
-  validation_scores_in_range: {type: range, fields: [relevance_score, applicability_score, sufficiency_score],
-                               min: 0, max: 1}
+  pipeline:                   # every stage ran and handed over what the next one needs
+    rewrite_present:        {type: present, field: rewritten_queries}
+    branch_per_sub_query:   {type: same_count, fields: [rewritten_queries, branch_sub_queries]}
+    anchor_per_branch:      {type: same_count, fields: [branch_sub_queries, branch_anchor_ids]}
+    anchor_from_search:     {type: subset, field: anchor_page_ids, of: [search_candidates]}
+    validation_scores_in_range: {type: range, fields: [relevance_score, applicability_score, sufficiency_score],
+                                 min: 0, max: 1}
 
-  # Citations: every cited page was actually used, and is listed in the evidence
-  citations_in_evidence_set:    {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
-  citations_listed_in_evidence: {type: subset, field: cited_page_ids, of: [evidence_page_ids]}
+  citations:                  # every cited page was actually used, and is listed in the evidence
+    citations_in_evidence_set:    {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
+    citations_listed_in_evidence: {type: subset, field: cited_page_ids, of: [evidence_page_ids]}
 
-  # Honest degradation: a fallback or a non-HIGH confidence must be disclosed to the caller
-  fallback_disclosed:     {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
-  caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
+  disclosure:                 # a fallback or a non-HIGH confidence is disclosed to the caller
+    fallback_disclosed:     {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
+    caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
 
-  # Retrieval — golden cases (need expected pages; ids or titles, whichever the case has)
-  anchor_hit:
-    type: any_in
-    compare:
-      - {field: anchor_page_ids, expected: expected_anchor_page_ids}
-      - {field: anchor_titles,   expected: expected_anchor_page_titles}
-  expansion_precision:
-    type: precision
-    threshold: 0.7
-    compare:
-      - {field: expanded_page_ids, expected: expected_related_page_ids}
-      - {field: expanded_titles,   expected: expected_related_page_titles}
-  expansion_recall:
-    type: recall
-    threshold: 0.7
-    compare:
-      - {field: expanded_page_ids, expected: expected_related_page_ids}
-      - {field: expanded_titles,   expected: expected_related_page_titles}
+  retrieval:                  # golden cases: the expected pages were found (ids or titles, whichever the case has)
+    anchor_hit:
+      type: any_in
+      compare:
+        - {field: anchor_page_ids, expected: expected_anchor_page_ids}
+        - {field: anchor_titles,   expected: expected_anchor_page_titles}
+    expansion_precision:
+      type: precision
+      threshold: 0.7
+      compare:
+        - {field: expanded_page_ids, expected: expected_related_page_ids}
+        - {field: expanded_titles,   expected: expected_related_page_titles}
+    expansion_recall:
+      type: recall
+      threshold: 0.7
+      compare:
+        - {field: expanded_page_ids, expected: expected_related_page_ids}
+        - {field: expanded_titles,   expected: expected_related_page_titles}
 
-# Which metrics each suite runs. testdata defaults to testdata/<suite name>.
+# Which judges (metrics:) and which deterministic checks (checks:) each suite runs.
+#   checks: all                      every check (the default when checks: is left out)
+#   checks: none                     judges only
+#   checks: [basic, citations]       these groups and/or check names
+# testdata defaults to testdata/<suite name>.
 suites:
   sanity:
     metrics: [relevance, correctness, faithfulness]
+  relevance_only:            # one judge, no deterministic checks (and no Athena fetch: nothing needs page text)
+    testdata: testdata/sanity
+    metrics: [relevance]
+    checks: none
   stages:
     testdata: testdata/sanity
     metrics: [intent_preservation, semantic_preservation, domain_appropriateness,
               query_optimization, anchor_relevance, anchor_grounding_quality]
+    checks: [basic, pipeline]
   golden:                    # CJM golden cases: make import-cases (see importers/cjm_golden.yaml)
     metrics: [relevance, correctness, faithfulness]   # faithfulness: evidence text fetched from Athena
   synthetic:                 # generated by `make goldens` (see synth/) — coverage, not a release gate
     metrics: [relevance]
+    checks: [basic, answer, citations]
   e2e:
     testdata: testdata/sanity
     metrics: [relevance, faithfulness, correctness,
