@@ -17,6 +17,7 @@ from src.core.results import ERROR, FAIL, PASS, SKIP, CaseResult, Result, Run
 
 STATUS_ICON = {PASS: "✓", FAIL: "✗", ERROR: "!", SKIP: "–"}
 STATUS_WORD = {PASS: "Pass", FAIL: "Fail", ERROR: "Error", SKIP: "Skipped"}
+SETUP_NAMES = ("lookup", "evidence_fetch")      # evidence_fetch: its name in runs saved before lookups
 GROUP_TITLES = {"basic": "Basic", "setup": "Setup", "": "Other checks"}
 
 
@@ -56,12 +57,11 @@ def explain_case_error(error: str) -> tuple[str, str]:
 
 def explain_result_error(result: Result) -> tuple[str, str]:
     """(title, how to fix) for a check or judge that could not run."""
-    if result.name == "evidence_fetch":
-        return ("Evidence pages could not be fetched from Athena",
-                "Faithfulness needs the text of the pages the agent used, fetched from Athena. Check "
-                "HIVE_ATHENA_BASE_URL / _CLIENT_ID / _CLIENT_SECRET in env/.env and that you are on the "
-                "network (OFFLINE=1 still fetches pages it has never saved). Suites "
-                "whose judges don't need page text (e.g. relevance only) never fetch it.")
+    if result.name in SETUP_NAMES:
+        return ("A value could not be looked up outside the trace",
+                "A function in the agent's lookups.py failed (the message names it and the id). Check its "
+                "settings — usually credentials in env/.env — and the network. OFFLINE=1 still looks up ids "
+                "it has never saved. Suites whose judges and checks don't read the field never look it up.")
     if result.kind == "judge":
         return (f"The {label(result.name)} judge could not score this case",
                 "Usually the judge's own LLM call failed (credentials, network, rate limit): run make "
@@ -84,7 +84,7 @@ def split(case: CaseResult) -> tuple[list[Result], dict[str, list[Result]]]:
 
 
 def is_setup(result: Result) -> bool:
-    return result.group == "setup" or result.name == "evidence_fetch"
+    return result.group == "setup" or result.name in SETUP_NAMES
 
 
 def tally(results: list[Result]) -> dict[str, int]:
@@ -238,7 +238,7 @@ def scoreboard_html(rows: list[dict[str, Any]], kind: str, show_group: bool = Tr
     """Per judge / check across the run: pass rate bar, mean score and counts (rows from summarise)."""
     out = []
     for row in rows:
-        if row["kind"] != kind or row["name"] == "evidence_fetch":
+        if row["kind"] != kind or row["name"] in SETUP_NAMES:
             continue
         counts = "".join(chip(f"{row[s]} {STATUS_WORD[s].lower()}", c) for s, c in
                          ((FAIL, "bad-soft"), (ERROR, "warn-soft"), (SKIP, "ghost")) if row[s])
@@ -260,7 +260,7 @@ def check_scoreboard_html(rows: list[dict[str, Any]]) -> str:
     """Checks across the run, by group: the ones that ever failed get a full row, the rest are chips."""
     groups: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
-        if row["kind"] == "check" and row["name"] != "evidence_fetch":
+        if row["kind"] == "check" and row["name"] not in SETUP_NAMES:
             groups.setdefault(row.get("group", ""), []).append(row)
     out = []
     for group, members in groups.items():

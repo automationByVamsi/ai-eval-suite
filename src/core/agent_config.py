@@ -6,6 +6,7 @@ Everything about an agent lives in its own folder:
     agents/<name>/
       agent.yaml       how to reach it, which metrics it uses, which suites run which metrics and checks
       fields.yaml      optional: the fields evaluation reads from the trace (see src/fields/extract.py)
+      lookups.py       optional: functions that look values up outside the trace by id (src/fields/lookup.py)
       parser.py        optional: Python for what fields.yaml / checks: can't express
       client.py        optional: only for agents that are not Google ADK (see agents/_template)
       rubrics/*.md     optional: custom judge criteria
@@ -126,7 +127,8 @@ def load_agent(name: str) -> Agent:
     fields_file = folder / "fields.yaml"
     fields = {}
     if fields_file.is_file():
-        fields = extract.validate((yaml.safe_load(fields_file.read_text()) or {}).get("fields") or {}, str(fields_file))
+        fields = extract.validate((yaml.safe_load(fields_file.read_text()) or {}).get("fields") or {},
+                                  str(fields_file), folder)
 
     checks = yaml_checks.validate(raw.get("checks") or {}, str(path))
     known = {*checks, *(s.get("group") for s in checks.values() if s.get("group")), *BASIC_CHECKS}

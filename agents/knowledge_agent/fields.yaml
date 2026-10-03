@@ -75,12 +75,14 @@ fields:
   latency_ms:          {from: trace, path: latency_ms}
   stage_seconds:       {from: timing}
 
-  # --- Evidence page text, for Faithfulness ---------------------------------------------------
-  # The trace has only the page ids, so the text is fetched from Athena (once per page per run,
-  # saved under outputs/evidence/athena/; OFFLINE=1 reuses the saved copies). When the developers
-  # log the text in the trace, read it from there instead, e.g.
-  #   contexts: {from: node, node: fetch_page_workflow, path: "pages[].content"}
-  contexts:          {from: athena, ids: evidence_page_ids}
+  # --- Looked up outside the trace (agents/knowledge_agent/lookups.py) ----------------------
+  # The trace has only page ids; the judges need the page text. get_page_content_from_athena
+  # fetches each page from Athena and cleans the HTML (once per page per run, saved under
+  # outputs/lookups/; OFFLINE=1 reuses the saved copies). Only computed when a suite's judge
+  # or check reads the field. When the developers log page text in the trace, read it from
+  # there instead, e.g.  contexts: {from: node, node: fetch_page_workflow, path: "pages[].content"}
+  contexts:            {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}
+  anchor_page_content: {from: lookup, lookup: get_page_content_from_athena, ids: anchor_page_ids, join: "\n\n"}
 
   # --- Not in the trace today (asked of the developers) -----------------------------------------
   # decision / suggested_next_step:  FINISH | FAIL and the retry hint from the validation router

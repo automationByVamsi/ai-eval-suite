@@ -182,31 +182,40 @@ def test_make_fields_previews_fields_and_checks(capsys):
         cli.main(["fields", "knowledge_agent", "--case", "TC_999"])
 
 
-# --- evidence text from Athena (from: athena) ----------------------------------------------------
+# --- values looked up outside the trace (from: lookup, agents/<agent>/lookups.py) ------------------
 
-def test_evidence_text_is_fetched_once_and_saved(outputs, monkeypatch):
+SAVED = "outputs/lookups/knowledge_agent/get_page_content_from_athena"
+
+
+def _counting(calls):
     from conftest import fake_athena_page
+    return lambda pid: calls.append(pid) or fake_athena_page(pid)
 
-    from src.fields import evidence
+
+def test_evidence_text_is_looked_up_once_and_saved(outputs, monkeypatch):
+    from conftest import use_lookup
+
+    from src.fields import lookup
     calls = []
-    monkeypatch.setattr(evidence, "fetch_page", lambda pid: calls.append(pid) or fake_athena_page(pid))
+    use_lookup(monkeypatch, _counting(calls))
     for name in ("40345", "40017", "40015"):
-        (outputs / f"outputs/evidence/athena/{name}.json").unlink()               # start with no saved copies
+        (outputs / SAVED / f"{name}.json").unlink()                              # start with no saved copies
     fields = load_agent("knowledge_agent").fields
 
-    values, _ = extract.extract(trace("TC_002"), fields)                           # live run: fetch
+    values, _ = extract.extract(trace("TC_002"), fields)                           # live run: look up
     assert values["contexts"] == ["How To Add a Support Need in MCP\n\nText of page 40345.",
                                   "How to Add a Support Need\n\nText of page 40017.",
                                   "Consent Needed for Adding Support Needs\n\nText of page 40015."]
-    assert sorted(calls) == ["40015", "40017", "40345"]
-    assert (outputs / "outputs/evidence/athena/40345.json").is_file()              # saved for OFFLINE runs
+    assert values["anchor_page_content"] == "How To Add a Support Need in MCP\n\nText of page 40345."
+    assert sorted(calls) == ["40015", "40017", "40345"]                          # 40345 twice: looked up once
+    assert (outputs / SAVED / "40345.json").is_file()                            # saved for OFFLINE runs
 
-    extract.extract(trace("TC_012"), fields)                                       # 40015 again: not refetched
+    extract.extract(trace("TC_012"), fields)                                       # 40015 again: not again
     assert sorted(calls) == ["40015", "40017", "40022", "40345"]
 
-    evidence.clear_cache()
+    lookup.clear_cache()
     calls.clear()
-    values, _ = extract.extract(trace("TC_002"), fields, offline=True)             # OFFLINE: saved copies only
+    values, _ = extract.extract(trace("TC_002"), fields, offline=True)             # OFFLINE: saved copies
     assert len(values["contexts"]) == 3 and calls == []
 
 
@@ -222,62 +231,62 @@ def _fake_judges(monkeypatch, seen=None):
     monkeypatch.setattr(judges, "pegasus_installed", lambda: False)
 
 
-def test_missing_evidence_is_an_error_not_a_low_score(outputs, monkeypatch):
+def test_a_failed_lookup_is_an_error_not_a_low_score(outputs, monkeypatch):
+    from conftest import use_lookup
     _fake_judges(monkeypatch)
-    from src.fields import evidence
-    evidence.clear_cache()
-    (outputs / "outputs/evidence/athena/40017.json").unlink()
+    (outputs / SAVED / "40017.json").unlink()
 
     def athena_down(page_id):
         raise ConnectionError("Athena unreachable")
 
-    monkeypatch.setattr(evidence, "fetch_page", athena_down)
+    use_lookup(monkeypatch, athena_down)
     case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
-    error = next(r for r in case.results if r.name == "evidence_fetch")
-    assert error.status == "error" and "page 40017" in error.reason and "Athena unreachable" in error.reason
-    assert "faithfulness need" in error.reason                     # says which judge wanted the evidence
+    error = next(r for r in case.results if r.name == "lookup")
+    assert error.status == "error" and "get_page_content_from_athena(40017)" in error.reason
+    assert "Athena unreachable" in error.reason and "lookups.py" in error.reason
+    assert "faithfulness could not run" in error.reason                 # says which judge wanted it
     assert case.status == "error"
 
 
-def test_offline_run_fetches_pages_it_never_saved(outputs, monkeypatch):
-    """OFFLINE=1 replays the agent's trace; evidence never saved is still fetched once, then reused."""
-    from conftest import fake_athena_page
+def test_offline_run_looks_up_ids_it_never_saved(outputs, monkeypatch):
+    """OFFLINE=1 replays the agent's trace; ids never saved are still looked up once, then reused."""
+    from conftest import use_lookup
 
-    from src.fields import evidence
+    from src.fields import lookup
     _fake_judges(monkeypatch)
-    evidence.clear_cache()
-    for saved in (outputs / "outputs/evidence/athena").glob("*.json"):
+    for saved in (outputs / SAVED).glob("*.json"):
         saved.unlink()
     calls = []
-    monkeypatch.setattr(evidence, "fetch_page", lambda pid: calls.append(pid) or fake_athena_page(pid))
+    use_lookup(monkeypatch, _counting(calls))
     case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
     assert next(r for r in case.results if r.name == "faithfulness").status == "pass"
     assert sorted(calls) == ["40015", "40017", "40345"]
-    assert (outputs / "outputs/evidence/athena/40345.json").is_file()
+    assert (outputs / SAVED / "40345.json").is_file()
 
-    evidence.clear_cache()
+    lookup.clear_cache()
     calls.clear()
     run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"])
     assert calls == []                                                   # second replay: saved copies
 
 
-def test_make_fields_never_calls_athena(outputs, monkeypatch):
-    from src.fields import evidence
-    evidence.clear_cache()
-    (outputs / "outputs/evidence/athena/40017.json").unlink()
-    monkeypatch.setattr(evidence, "fetch_page", lambda pid: pytest.fail("Athena was called"))
-    _, problems = evidence.page_texts(["40345", "40017"], offline=True, local=True)
+def test_make_fields_never_calls_a_lookup(outputs, monkeypatch):
+    from conftest import use_lookup
+
+    from src.fields import lookup
+    (outputs / SAVED / "40017.json").unlink()
+    use_lookup(monkeypatch, lambda pid: pytest.fail("lookup was called"))
+    folder = load_agent("knowledge_agent").folder
+    _, problems = lookup.texts(folder, "get_page_content_from_athena", ["40345", "40017"], offline=True, local=True)
     assert problems and "no saved copy yet" in problems[0]
 
 
-def test_evidence_is_fetched_only_when_a_judge_needs_it(outputs, monkeypatch):
-    """A relevance-only suite never calls Athena — so Athena being down can't ERROR it."""
+def test_lookups_run_only_when_a_judge_needs_them(outputs, monkeypatch):
+    """A relevance-only suite never looks anything up — so Athena being down can't ERROR it."""
+    from conftest import use_lookup
     _fake_judges(monkeypatch)
-    from src.fields import evidence
-    evidence.clear_cache()
-    for saved in (outputs / "outputs/evidence/athena").glob("*.json"):
+    for saved in (outputs / SAVED).glob("*.json"):
         saved.unlink()                                             # no saved pages at all
-    monkeypatch.setattr(evidence, "fetch_page", lambda pid: pytest.fail("Athena was called"))
+    use_lookup(monkeypatch, lambda pid: pytest.fail("lookup was called"))
     traces = outputs / "outputs/traces/knowledge_agent"
     (traces / "relevance_only").mkdir()
     (traces / "relevance_only" / "TC_002.json").write_text((traces / "sanity" / "TC_002.json").read_text())
@@ -294,6 +303,46 @@ def test_faithfulness_judge_gets_the_evidence_text(outputs, monkeypatch):
     assert faithfulness.status == "pass"
     assert seen["faithfulness"]["contexts"][0].startswith("How To Add a Support Need in MCP")
     assert seen["faithfulness"]["answer"].startswith("To add a Support Need in Multi-Channel Processes")
+
+
+def test_knowledge_agent_lookup_cleans_the_athena_html(monkeypatch):
+    """lookups.py: Athena's page JSON (as in Bruno's "Get Page Content") -> title + plain text."""
+    from src.fields import lookup
+    folder = load_agent("knowledge_agent").folder
+    module = lookup._module(folder)
+    raw = {"@revision": "5", "@title": "Recording Support Needs",
+           "body": ['<div class="mt-section"><h2 class="editable">Overview</h2><p>Colleagues in Messaging'
+                    '&nbsp;should use this.</p><ul><li>Refer to your <a href="https://x">line manager</a>.</li>'
+                    '</ul></div>', {"toc": "skipped"}]}
+    monkeypatch.setattr(module, "athena_http", lambda timeout: __import__("contextlib").nullcontext(None))
+    monkeypatch.setattr(module, "get_page_content", lambda http, page_id: raw)
+    page = module.get_page_content_from_athena("40021")
+    assert page["title"] == "Recording Support Needs" and page["revision"] == "5"
+    assert "<" not in page["text"] and "&nbsp;" not in page["text"]
+    assert "Colleagues in Messaging should use this." in page["text"]
+    assert "- Refer to your line manager" in page["text"]
+
+
+def test_lookup_values_can_be_any_json():
+    """Another agent's lookup may return a record from its own API: it reaches the judge as JSON text."""
+    from src.fields.lookup import as_text
+    assert as_text("plain") == "plain"
+    assert as_text({"title": "T", "text": "body"}) == "T\n\nbody"
+    assert as_text({"case_id": "C1", "status": "open"}) == '{\n  "case_id": "C1",\n  "status": "open"\n}'
+
+
+def test_lookup_mistakes_fail_when_the_agent_loads(temp_agents):
+    folder = temp_agents / "demo"
+    folder.mkdir()
+    (folder / "agent.yaml").write_text("connection: {base_url: http://x, app_name: demo}\n"
+                                       "suites: {sanity: {metrics: []}}\n")
+    (folder / "fields.yaml").write_text("fields:\n  ids: {from: final, path: ids}\n"
+                                        "  texts: {from: lookup, lookup: get_record, ids: ids}\n")
+    with pytest.raises(ConfigError, match="lookups.py with a function get_record"):
+        load_agent("demo")
+    (folder / "lookups.py").write_text("def get_recrod(item):\n    return item\n")
+    with pytest.raises(ConfigError, match="has no function 'get_record'"):
+        load_agent("demo")
 
 
 def test_checks_in_groups_and_suites_that_pick_them(temp_agents):
@@ -323,6 +372,6 @@ def test_checks_in_groups_and_suites_that_pick_them(temp_agents):
         load_agent("demo")
 
 
-def test_athena_field_needs_ids_defined_above():
+def test_lookup_field_needs_ids_defined_above():
     with pytest.raises(ConfigError, match="needs ids:"):
-        extract.validate({"contexts": {"from": "athena", "ids": "page_ids"}}, "fields.yaml")
+        extract.validate({"contexts": {"from": "lookup", "lookup": "f", "ids": "page_ids"}}, "fields.yaml")

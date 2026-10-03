@@ -119,11 +119,11 @@ def run_case(agent: Agent, suite: Suite, parser: ModuleType | None, client: Modu
     # 5a. Deterministic checks — the ones this suite selects (all, none, or a list of names / groups).
     result.results.extend(_standard_checks(fields, case, suite.checks))
     result.results.extend(run_checks(selected_checks, fields, case))
-    if fetch_errors:      # e.g. Athena unreachable: the judges that needed that evidence can't be trusted
+    if fetch_errors:      # e.g. the source is unreachable: judges that needed that value can't be trusted
         result.results.append(Result(
-            "evidence_fetch", "check", "error", group="setup",
-            reason="Could not get the text of the evidence pages from Athena, which "
-                   f"{_readers(agent, suite, judges, fetch_errors)} need: " + "; ".join(fetch_errors)))
+            "lookup", "check", "error", group="setup",
+            reason=f"A lookup failed (agents/{agent.name}/lookups.py), so "
+                   f"{_readers(agent, suite, judges, fetch_errors)} could not run: " + "; ".join(fetch_errors)))
     if parser and hasattr(parser, "checks") and suite.checks is None:
         try:
             result.results.extend(parser.checks(fields, case))
@@ -165,7 +165,7 @@ def _judge_fields(agent: Agent, suite: Suite, judges: bool) -> dict[str, set[str
 
 def _fields_needed(agent: Agent, suite: Suite, checks: dict[str, dict[str, Any]], judges: bool,
                    parser: ModuleType | None) -> set[str]:
-    """Every field this suite's judges and checks read: only those `from: athena` fields are fetched."""
+    """Every field this suite's judges and checks read: only those `from: lookup` fields are computed."""
     needed = set(_judge_fields(agent, suite, judges))
     for spec in checks.values():
         needed |= fields_read(spec)
@@ -175,7 +175,7 @@ def _fields_needed(agent: Agent, suite: Suite, checks: dict[str, dict[str, Any]]
 
 
 def _readers(agent: Agent, suite: Suite, judges: bool, fetch_errors: list[str]) -> str:
-    """Which judges needed the evidence that could not be fetched (errors read "<field>: <problem>")."""
+    """Which judges needed the value that could not be looked up (errors read "<field>: <problem>")."""
     readers = _judge_fields(agent, suite, judges)
     names = sorted({j for e in fetch_errors for j in readers.get(e.split(":", 1)[0], set())})
     return " and ".join(names) if names else "this suite's checks"

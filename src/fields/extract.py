@@ -19,8 +19,10 @@ Each field says WHERE to look (`from`) and WHAT to take there (`path`, see src/f
             group of `regex:` in it (numbers become numbers)
   timing    seconds spent in each top-level workflow step, from the event timestamps
   trace     the saved trace file itself (agentOutput, latency_ms, sessionId, ...)
-  athena    the text of the Athena pages whose ids are in the field named by `ids:` (one text per
-            page), e.g. {from: athena, ids: evidence_page_ids} — see src/fields/evidence.py
+  lookup    values from outside the trace, looked up by id with a function the agent provides in
+            agents/<agent>/lookups.py: one text per id in the field named by `ids:`, e.g.
+            {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}
+            — see src/fields/lookup.py
 
 Then, in this order (all optional):
   path: a.b           or a list of paths: the first one that finds something wins (handy when a
@@ -44,19 +46,23 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from src.core.exceptions import ConfigError
 from src.fields.path import get, parse
 from src.utils.text import strip_code_fence
 
-SOURCES = ("state", "final", "node", "model", "message", "timing", "trace", "athena")
+SOURCES = ("state", "final", "node", "model", "message", "timing", "trace", "lookup")
 KEYS = {"from", "path", "node", "agent", "contains", "regex", "where", "pick", "matches", "flatten", "unique",
-        "count", "first", "join", "default", "required", "description", "ids"}
+        "count", "first", "join", "default", "required", "description", "ids", "lookup"}
 
 
-def validate(fields: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
-    """Check every field spec when the agent loads, so a typo fails at once — not halfway through a run."""
+def validate(fields: dict[str, Any], where: str, folder: Path | None = None) -> dict[str, dict[str, Any]]:
+    """
+    Check every field spec when the agent loads, so a typo fails at once — not halfway through a run.
+    folder: the agent's folder, where `from: lookup` functions live (agents/<agent>/lookups.py).
+    """
     checked: dict[str, dict[str, Any]] = {}
     for name, spec in (fields or {}).items():
         if not isinstance(spec, dict):
@@ -73,8 +79,16 @@ def validate(fields: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
             raise ConfigError(f"{where}: field '{name}' (from: model) needs agent: <model agent name>")
         if source == "message" and not spec.get("contains"):
             raise ConfigError(f"{where}: field '{name}' (from: message) needs contains: <text in the message>")
-        if source == "athena" and spec.get("ids") not in checked:
-            raise ConfigError(f"{where}: field '{name}' (from: athena) needs ids: <a field above it with page ids>")
+        if source == "lookup":
+            if spec.get("ids") not in checked:
+                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs ids: <a field above it with the ids>")
+            if not spec.get("lookup"):
+                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs lookup: <function in lookups.py>")
+            if folder is None:
+                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs the agent's folder")
+            from src.fields import lookup
+            lookup.check(folder, spec["lookup"], where)
+            spec = {**spec, "_folder": folder}
         for path in _paths(spec):
             parse(path)                                        # raises on an invalid path
         for other in (spec.get("where") or {}).values():
@@ -90,23 +104,26 @@ def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: b
             fetch: set[str] | None = None, local: bool = False) -> tuple[dict[str, Any], list[str]]:
     """
     ({field: value}, [required fields that found nothing]). Never raises on odd trace content.
-    offline: `from: athena` fields reuse saved page copies (pages never saved are still fetched).
-    local:   `from: athena` fields use saved copies only, never Athena (make fields). Problems are listed
+    offline: `from: lookup` fields reuse saved copies (ids never saved are still looked up).
+    local:   `from: lookup` fields use saved copies only, never a real call (make fields). Problems are listed
     under the key "_fetch_errors" (the runner reports them as an ERROR).
-    fetch:   the `from: athena` fields to fetch (None: all). The runner passes only the ones the
-             suite's judges and checks read, so e.g. a relevance-only suite never calls Athena.
+    fetch:   the `from: lookup` fields to compute (None: all). The runner passes only the ones the
+             suite's judges and checks read, so e.g. a relevance-only suite never looks anything up.
     """
     view = TraceView(trace)
     values: dict[str, Any] = {}
     missing: list[str] = []
     for name, spec in fields.items():
-        if spec["from"] == "athena" and fetch is not None and name not in fetch:
-            value = None                                   # not needed by this suite: not fetched
-        elif spec["from"] == "athena":
-            from src.fields.evidence import page_texts
-            value, problems = page_texts(_as_list(values.get(spec["ids"])), offline, local)
+        if spec["from"] == "lookup" and fetch is not None and name not in fetch:
+            value = None                                   # not needed by this suite: not looked up
+        elif spec["from"] == "lookup":
+            from src.fields import lookup
+            value, problems = lookup.texts(spec["_folder"], spec["lookup"], _as_list(values.get(spec["ids"])),
+                                           offline, local)
             if problems:
                 values.setdefault("_fetch_errors", []).extend(f"{name}: {p}" for p in problems)
+            if value and "join" in spec:                   # e.g. one text for a judge's answer
+                value = spec["join"].join(value)
         else:
             value = field_value(view, spec, values)
         if is_empty(value) and "default" in spec:

@@ -26,30 +26,36 @@ def serve(handler_class):
 
 
 # Stand-ins for the Athena pages the committed traces cite (evidence for Faithfulness).
-# Tests never call Athena: fetch_page is replaced by fake_athena_page below.
+# Tests never call Athena: every lookup function is replaced by fake_athena_page below.
 FAKE_PAGES = {
     "40345": "How To Add a Support Need in MCP",
     "40017": "How to Add a Support Need",
     "40015": "Consent Needed for Adding Support Needs",
     "40022": "Third-Party Consent for Customer Vulnerability Support Needs",
 }
+KA_LOOKUP = "get_page_content_from_athena"
 
 
 def fake_athena_page(page_id):
     if page_id not in FAKE_PAGES:
         raise RuntimeError(f"Athena page {page_id}: not found")
-    return {"id": page_id, "title": FAKE_PAGES[page_id], "text": f"Text of page {page_id}.", "revision": "1",
-            "fetched_at": "2026-09-29T00:00:00+00:00"}
+    return {"title": FAKE_PAGES[page_id], "text": f"Text of page {page_id}.", "revision": "1"}
+
+
+def use_lookup(monkeypatch, fake):
+    """Make every lookups.py function call `fake(id)` instead (no network)."""
+    from src.fields import lookup
+    monkeypatch.setattr(lookup, "function", lambda folder, name: fake)
 
 
 @pytest.fixture(autouse=True)
 def no_real_athena(monkeypatch):
-    """Every test: evidence pages come from FAKE_PAGES, and nothing is remembered between tests."""
-    from src.fields import evidence
-    evidence.clear_cache()
-    monkeypatch.setattr(evidence, "fetch_page", fake_athena_page)
+    """Every test: lookups come from FAKE_PAGES, and nothing is remembered between tests."""
+    from src.fields import lookup
+    lookup.clear_cache()
+    use_lookup(monkeypatch, fake_athena_page)
     yield
-    evidence.clear_cache()
+    lookup.clear_cache()
 
 
 @pytest.fixture
@@ -57,10 +63,10 @@ def outputs(tmp_path, monkeypatch):
     """Run everything in a temp outputs/ + baselines/, seeded with the committed traces and saved
     copies of their evidence pages (so OFFLINE runs have them, as after a live run)."""
     shutil.copytree(ROOT / "outputs" / "traces", tmp_path / "outputs" / "traces")
-    evidence = tmp_path / "outputs" / "evidence" / "athena"
-    evidence.mkdir(parents=True)
+    saved = tmp_path / "outputs" / "lookups" / "knowledge_agent" / KA_LOOKUP
+    saved.mkdir(parents=True)
     for page_id in FAKE_PAGES:
-        (evidence / f"{page_id}.json").write_text(json.dumps(fake_athena_page(page_id)))
+        (saved / f"{page_id}.json").write_text(json.dumps({"id": page_id, "value": fake_athena_page(page_id)}))
     monkeypatch.setattr(paths, "OUTPUTS_DIR", tmp_path / "outputs")
     monkeypatch.setattr(paths, "BASELINES_DIR", tmp_path / "baselines")
     return tmp_path

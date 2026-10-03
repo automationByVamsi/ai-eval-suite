@@ -100,7 +100,7 @@ def _add(flat: dict[str, dict[str, Any]], name: str, spec: Any, where: str) -> N
 
 
 def fields_read(spec: dict[str, Any]) -> set[str]:
-    """The fields.yaml fields one check reads (used to fetch Athena evidence only when needed)."""
+    """The fields.yaml fields one check reads (used to run lookups only when needed)."""
     names = {spec.get("field"), spec.get("other"), (spec.get("when") or {}).get("field")}
     names |= set(_as_names(spec.get("fields"))) | set(_as_names(spec.get("of")))
     names |= {pair.get("field") for pair in spec.get("compare") or []}

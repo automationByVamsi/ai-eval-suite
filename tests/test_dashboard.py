@@ -10,13 +10,14 @@ from src.runners.suite_runner import run_suite
 
 def test_every_error_is_explained_with_a_fix():
     case = CaseResult("TC_1", results=[
-        Result("evidence_fetch", "check", "error", "contexts: page 40017: ConnectError", group="setup"),
+        Result("lookup", "check", "error", "contexts: get_page_content_from_athena(40017) failed: ConnectError",
+               group="setup"),
         Result("faithfulness", "judge", "error", "RateLimitError"),
     ])
     found = ui.problems(case)
-    assert [p["title"] for p in found] == ["Evidence pages could not be fetched from Athena",
+    assert [p["title"] for p in found] == ["A value could not be looked up outside the trace",
                                           "The Faithfulness judge could not score this case"]
-    assert "HIVE_ATHENA" in found[0]["hint"] and "page 40017" in found[0]["reason"]
+    assert "lookups.py" in found[0]["hint"] and "(40017)" in found[0]["reason"]
     assert ui.problems(CaseResult("TC_2", error="agent: ReadTimeout"))[0]["title"] == "The agent did not answer"
 
 
@@ -24,14 +25,14 @@ def test_judges_and_checks_are_kept_apart_and_setup_errors_are_neither():
     case = CaseResult("TC_1", results=[
         Result("answer_non_empty", "check", "pass", group="basic"),
         Result("anchor_hit", "check", "fail", "none of ['49999']", group="retrieval"),
-        Result("evidence_fetch", "check", "error", group="setup"),
+        Result("lookup", "check", "error", group="setup"),
         Result("relevance", "judge", "pass", score=0.9, threshold=0.7),
     ])
     judges, groups = ui.split(case)
     assert [r.name for r in judges] == ["relevance"]
     assert {g: [r.name for r in rs] for g, rs in groups.items()} == {"basic": ["answer_non_empty"],
                                                                    "retrieval": ["anchor_hit"]}
-    assert ui.first_issue(case) == "Evidence pages could not be fetched from Athena"     # errors before fails
+    assert ui.first_issue(case) == "A value could not be looked up outside the trace"    # errors before fails
 
 
 def test_evidence_pages_carry_their_roles(outputs):

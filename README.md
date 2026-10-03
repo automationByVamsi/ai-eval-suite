@@ -141,6 +141,7 @@ agents/
     testdata/<suite>/*.json     test cases, one per file
     rubrics/*.md                custom judge criteria, in plain English     (optional)
     fields.yaml                 what to read from the trace, one line per field (optional)
+    lookups.py                  values looked up outside the trace by id, e.g. page text   (optional)
     parser.py                   Python for what fields.yaml / checks: can't express  (optional, rare)
     client.py                   only for agents that are not Google ADK     (optional)
     synth/                      test-case generator: synth.yaml, styles/, instructions.md (optional)
@@ -284,11 +285,15 @@ fields:
   something", handy while a trace format is changing.
 - More options (`where`, `pick`, `join`, `count`, `first`, `unique`, `matches`, `default`, `required`)
   are explained at the top of `src/fields/extract.py`.
-- `from: athena` fetches the **text of Athena pages** whose ids are in another field — that is how
-  Faithfulness gets its evidence while the trace carries only page ids:
-  `contexts: {from: athena, ids: evidence_page_ids}`. Each page is fetched once per run and saved in
-  `outputs/evidence/athena/`; `OFFLINE=1` reuses the saved copies. If a page can't be fetched the case
-  shows an `evidence_fetch` ERROR (never a low score). Needs the `HIVE_ATHENA_*` settings in `env/.env`.
+- `from: lookup` gets values **outside the trace, by id**, with a function the agent provides in
+  `agents/<agent>/lookups.py`. The Knowledge Agent's `get_page_content_from_athena` fetches each
+  evidence page from Athena and cleans the HTML, which is how Faithfulness gets its evidence while
+  the trace carries only page ids:
+  `contexts: {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}`.
+  Another agent writes its own function (e.g. calling its API and returning the JSON); the framework
+  knows nothing about Athena or HTML. Each id is looked up once per run and saved under
+  `outputs/lookups/<agent>/<function>/`; `OFFLINE=1` reuses saved copies (and looks up ids it never
+  saved). A failed lookup makes the case an ERROR (never a low score).
 
 **Preview** what every field gives for saved traces, and what the checks make of it — no agent call,
 no judges:
@@ -328,8 +333,8 @@ suites:
   stages:          {metrics: [intent_preservation], checks: [basic, pipeline]}   # groups and/or check names
 ```
 
-`basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Evidence page text
-(`from: athena`) is fetched only when one of the suite's judges or checks reads it, so a
+`basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Lookups
+(`from: lookup`) run only when one of the suite's judges or checks reads the field, so a
 relevance-only suite never calls Athena.
 
 **Dashboard** (`make dashboard`): Overview (pass rates, every judge and check across the run, a
