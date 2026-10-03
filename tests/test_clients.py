@@ -122,3 +122,11 @@ def test_doctor_scores_one_pegasus_metric(fake_cortex, monkeypatch, tmp_path, ca
     monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
     assert doctor.run_doctor() == 0
     assert "[OK  ] Pegasus metric         relevance score=0.93 [pegasus]" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("base", ["https://h/athena-mcp-server", "https://h/athena-mcp-server/",
+                                  "https://h/athena-mcp-server/v1/mcp"])
+def test_athena_url_with_or_without_v1_mcp(monkeypatch, base):
+    from src.clients.athena_client import mcp_url
+    monkeypatch.setenv("HIVE_ATHENA_BASE_URL", base)
+    assert mcp_url() == "https://h/athena-mcp-server/v1/mcp"

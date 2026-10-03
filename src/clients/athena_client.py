@@ -42,10 +42,15 @@ def athena_http(timeout_s: float = 60) -> httpx.Client:
     )
 
 
+def mcp_url() -> str:
+    """HIVE_ATHENA_BASE_URL + /v1/mcp — the base URL may be given with or without the /v1/mcp."""
+    base_url = require("HIVE_ATHENA_BASE_URL").rstrip("/")
+    return base_url if base_url.endswith("/v1/mcp") else f"{base_url}/v1/mcp"
+
+
 def get_page_content(http: httpx.Client, page_id: str) -> dict[str, Any]:
     """One page as Athena returns it: {"@title", "@revision", "body": [html strings / TOC objects]}."""
-    base_url = require("HIVE_ATHENA_BASE_URL").rstrip("/")
-    response = http.post(f"{base_url}/v1/mcp", json={
+    response = http.post(mcp_url(), json={
         "jsonrpc": "2.0",
         "id": 1,
         "method": "tools/call",
