@@ -86,11 +86,12 @@ def validate(fields: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
     return checked
 
 
-def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]],
-            offline: bool = False, fetch: set[str] | None = None) -> tuple[dict[str, Any], list[str]]:
+def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: bool = False,
+            fetch: set[str] | None = None, local: bool = False) -> tuple[dict[str, Any], list[str]]:
     """
     ({field: value}, [required fields that found nothing]). Never raises on odd trace content.
-    offline: `from: athena` fields use saved page copies only. Problems fetching evidence are listed
+    offline: `from: athena` fields reuse saved page copies (pages never saved are still fetched).
+    local:   `from: athena` fields use saved copies only, never Athena (make fields). Problems are listed
     under the key "_fetch_errors" (the runner reports them as an ERROR).
     fetch:   the `from: athena` fields to fetch (None: all). The runner passes only the ones the
              suite's judges and checks read, so e.g. a relevance-only suite never calls Athena.
@@ -103,7 +104,7 @@ def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]],
             value = None                                   # not needed by this suite: not fetched
         elif spec["from"] == "athena":
             from src.fields.evidence import page_texts
-            value, problems = page_texts(_as_list(values.get(spec["ids"])), offline)
+            value, problems = page_texts(_as_list(values.get(spec["ids"])), offline, local)
             if problems:
                 values.setdefault("_fetch_errors", []).extend(f"{name}: {p}" for p in problems)
         else:

@@ -224,12 +224,50 @@ def _fake_judges(monkeypatch, seen=None):
 
 def test_missing_evidence_is_an_error_not_a_low_score(outputs, monkeypatch):
     _fake_judges(monkeypatch)
+    from src.fields import evidence
+    evidence.clear_cache()
     (outputs / "outputs/evidence/athena/40017.json").unlink()
+
+    def athena_down(page_id):
+        raise ConnectionError("Athena unreachable")
+
+    monkeypatch.setattr(evidence, "fetch_page", athena_down)
     case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
     error = next(r for r in case.results if r.name == "evidence_fetch")
-    assert error.status == "error" and "page 40017" in error.reason and "OFFLINE" in error.reason
+    assert error.status == "error" and "page 40017" in error.reason and "Athena unreachable" in error.reason
     assert "faithfulness need" in error.reason                     # says which judge wanted the evidence
     assert case.status == "error"
+
+
+def test_offline_run_fetches_pages_it_never_saved(outputs, monkeypatch):
+    """OFFLINE=1 replays the agent's trace; evidence never saved is still fetched once, then reused."""
+    from conftest import fake_athena_page
+
+    from src.fields import evidence
+    _fake_judges(monkeypatch)
+    evidence.clear_cache()
+    for saved in (outputs / "outputs/evidence/athena").glob("*.json"):
+        saved.unlink()
+    calls = []
+    monkeypatch.setattr(evidence, "fetch_page", lambda pid: calls.append(pid) or fake_athena_page(pid))
+    case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"]).cases[0]
+    assert next(r for r in case.results if r.name == "faithfulness").status == "pass"
+    assert sorted(calls) == ["40015", "40017", "40345"]
+    assert (outputs / "outputs/evidence/athena/40345.json").is_file()
+
+    evidence.clear_cache()
+    calls.clear()
+    run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"])
+    assert calls == []                                                   # second replay: saved copies
+
+
+def test_make_fields_never_calls_athena(outputs, monkeypatch):
+    from src.fields import evidence
+    evidence.clear_cache()
+    (outputs / "outputs/evidence/athena/40017.json").unlink()
+    monkeypatch.setattr(evidence, "fetch_page", lambda pid: pytest.fail("Athena was called"))
+    _, problems = evidence.page_texts(["40345", "40017"], offline=True, local=True)
+    assert problems and "no saved copy yet" in problems[0]
 
 
 def test_evidence_is_fetched_only_when_a_judge_needs_it(outputs, monkeypatch):

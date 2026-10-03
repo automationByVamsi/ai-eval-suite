@@ -90,6 +90,10 @@ suites:
     testdata: testdata/sanity
     metrics: [relevance]
     checks: none
+  faithfulness_only:         # one judge; the evidence page text is fetched from Athena (once, then reused)
+    testdata: testdata/sanity
+    metrics: [faithfulness]
+    checks: none
   stages:
     testdata: testdata/sanity
     metrics: [intent_preservation, semantic_preservation, domain_appropriateness,

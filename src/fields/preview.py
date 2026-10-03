@@ -54,7 +54,7 @@ def preview(agent_name: str, suite_name: str = "sanity", case_ids: list[str] | N
     problems = 0
     for path, case in traces:
         trace = json.loads(path.read_text())
-        values, missing = extract(trace, agent.fields, offline=True)     # saved Athena copies only
+        values, missing = extract(trace, agent.fields, offline=True, local=True)   # saved Athena copies only
         fetch_errors = values.pop("_fetch_errors", [])
         problems += bool(missing)
         print(f"\n=== {path.name}" + ("" if case else "   (no test case found: checks not shown)"))
