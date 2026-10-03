@@ -200,10 +200,19 @@ def _for_display(fields: dict[str, Any]) -> dict[str, Any]:
 
 
 def _message(agent: Agent, case: dict[str, Any]) -> str:
-    """The text sent to the agent: input[input_field], or message_template filled from input."""
+    """
+    The text sent to the agent: input[input_field]; or message_template filled from input; or, with
+    `message: {format: json, ...}` in agent.yaml, the inputs as a JSON object (only the ones this
+    case has — a case with just the main input still sends it as plain text, as before).
+    """
+    inputs = case["input"]
+    if agent.message_fields:
+        payload = {key: inputs[name] for key, name in agent.message_fields.items() if not is_empty(inputs.get(name))}
+        if set(payload) - {key for key, name in agent.message_fields.items() if name == agent.input_field}:
+            return json.dumps(payload, ensure_ascii=False)
     if agent.message_template:
-        return agent.message_template.format(**case["input"])
-    return str(case["input"][agent.input_field])
+        return agent.message_template.format(**inputs)
+    return str(inputs[agent.input_field])
 
 
 def _saved_trace(latest: Path) -> dict[str, Any]:

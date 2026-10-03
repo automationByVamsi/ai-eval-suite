@@ -60,6 +60,7 @@ output:
     description: "CJM golden, Test ID {row.test_id} ({row.workstream})"
     input:
       question: "{row.question}"
+      question_type: "{row.question_type}"     # sent to the agent (agent.yaml message:); empty -> left out
     expected:
       expected_answer: "{row.expected_answer}"
       expected_anchor_page_titles: "{row.anchor_pages}"
@@ -69,7 +70,6 @@ output:
       domain: "{domain}"
       workstream: "{row.workstream}"
       query_type: "{row.query_type}"
-      question_type: "{row.question_type}"
       origin: CJM_GOLDEN
       approval_status: APPROVED
       source:

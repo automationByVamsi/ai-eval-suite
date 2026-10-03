@@ -57,6 +57,7 @@ class Agent:
     suites: dict[str, Suite]
     fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks: in agent.yaml
+    message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
         """The checks: from agent.yaml that this suite runs (a group name selects its whole group)."""
@@ -106,6 +107,12 @@ def load_agent(name: str) -> Agent:
             if not rubric.is_file():
                 raise ConfigError(f"{path}: rubric for '{metric_name}' not found: {rubric}")
             spec["rubric"] = str(rubric)
+        json_path = (spec.get("options") or {}).get("json_path")
+        if json_path:                      # Pegasus custom criteria file, written relative to the agent folder
+            criteria = folder / json_path
+            if not criteria.is_file():
+                raise ConfigError(f"{path}: options.json_path for '{metric_name}' not found: {criteria}")
+            spec["options"] = {**spec["options"], "json_path": str(criteria)}
         validate_metric(metric_name, spec, where=str(path))
         metrics[metric_name] = spec
 
@@ -144,6 +151,7 @@ def load_agent(name: str) -> Agent:
         connection=raw["connection"],
         input_field=raw.get("input_field", "question"),
         message_template=raw.get("message_template"),
+        message_fields=_message_fields(raw.get("message"), str(path)),
         metrics=metrics,
         suites=suites,
         fields=fields,
@@ -153,6 +161,20 @@ def load_agent(name: str) -> Agent:
 
 # The checks every agent gets (runner._standard_checks), selectable by name or as the group "basic".
 BASIC_CHECKS = ("basic", "answer_non_empty", "keywords")
+
+
+def _message_fields(spec: Any, where: str) -> dict[str, str]:
+    """
+    `message: {format: json, fields: {<key the agent expects>: <key in the test case input>}}`
+    sends the input as a JSON object inside the message text, e.g. for the Knowledge Agent
+        {"query": "How do I ...?", "question_type": "how"}
+    Inputs a case doesn't have are left out; a case with only the main input still sends plain text.
+    """
+    if not spec:
+        return {}
+    if not isinstance(spec, dict) or spec.get("format") != "json" or not isinstance(spec.get("fields"), dict):
+        raise ConfigError(f"{where}: message: must be {{format: json, fields: {{agent_key: input_key}}}}")
+    return {str(k): str(v) for k, v in spec["fields"].items()}
 
 
 def _suite_checks(value: Any, where: str) -> list[str] | None:

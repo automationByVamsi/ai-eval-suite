@@ -9,7 +9,10 @@
 #  Keys
 #    needs      fields the judge reads: question, answer, contexts, expected_answer.
 #               If a case has no value for one of them, the judge is SKIPPED for that case.
-#    pegasus    class name in pegasus.metrics.rag
+#    pegasus    class name in pegasus.metrics.rag (or in pegasus.metrics.<module>, see module)
+#    module     the Pegasus module when it isn't rag, e.g. agentic
+#    columns    for a non-rag Pegasus metric: our field -> Pegasus' column name, e.g.
+#               {question: query, answer: agent_response, background: background}
 #    deepeval   class name in deepeval.metrics (the fallback, or the only engine)
 #    criteria   DeepEval GEval with this text as the rubric (instead of a deepeval class)
 #    question / answer / contexts / expected_answer: <field>
@@ -23,7 +26,11 @@
 #  Per agent (in agents/<agent>/agent.yaml, not here), a metric can also set:
 #    threshold: 0.8              pass mark, 0..1 (default 0.7)
 #    engine: deepeval|pegasus    force one engine
-#    method: pegasus|ragas|deepeval   which of Pegasus' own methods computes it (default pegasus)
+#    method: pegasus|ragas|deepeval   which of Pegasus' own methods computes it (default pegasus;
+#                                      RAG metrics only)
+#    background: <text>          Pegasus' background column (metrics whose columns: include it)
+#    options: {...}              extra arguments for the Pegasus class, e.g. use_ground_truth: true,
+#                                json_path: <custom criteria file, relative to the agent folder>
 #
 #  Read by: src/metrics/library.py (checked when an agent loads, so a typo fails straight away).
 # ============================================================================================
@@ -63,3 +70,11 @@ summarization:                      # is `answer` a good summary of the source t
   needs: [question, answer]
   question: source_document         # the agent's parser.py must provide the source text as source_document
   deepeval: SummarizationMetric
+
+# --- Agentic (pegasus.metrics.agentic) -------------------------------------------------------
+
+response_alignment:                 # does the response fit what the user asked for (query + background)?
+  needs: [question, answer]
+  pegasus: ResponseAlignment        # 1-10 scale, normalised by Pegasus to 0..1
+  module: agentic
+  columns: {question: query, answer: agent_response, background: background, expected_answer: expected_response}

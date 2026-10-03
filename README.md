@@ -85,6 +85,8 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | read a value from the trace (a stage output, …)   | one line in `agents/<agent>/fields.yaml`; preview with `make fields` — see [Trace fields and checks](#trace-fields-and-checks) |
 | judge a stage output (rewritten query, tool, …)   | a field in `fields.yaml`, then point the metric at it (`answer: rewritten_query`) |
 | add a deterministic check for one agent           | `checks:` in `agents/<agent>/agent.yaml` (YAML), or `checks()` in `parser.py` for real logic |
+| send more than the question to the agent (e.g. question_type) | `message: {format: json, fields: {...}}` in `agent.yaml` |
+| use a Pegasus metric outside RAG (e.g. agentic)   | an entry with `module:` + `columns:` in `metric_library.yaml` (see `response_alignment`) |
 | choose which checks a suite runs                  | `checks: all \| none \| [groups or names]` under the suite in `agent.yaml` |
 | the agent's trace format changed                  | `make fields AGENT=.. CASE=..` shows which fields came back empty; fix their paths in `fields.yaml` |
 | evaluate an agent that isn't Google ADK           | `agents/<agent>/client.py` (copy `client.py.example`) |

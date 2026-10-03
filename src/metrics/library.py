@@ -16,6 +16,18 @@ An agent then uses it by name in its agent.yaml, with a threshold:
 
 Judges read four standard fields. A metric can read one of them from another parser field,
 e.g. `answer: rewritten_query` judges the rewritten query instead of the final answer.
+
+Pegasus metrics outside pegasus.metrics.rag (e.g. agentic ResponseAlignment) say where they live
+and what Pegasus calls each input:
+
+    response_alignment:
+      needs: [question, answer]
+      pegasus: ResponseAlignment
+      module: agentic                                   # pegasus.metrics.agentic (default: rag)
+      columns: {question: query, answer: agent_response, background: background}
+
+An agent's metric can also set `background:` (fixed text for Pegasus' background column) and
+`options:` (extra arguments for the Pegasus class, e.g. {use_ground_truth: true, json_path: ...}).
 """
 
 from __future__ import annotations
@@ -32,8 +44,10 @@ from src.core.exceptions import ConfigError
 STANDARD_FIELDS = ("question", "answer", "contexts", "expected_answer")
 
 # Keys allowed in metric_library.yaml entries, and in an agent's `metrics:` entries.
-LIBRARY_KEYS = {"needs", "pegasus", "deepeval", "criteria", *STANDARD_FIELDS}
-AGENT_KEYS = {"type", "threshold", "rubric", "criteria", "needs", "engine", "method", *STANDARD_FIELDS}
+LIBRARY_KEYS = {"needs", "pegasus", "deepeval", "criteria", "module", "columns", *STANDARD_FIELDS}
+AGENT_KEYS = {"type", "threshold", "rubric", "criteria", "needs", "engine", "method", "background", "options",
+              *STANDARD_FIELDS}
+COLUMN_SOURCES = {*STANDARD_FIELDS, "background"}     # what a `columns:` entry can map from
 
 
 @functools.cache
@@ -48,6 +62,8 @@ def library() -> dict[str, dict[str, Any]]:
             raise ConfigError(f"{where} needs `needs:` from {list(STANDARD_FIELDS)}")
         if not (entry.get("pegasus") or entry.get("deepeval") or entry.get("criteria")):
             raise ConfigError(f"{where} needs at least one of pegasus / deepeval / criteria")
+        if set(entry.get("columns") or {}) - COLUMN_SOURCES:
+            raise ConfigError(f"{where} columns: keys must be from {sorted(COLUMN_SOURCES)}")
     return entries
 
 
@@ -79,6 +95,8 @@ def validate_metric(name: str, spec: dict[str, Any], where: str = "") -> None:
                           f"and has no rubric: or criteria:")
     if set(spec.get("needs", [])) - set(STANDARD_FIELDS):
         raise ConfigError(f"{where}: metric '{name}' needs must be from {list(STANDARD_FIELDS)}")
+    if "options" in spec and not isinstance(spec["options"], dict):
+        raise ConfigError(f"{where}: metric '{name}' options: must be a mapping, e.g. {{use_ground_truth: true}}")
     engine = spec.get("engine")
     if engine:
         # `engine:` forces one engine; it must be one the metric actually has.

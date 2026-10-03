@@ -90,7 +90,7 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
 
     case = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_044.json").read_text())
     assert case["test_case_id"] == "KA_GLD_CVH_044"
-    assert case["input"] == {"question": ROWS[3][3]}
+    assert case["input"] == {"question": ROWS[3][3], "question_type": "how"}       # question_type is sent
     assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
                                                                "How to Add a support need in MCP"]
     assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text
@@ -102,7 +102,7 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     assert brand["expected"]["expected_anchor_page_ids"] == ["43428"]
     texas = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_036.json").read_text())
     assert "expected_answer" not in texas["expected"]                               # correctness will SKIP
-    assert texas["metadata"]["question_type"] == "yes_no"
+    assert texas["input"]["question_type"] == "yes_no"
     assert summary["empty"] == {"no expected_answer: correctness judge will be skipped": ["KA_GLD_CVH_036"]}
 
     agent = load_agent("knowledge_agent")                                           # the runner can load them

@@ -11,6 +11,11 @@ connection:                   # how to reach the agent (Google ADK)
   headers: {}
 
 input_field: question        # testdata input.question is sent to the agent
+# A case with a question_type is sent as JSON in the message text: {"query": ..., "question_type": "how"}
+# (the agent's input contract). A case with only a question is sent as plain text.
+message:
+  format: json
+  fields: {query: question, question_type: question_type}
 
 # Every metric the agent can be judged on. Built-ins run on Pegasus when Pegasus has them,
 # otherwise DeepEval. Metrics with a rubric run on DeepEval GEval.
@@ -18,6 +23,19 @@ metrics:
   relevance:    {threshold: 0.7}
   faithfulness: {threshold: 0.7}
   correctness:  {threshold: 0.7}   # needs expected.expected_answer in the case, else skipped
+
+  # Does the answer fit what was asked, in the shape its question_type calls for? Pegasus agentic
+  # ResponseAlignment, judging the whole final output (question_type + answer) as JSON.
+  response_alignment:
+    threshold: 0.7
+    answer: agent_response
+    background: >-
+      The agent answers colleagues' questions from the bank's knowledge base. The response is the
+      agent's JSON output; question_type says what kind of answer was requested, and the answer
+      must have the matching shape: how = ordered, actionable steps; what = definitions of the key
+      terms asked about; yes_no = a clear yes or no, then an explanation; why and general = a
+      reasoned summary. Judge whether the answer uses the shape for its question_type and fully
+      answers the query. Do not judge factual accuracy against outside knowledge.
 
   # Stage 1 — query rewrite: judge the rewritten query against the user's question
   intent_preservation:    {rubric: rubrics/intent_preservation.md,    answer: rewritten_query}
@@ -93,6 +111,13 @@ suites:
   faithfulness_only:         # one judge; the evidence page text is fetched from Athena (once, then reused)
     testdata: testdata/sanity
     metrics: [faithfulness]
+    checks: none
+  question_types:            # the same kind of question asked as how / what / why / yes_no (sends question_type)
+    metrics: [relevance, response_alignment]
+    checks: [basic, answer]
+  response_alignment_only:
+    testdata: testdata/question_types
+    metrics: [response_alignment]
     checks: none
   stages:
     testdata: testdata/sanity

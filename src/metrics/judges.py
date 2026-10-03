@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import functools
 import importlib.util
+import json
 import math
 import os
 from typing import Any
@@ -143,8 +144,8 @@ def score_with_deepeval(name: str, metric: dict[str, Any], values: dict[str, Any
 
     contexts = values.get("contexts")
     judge.measure(LLMTestCase(
-        input=str(values.get("question") or ""),
-        actual_output=str(values.get("answer") or ""),
+        input=_as_text(values.get("question")),
+        actual_output=_as_text(values.get("answer")),
         expected_output=values.get("expected_answer") or None,
         retrieval_context=[str(c) for c in contexts] if contexts else None,
     ))
@@ -167,8 +168,9 @@ def _geval_param(field_name: str) -> Any:
 
 # =============================================================================================
 # 3. Pegasus (internal package — install it separately, see the README)
-#    Library metrics name a class in pegasus.metrics.rag (`pegasus: Faithfulness`). Pegasus can
-#    compute a metric three ways; choose per metric in agent.yaml with
+#    Library metrics name a class in pegasus.metrics.rag (`pegasus: Faithfulness`), or in another
+#    module with `module:` (e.g. agentic). Pegasus can compute a RAG metric three ways; choose per
+#    metric in agent.yaml with
 #        method: pegasus (default) | ragas | deepeval
 # =============================================================================================
 
@@ -177,27 +179,51 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
     (score 0..1, reason) for one case — called the same way as the Knowledge Agent's own Pegasus
     guardrails: a one-row DataFrame, Metric(llm=..., method=...).evaluate(frame)["score"].
     The threshold is applied by run_judge, not by Pegasus.
-    """
-    import pandas as pd
-    from pegasus.metrics import rag
 
-    row = {
-        "question": values.get("question") or "",
-        "answer": values.get("answer") or "",
-        "retrieved_contexts": list(values.get("contexts") or []),
-    }
-    if values.get("expected_answer"):
-        row["reference_answer"] = values["expected_answer"]      # correctness / context metrics use it
+    RAG metrics (pegasus.metrics.rag) get the columns question / answer / retrieved_contexts /
+    reference_answer. A metric from another module names its own columns in metric_library.yaml
+    (`columns:`), e.g. ResponseAlignment: query / agent_response / background.
+    """
+    import importlib
+
+    import pandas as pd
+
+    module_name = metric.get("module", "rag")
+    if metric.get("columns"):
+        given = {**values, "background": metric.get("background")}
+        row = {column: _as_text(given.get(field)) for field, column in metric["columns"].items()
+               if not is_empty(given.get(field))}
+    else:
+        row = {
+            "question": _as_text(values.get("question")),
+            "answer": _as_text(values.get("answer")),
+            "retrieved_contexts": [str(c) for c in values.get("contexts") or []],
+        }
+        if values.get("expected_answer"):
+            row["reference_answer"] = values["expected_answer"]   # correctness / context metrics use it
     frame = pd.DataFrame([row])
 
-    judge = getattr(rag, metric["pegasus"])(llm=cortex_client.pegasus_llm(), method=metric.get("method", "pegasus"))
-    out = judge.evaluate(frame)
+    kwargs: dict[str, Any] = {"llm": cortex_client.pegasus_llm(), **(metric.get("options") or {})}
+    if module_name == "rag" or "method" in metric:   # only the RAG metrics take method= (pegasus|ragas|deepeval)
+        kwargs["method"] = metric.get("method", "pegasus")
+    judge_class = getattr(importlib.import_module(f"pegasus.metrics.{module_name}"), metric["pegasus"])
+    out = judge_class(**kwargs).evaluate(frame)
     score = first(out["score"])
     if score is None or pd.isna(score):
         raise RuntimeError(f"Pegasus returned no numeric score: {out}")
     # Different Pegasus metrics name their explanation differently.
-    reason = next((first(out[k]) for k in ("reasoning", "reasons", "details") if _has(out, k)), "")
+    reason = next((first(out[k]) for k in ("reasoning", "reasons", "reason", "explanation", "score_details",
+                                            "details") if _has(out, k)), "")
     return float(score), str(reason or "")
+
+
+def _as_text(value: Any) -> str:
+    """Judges get text: a JSON value (e.g. the agent's whole structured output) as indented JSON."""
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, indent=2, ensure_ascii=False, default=str)
+    return str(value)
 
 
 def _has(out: Any, key: str) -> bool:

@@ -14,8 +14,15 @@
 
 fields:
   # --- Final output (what the caller receives) ---------------------------------------------
-  answer:            {from: final, path: answer.summary, required: true}
-  cited_page_ids:    {from: final, path: answer.page_ids}
+  # The answer's shape depends on question_type: general / why -> answer.summary, how -> answer.steps,
+  # what -> answer.definitions, yes_no -> answer.answer + answer.explanation. `answer` is its text
+  # (for relevance, faithfulness, correctness ...); the first path that finds something wins.
+  answer:            {from: final, path: [answer.summary, answer.explanation, "answer.steps[].description",
+                                          "answer.definitions[].meaning"], join: "\n", required: true}
+  yes_no_verdict:    {from: final, path: answer.answer}                     # yes | no (yes_no answers only)
+  agent_response:    {from: final}      # the whole final output as JSON (question_type, answer, caveats ...)
+  cited_page_ids:    {from: final, path: [answer.page_ids, "answer.steps[].page_id", "answer.definitions[].page_id"],
+                      unique: true}
   question_type:     {from: final, path: question_type}
   confidence:        {from: final, path: confidence}
   caveats:           {from: final, path: caveats}
