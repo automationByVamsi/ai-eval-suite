@@ -26,19 +26,30 @@ columns:                      # our name: header text in the sheet (case and ext
   expected_answer:  Expected Golden Answer
   anchor_pages:     Expected - Anchor Page
   related_pages:    Expected Relational Page
-  page_ids:         Page Ids  # assumed: the Athena page ids of the expected anchor page(s)
+  page_ids:         Page Ids  # "Anchor: 26942  Relational: 8412; 7053; 3140" (Athena page ids)
 
 required: [test_id, question]          # rows missing these are skipped, and listed in the summary
 empty_values: [NA, N/A, "-", none, TBC]
+
+labelled:                     # the Page Ids cell holds both kinds of id, each after its label
+  page_ids:
+    Anchor: anchor_page_ids
+    Relational: related_page_ids
+  # A cell with ids but no labels counts as anchor ids.
 
 normalise:
   query_type: lower           # Simple -> simple (the agent's own query_type values)
   question_type: slug         # How -> how, Yes/No -> yes_no
 
 lists:                        # cells that can hold several values
-  anchor_pages: lines         # one page title per line (Alt+Enter in the cell)
-  related_pages: lines
-  page_ids: any               # separated by new lines, commas, semicolons or spaces
+  anchor_pages: items         # page titles, one per line or separated by ;
+  related_pages: items        # (titles can contain commas and dashes, so only lines and ; split them)
+  anchor_page_ids: any        # ids separated by new lines, commas, semicolons or spaces
+  related_page_ids: any
+
+strip:                        # titles in the sheet end with their page id, e.g. "Card not Present Fraud (3012)":
+  anchor_pages: '\s*\(\s*\d+\s*\)\s*$'      # drop it, so titles compare with the agent's titles
+  related_pages: '\s*\(\s*\d+\s*\)\s*$'
 
 domain:
   column: workstream          # the domain is the Workstream column ...
@@ -64,7 +75,8 @@ output:
     expected:
       expected_answer: "{row.expected_answer}"
       expected_anchor_page_titles: "{row.anchor_pages}"
-      expected_anchor_page_ids: "{row.page_ids}"
+      expected_anchor_page_ids: "{row.anchor_page_ids}"
+      expected_related_page_ids: "{row.related_page_ids}"
       expected_related_page_titles: "{row.related_pages}"
       expected_query_type: "{row.query_type}"       # simple | complex (query_type_match check)
     metadata:

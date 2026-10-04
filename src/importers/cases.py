@@ -13,8 +13,13 @@ test case JSON looks like is set per agent, in a mapping file:
       columns               our name for a column -> its header text in the sheet
       required              rows without these are skipped (and listed)
       empty_values          cell text that means "no value", e.g. NA
+      labelled              one cell holding labelled parts -> one value per label, e.g.
+                              "Anchor: 26942  Relational: 8412; 7053"  ->  anchor_page_ids, related_page_ids
+                            (a cell with no label at all goes to the first label)
       normalise             lower | upper | slug | code   (code: "Brand Change" -> BRAND_CHANGE)
-      lists                 cells that hold several values: lines (one per line) | any (lines, , ; or spaces)
+      lists                 cells that hold several values: lines (one per line) | items (lines or ;) |
+                            any (lines, , ; or spaces)
+      strip                 a regex removed from each value (or each list item), e.g. a trailing "(27429)"
       domain                which column holds the domain, and its short code for ids and folders
       warn_if_empty         columns worth a warning when empty (e.g. no expected answer -> judge skipped)
       output                folder, id and the case template (placeholders, see below)
@@ -49,8 +54,8 @@ from src.synthesizer.output_template import render
 from src.utils.text import safe_filename, slug
 
 _ROOTS = ("row", "domain", "domain_folder", "source", "agent", "id")
-_KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "normalise", "lists", "domain",
-         "warn_if_empty", "output"}
+_KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "labelled", "normalise", "lists", "strip",
+         "domain", "warn_if_empty", "output"}
 
 
 def import_cases(agent_name: str, file: str, *, mapping: str | None = None, sheet: str | None = None,
@@ -166,7 +171,8 @@ def _header_key(text: str) -> str:
 # --- one row -----------------------------------------------------------------------------------
 
 def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, Any]) -> dict[str, Any]:
-    """Our name -> the cleaned cell value: 'no value' markers blanked, then normalised, then split."""
+    """Our name -> the cleaned cell value: 'no value' markers blanked, labelled parts split out, then
+    normalised, then split into lists, then `strip` applied."""
     empty = {str(v).strip().lower() for v in config.get("empty_values", [])}
     values = {}
     for name, header in headers.items():
@@ -175,12 +181,47 @@ def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, 
             value = ""
         values[name] = value
 
+    for name, labels in (config.get("labelled") or {}).items():
+        values.update(_labelled(values.get(name), labels))
     for name, how in (config.get("normalise") or {}).items():
         if not _empty(values.get(name)):
             values[name] = _normalise(str(values[name]), how)
     for name, how in (config.get("lists") or {}).items():
         values[name] = _split(values.get(name), how, empty)
+    for name, pattern in (config.get("strip") or {}).items():
+        values[name] = _strip(values.get(name), pattern)
     return values
+
+
+def _labelled(value: Any, labels: dict[str, str]) -> dict[str, str]:
+    """
+    "Anchor: 26942  Relational: 8412; 7053" with {Anchor: anchor_page_ids, Relational: related_page_ids}
+    -> {"anchor_page_ids": "26942", "related_page_ids": "8412; 7053"}. Labels match case-insensitively,
+    the colon is optional. A cell without any label goes to the first label (older sheets: ids only).
+    """
+    if not isinstance(labels, dict) or not labels:
+        raise ConfigError("labelled: give each label the name its part gets, e.g. {Anchor: anchor_page_ids}")
+    out = {target: "" for target in labels.values()}
+    text = "" if _empty(value) else str(value)
+    pattern = re.compile(r"\b(" + "|".join(re.escape(label) for label in labels) + r")\b\s*:?", re.IGNORECASE)
+    marks = list(pattern.finditer(text))
+    if not marks:
+        out[next(iter(labels.values()))] = text.strip()
+        return out
+    by_lower = {label.lower(): target for label, target in labels.items()}
+    for mark, following in zip(marks, [*marks[1:], None], strict=True):
+        part = text[mark.end(): following.start() if following else len(text)].strip(" \t\n;,")
+        target = by_lower[mark.group(1).lower()]
+        out[target] = "; ".join(x for x in (out[target], part) if x)
+    return out
+
+
+def _strip(value: Any, pattern: str) -> Any:
+    """Remove `pattern` from a value, or from each item of a list (e.g. a trailing page id in brackets)."""
+    regex = re.compile(pattern)
+    if isinstance(value, list):
+        return [cleaned for v in value if (cleaned := regex.sub("", str(v)).strip())]
+    return value if _empty(value) else regex.sub("", str(value)).strip()
 
 
 def _normalise(text: str, how: str) -> str:
@@ -201,10 +242,12 @@ def _split(value: Any, how: str, empty: set[str]) -> list[str]:
         return []
     if how == "lines":
         parts = str(value).split("\n")
+    elif how == "items":
+        parts = re.split(r"[\n;]+", str(value))
     elif how == "any":
         parts = re.split(r"[\n,;\s]+", str(value))
     else:
-        raise ConfigError(f"lists: unknown '{how}' (use lines or any)")
+        raise ConfigError(f"lists: unknown '{how}' (use lines, items or any)")
     return [p.strip() for p in parts if p.strip() and p.strip().lower() not in empty]
 
 

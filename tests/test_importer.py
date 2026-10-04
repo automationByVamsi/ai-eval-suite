@@ -20,8 +20,10 @@ ROWS = [
     [28, "Brand Change", "Simple", "What are the benefits of the Halifax brand change?", "Why",
      "Customers will benefit from access to a broader range of products.",
      "Brand Transformation - Changing Our Brand", "NA", 43428],
-    [30, "CVH", "Simple", "Hows does a customer remove consent for a support need?", "How",
-     "Check which support needs they want removed.", "How Customers Can Withdraw Consent", "", ""],
+    [30, "CVH", "Simple", "Hows does a customer remove consent for a support need?", "How",       # real sheet shape:
+     "Check which support needs they want removed.", "Consent Needed for Adding Support Needs (27429)",  # id in title,
+     "Card not Present Fraud (3012); Fraud Claim - Debit (3026); Fraud Investigation - Declining a Fraud Claim (3032)",
+     "Anchor: 27429  Relational: 3012; 3026; 3032"],                                          # labelled ids
     [36, "CVH", "Simple", "Do I need to follow the TEXAS model when I record a support need received in writing?",
      "Yes/No", "", "Recording a Clear Support Need in Written Communication", "", ""],
     [44, "CVH", "Complex", "I have a 14 year old customer who manages their account. Can I add a support need?",
@@ -97,6 +99,13 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     assert case["metadata"]["domain"] == "CVH" and case["expected"]["expected_query_type"] == "complex"
     assert case["metadata"]["source"] == {"file": "KA golden.xlsx", "sheet": "Sheet1", "row": 5, "test_id": 44}
 
+    consent = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_030.json").read_text())["expected"]
+    assert consent["expected_anchor_page_ids"] == ["27429"]                         # no "Anchor:" word
+    assert consent["expected_related_page_ids"] == ["3012", "3026", "3032"]          # relational ids kept apart
+    assert consent["expected_anchor_page_titles"] == ["Consent Needed for Adding Support Needs"]   # "(27429)" gone
+    assert consent["expected_related_page_titles"] == ["Card not Present Fraud", "Fraud Claim - Debit",
+                                                       "Fraud Investigation - Declining a Fraud Claim"]
+
     brand = json.loads((ka_copy / "testdata/golden/brand_change/KA_GLD_BRAND_CHANGE_028.json").read_text())
     assert "expected_related_page_titles" not in brand["expected"]                  # NA -> left out
     assert brand["expected"]["expected_anchor_page_ids"] == ["43428"]
@@ -107,6 +116,17 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
 
     agent = load_agent("knowledge_agent")                                           # the runner can load them
     assert len(load_cases(agent, agent.suite("golden"))) == 4
+
+
+def test_labelled_cell_parts():
+    from src.importers.cases import _labelled
+    labels = {"Anchor": "a", "Relational": "r"}
+    assert _labelled("Anchor: 26942  Relational: 8412; 7053", labels) == {"a": "26942", "r": "8412; 7053"}
+    assert _labelled("anchor 26939\nrelational:8356", labels) == {"a": "26939", "r": "8356"}
+    assert _labelled("Relational: 1; 2", labels) == {"a": "", "r": "1; 2"}
+    assert _labelled("40015\n40345", labels) == {"a": "40015\n40345", "r": ""}     # no labels -> anchor ids
+    assert _labelled(43428, labels) == {"a": "43428", "r": ""}
+    assert _labelled("", labels) == {"a": "", "r": ""}
 
 
 def test_reimport_is_idempotent_and_reports_stale_files(ka_copy, golden_xlsx):

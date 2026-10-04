@@ -386,6 +386,9 @@ for a new agent or a new sheet layout, and change `columns:` and `output:`. Pick
   says how many are new, updated or unchanged. JSON files no row produced are listed, never deleted.
 - **Empty cells are left out** of the JSON (`NA`, `N/A`, `-` count as empty), so a case without an
   expected answer or anchor page SKIPs that judge or check. The summary lists which cases lack them.
+- **Messy cells are cleaned in the mapping, not in the sheet:** `labelled:` splits a cell like
+  `Anchor: 26942  Relational: 8412; 7053` into anchor and related ids, `lists:` splits multi-value
+  cells (`items` = new lines or `;`), and `strip:` removes e.g. the `(3012)` after a page title.
 - **Stops before writing** when a column header isn't found (it prints the headers it did find) or
   two rows give the same test case id.
 
