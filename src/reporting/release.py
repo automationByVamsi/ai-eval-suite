@@ -13,10 +13,12 @@ A target whose judge / check never gave a verdict in this run is "no data" and N
 
 Consistency (REPS > 1), per case, from agent.yaml:
     consistency:
-      same: evidence_page_ids    this field must match across every repetition (the source articles)
+      same: anchor_page_ids      this field must match across every repetition (the main source pages)
       min_overlap: 1.0           1.0 = identical; the lowest overlap between any two repetitions counts
       all_pass: [correctness]    these must pass in every repetition (default: every judge)
-A case is consistent only if both hold. An inconsistent case counts as a failure (HIVE-6165).
+      report: [cited_page_ids]   overlap shown for these too, but they don't decide consistency
+A case is consistent only if `same` and `all_pass` both hold. An inconsistent case counts as a failure.
+The answer's wording may differ between repetitions; its meaning is checked by `all_pass`.
 
 Used by: the console report, the dashboard and the verdict (`make verdict` fails on a missed target).
 """
@@ -34,7 +36,14 @@ MAX_TARGETS = {"error_rate"}            # targets that are a ceiling, not a floo
 
 
 def consistency(run: Run) -> list[dict[str, Any]]:
-    """One row per case that ran more than once: evidence overlap, passes per result, consistent or not."""
+    """
+    One row per case that ran more than once, inconsistent cases first:
+      overlap      lowest overlap of `same` between any two repetitions (None without `same`)
+      also         {field: overlap} for the `report` fields (shown, not gated)
+      passes       {result: "k/n"} for `all_pass` results that gave a verdict
+      not_judged   {result: why} for `all_pass` results skipped in every repetition
+      consistent   True / False;  why: the reasons in plain words
+    """
     spec = run.consistency or {}
     reps_by_case: dict[str, list[CaseResult]] = defaultdict(list)
     for case in run.cases:
@@ -43,29 +52,44 @@ def consistency(run: Run) -> list[dict[str, Any]]:
     for case_id, reps in reps_by_case.items():
         if len(reps) < 2:
             continue
-        overlap = None
-        if spec.get("same"):
-            sets = [frozenset(str(x) for x in _as_list((c.details or {}).get(spec["same"]))) for c in reps]
-            overlap = min(_jaccard(a, b) for a, b in combinations(sets, 2))
+        same = spec.get("same")
+        overlap = _overlap(reps, same) if same else None
+        also = {field: _overlap(reps, field) for field in spec.get("report") or []}
         wanted = spec.get("all_pass") or sorted({r.name for c in reps for r in c.results if r.kind == "judge"})
-        passes = {}
+        passes, not_judged = {}, {}
         for name in wanted:
-            outcomes = [r.status for c in reps for r in c.results if r.name == name and r.status in (PASS, FAIL)]
+            results = [r for c in reps for r in c.results if r.name == name]
+            outcomes = [r.status for r in results if r.status in (PASS, FAIL)]
             if outcomes:
                 passes[name] = (outcomes.count(PASS), len(outcomes))
+            elif results:
+                reason = next((r.reason for r in results if r.reason), "")
+                not_judged[name] = reason.removeprefix("skipped: ") or "skipped in every run"
         errors = sum(c.status == ERROR for c in reps)
         evidence_ok = overlap is None or overlap >= float(spec.get("min_overlap", 1.0))
         answers_ok = all(p == n for p, n in passes.values())
         reasons = []
         if not evidence_ok:
-            reasons.append(f"{spec['same']} differed between repetitions (overlap {overlap:.2f})")
-        reasons += [f"{name} passed {p}/{n}" for name, (p, n) in passes.items() if p != n]
+            reasons.append(f"{field_label(same)} changed between runs ({overlap:.0%} in common)")
+        reasons += [f"{name} passed {p} of {n} runs" for name, (p, n) in passes.items() if p != n]
         if errors:
-            reasons.append(f"{errors} repetition(s) could not be evaluated")
-        rows.append({"case": case_id, "reps": len(reps), "evidence_overlap": overlap,
-                     "passes": {k: f"{p}/{n}" for k, (p, n) in passes.items()},
+            reasons.append(f"{errors} run(s) could not be evaluated")
+        rows.append({"case": case_id, "reps": len(reps), "same": same, "overlap": overlap, "also": also,
+                     "passes": {k: f"{p}/{n}" for k, (p, n) in passes.items()}, "not_judged": not_judged,
                      "consistent": evidence_ok and answers_ok and not errors, "why": "; ".join(reasons)})
+    rows.sort(key=lambda r: r["consistent"])
     return rows
+
+
+def field_label(field: str | None) -> str:
+    """anchor_page_ids -> 'anchor pages' (for people, not config)."""
+    words = (field or "").removesuffix("_ids").removesuffix("_id").replace("_", " ").strip()
+    return words + ("s" if words and not words.endswith("s") else "")
+
+
+def _overlap(reps: list[CaseResult], field: str) -> float:
+    sets = [frozenset(str(x) for x in _as_list((c.details or {}).get(field))) for c in reps]
+    return min(_jaccard(a, b) for a, b in combinations(sets, 2))
 
 
 def targets(run: Run) -> list[dict[str, Any]]:
@@ -89,12 +113,12 @@ def targets(run: Run) -> list[dict[str, Any]]:
                 ok = sum(r["consistent"] for r in rows_c)
                 actual, detail = ok / len(rows_c), f"{ok}/{len(rows_c)} cases consistent"
             else:
-                detail = "needs REPS > 1"
+                detail = "needs more than one run per case (REPS > 1)"
         elif name in rates and rates[name]["rate"] is not None:
             row = rates[name]
             actual, detail = row["rate"], f"{row[PASS]}/{row[PASS] + row[FAIL]} passed"
         else:
-            detail = "no verdict in this run (skipped everywhere, or not run)"
+            detail = "no result in this run (skipped in every case, or not run)"
         if actual is None:
             met = None if name == "consistency" and run.reps < 2 else False
         else:

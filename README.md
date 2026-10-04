@@ -480,12 +480,16 @@ console, on the dashboard Overview, and `make verdict` fails if one is missed.
 
 ```yaml
 consistency:
-  same: evidence_page_ids      # the source pages must be the same in every repetition
-  min_overlap: 1.0             # 1.0 = identical sets (order ignored); the lowest pair counts
+  same: anchor_page_ids        # the main pages must be the same in every repetition (order ignored)
+  min_overlap: 1.0             # 1.0 = identical sets; the lowest pair counts
   all_pass: [correctness]      # and these must pass in every repetition (default: every judge)
+  report: [cited_page_ids, expanded_page_ids]   # overlap shown, not gated
 ```
 
-A case is consistent only if both hold; an inconsistent case is a failure. Run with `REPS=5`.
+A case is consistent only if both hold; an inconsistent case is a failure. The answer's wording may
+differ between runs — its meaning is what `all_pass` checks. Run with `REPS=5`. The dashboard then has
+a **Consistency** tab: per case a pages × runs grid (anchor / expanded / cited per run, changed rows
+highlighted) and the answer, confidence and scores of every run.
 
 **Judge calibration.** `make review-sheet` writes one CSV row per case (question, answer, reference,
 every judge's score) with an empty `sme_verdict` column. An SME marks ~20 rows pass / fail;

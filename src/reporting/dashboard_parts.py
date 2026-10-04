@@ -350,10 +350,75 @@ def page_html(page: dict[str, Any]) -> str:
             f'<div class="page-text">{esc(page["text"][:3000])}</div></details>')
 
 
+# --- consistency: the same case over several runs ---------------------------------------------
+
+def pages_by_run(reps: list[CaseResult]) -> list[dict[str, Any]]:
+    """
+    One row per page used in any run: its title, and per run its roles (anchor / expanded / cited, or
+    "used" when it's only in the evidence list; "" when that run didn't use it). Pages used in every run
+    first; `differs` marks a page that is missing from a run or whose anchor role changes.
+    """
+    order: dict[str, dict[str, Any]] = {}
+    per_run: list[dict[str, list[str]]] = []
+    for case in reps:
+        d = case.details or {}
+        roles: dict[str, list[str]] = {}
+        for page in evidence_pages(case):
+            if page["id"]:
+                roles[page["id"]] = [r for r in page["roles"] if r != "expected"] or ["used"]
+                order.setdefault(page["id"], {"title": page["title"]})
+                if order[page["id"]]["title"] == f"Page {page['id']}":
+                    order[page["id"]]["title"] = page["title"]
+        for role, key in (("anchor", "anchor_page_ids"), ("cited", "cited_page_ids")):   # not in the evidence list
+            for page_id in (str(i) for i in _list(d.get(key))):
+                if page_id not in roles:
+                    roles[page_id] = [role]
+                    order.setdefault(page_id, {"title": f"Page {page_id}"})
+                elif role not in roles[page_id]:
+                    roles[page_id] = [r for r in roles[page_id] if r != "used"] + [role]
+        per_run.append(roles)
+    expected = {str(i) for c in reps[:1] for key in ("expected_anchor_page_ids", "expected_related_page_ids")
+                for i in _list(c.expected.get(key))}
+    rows = []
+    for position, (page_id, info) in enumerate(order.items()):
+        cells = [run.get(page_id, []) for run in per_run]
+        used = sum(bool(c) for c in cells)
+        anchors = sum("anchor" in c for c in cells)
+        rows.append({"id": page_id, "title": info["title"], "expected": page_id in expected, "runs": cells,
+                     "used_in": used, "differs": used != len(cells) or anchors not in (0, len(cells)),
+                     "_order": (used != len(cells), -anchors, -used, position)})
+    rows.sort(key=lambda r: r["_order"])
+    return rows
+
+
+def pages_grid_html(rows: list[dict[str, Any]], reps: int) -> str:
+    """The pages x runs table: a row per page, a column per run, roles as chips; changing rows tinted."""
+    kinds = {"anchor": "accent", "cited": "good-soft", "expanded": "ghost", "used": "ghost"}
+    head = "".join(f"<th>Run {n + 1}</th>" for n in range(reps))
+    body = []
+    for row in rows:
+        cells = "".join(
+            "<td>" + ("".join(chip(role, kinds.get(role, "ghost")) for role in roles) if roles
+                      else '<span class="absent">not used</span>') + "</td>"
+            for roles in row["runs"])
+        tag = chip("expected", "warn-soft") if row["expected"] else ""
+        body.append(f'<tr class="{"differs" if row["differs"] else ""}"><td class="page-cell">'
+                    f'<span class="page-title">{esc(row["title"])}</span> '
+                    f'<span class="muted mono">#{esc(row["id"])}</span> {tag}'
+                    f'<div class="row-reason">in {row["used_in"]} of {reps} runs</div></td>{cells}</tr>')
+    return (f'<div class="grid-wrap"><table class="grid"><thead><tr><th>Page</th>{head}</tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table></div>')
+
+
 def short(value: Any, width: int = 160) -> str:
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
     text = text.replace("\n", " ")
     return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def as_list(value: Any) -> list[Any]:
+    """None / "" -> [], a single value -> [value], a list -> itself."""
+    return _list(value)
 
 
 def _list(value: Any) -> list[Any]:

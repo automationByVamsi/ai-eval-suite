@@ -1,11 +1,13 @@
 """
 Results dashboard: `make dashboard` (runs `streamlit run src/reporting/dashboard.py`).
 
-Read-only: it reads outputs/runs/*/results.json and baselines/ — nothing else. Four tabs:
+Read-only: it reads outputs/runs/*/results.json and baselines/ — nothing else. Tabs:
   Overview    the run at a glance: pass rates, every judge and check across the run, where cases fail
   Test cases  one accordion per case: question, agent answer, expected answer and the pages behind it
               on the left; LLM judges and deterministic checks, kept apart, on the right; errors
               explained (what failed, the message, how to fix) at the top
+  Consistency (runs with REPS > 1) per case: which pages each run used (a pages x runs grid) and
+              each run's answer and scores, so a reviewer can see what changed
   Trends      the same agent + suite over its recent runs
   Baseline    this run against the agent/suite baseline (same logic as `make verdict`)
 
@@ -128,6 +130,15 @@ details.page summary { cursor:pointer; }
   border-radius:8px; padding:10px 12px; margin-top:6px; max-height:320px; overflow:auto; }
 .note { font-size:12.5px; color:var(--muted); font-style:italic; }
 .missed { font-size:12.5px; color:var(--bad); margin-top:6px; }
+.grid-wrap { overflow-x:auto; }
+table.grid { width:100%%; border-collapse:collapse; font-size:13px; }
+table.grid th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+  font-weight:700; padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+table.grid td { padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+table.grid tr.differs td { background:var(--warn-wash); }
+table.grid td.page-cell { min-width:260px; }
+.absent { font-size:11.5px; color:var(--muted); font-style:italic; }
+.stat-line { display:flex; flex-wrap:wrap; gap:6px; margin:2px 0 10px; }
 </style>
 """
 
@@ -219,9 +230,15 @@ html(f'<div class="hero"><div><div class="hero-title">{ui.esc(run.agent.replace(
      f'<div class="verdict-note">LLM judges: {ui.esc(judges_line)} · checks: {ui.esc(checks_line)}</div>'
      f'</div></div>')
 
-overview_tab, cases_tab, trends_tab, baseline_tab = st.tabs([
-    ":material/dashboard: Overview", f":material/list_alt: Test cases ({len(run.cases)})",
-    ":material/trending_up: Trends", ":material/compare_arrows: Baseline"])
+consistency_rows = release.consistency(run) if run.reps > 1 else []
+tab_names = [":material/dashboard: Overview", f":material/list_alt: Test cases ({len(run.cases)})",
+             ":material/trending_up: Trends", ":material/compare_arrows: Baseline"]
+if consistency_rows:
+    tab_names.insert(2, ":material/repeat: Consistency")
+tabs = st.tabs(tab_names)
+overview_tab, cases_tab = tabs[0], tabs[1]
+consistency_tab = tabs[2] if consistency_rows else None
+trends_tab, baseline_tab = tabs[-2], tabs[-1]
 
 # --- Overview --------------------------------------------------------------------------------------
 
@@ -252,24 +269,18 @@ with overview_tab:
             status = ui.chip("all targets met", "good") if gate_ok else ui.chip(f"{missed} target(s) missed", "bad")
             html(f'<div class="card-label">Release targets<span class="count">{status}</span></div>')
             html(ui.targets_html(target_rows))
-            st.caption("Targets are pass rates across the whole run (agent.yaml `targets:`), not per-case scores. "
-                       "A target with no data counts as missed.")
-    if run.reps > 1:
-        rows_c = release.consistency(run)
-        if rows_c:
-            with st.container(border=True):
-                ok = sum(r["consistent"] for r in rows_c)
-                html(f'<div class="card-label">Consistency over {run.reps} repetitions<span class="count">'
-                     f'{ui.chip(f"{ok}/{len(rows_c)} cases consistent", "good" if ok == len(rows_c) else "bad")}'
-                     '</span></div>')
-                st.dataframe(pd.DataFrame([{
-                    "case": r["case"], "consistent": "yes" if r["consistent"] else "NO",
-                    "same sources (overlap)":
-                        None if r["evidence_overlap"] is None else round(r["evidence_overlap"], 2),
-                    **{f"{k} passed": v for k, v in r["passes"].items()}, "why not": r["why"],
-                } for r in rows_c]), hide_index=True, width="stretch")
-                st.caption("A case is consistent only if its source pages are the same in every repetition and the "
-                           "results in agent.yaml `consistency: all_pass` passed every time (HIVE-6165).")
+    if consistency_rows:
+        with st.container(border=True):
+            ok, total = sum(r["consistent"] for r in consistency_rows), len(consistency_rows)
+            badge = ui.chip(f"{ok} of {total} cases consistent", "good" if ok == total else "bad")
+            html(f'<div class="card-label">Consistency over {run.reps} runs<span class="count">{badge}</span></div>')
+            bad = [r for r in consistency_rows if not r["consistent"]]
+            for r in bad:
+                html(f'<div class="check"><span class="icon bad">✗</span><div><span class="row-name">'
+                     f'{ui.esc(r["case"])}</span><div class="row-reason">{ui.esc(r["why"])}</div></div></div>')
+            if not bad:
+                html('<div class="note">Every case gave the same result in every run.</div>')
+            st.caption("The Consistency tab shows the pages and the answer of every run.")
 
     left, right = st.columns(2, gap="large")
     with left.container(border=True):
@@ -474,6 +485,96 @@ with cases_tab:
             render_left(case, left)
             render_right(case, right)
             render_debug(case)
+
+# --- Consistency (REPS > 1) ---------------------------------------------------------------------------
+
+
+def consistency_rule(spec: dict) -> str:
+    """The rule in words, from agent.yaml `consistency:`."""
+    parts = []
+    if spec.get("same"):
+        parts.append(f"the {release.field_label(spec['same'])} are the same in every run")
+    names = spec.get("all_pass") or ["every LLM judge"]
+    parts.append(f"{', '.join(ui.label(n).lower() for n in names)} passes in every run")
+    return "A case is consistent when " + " and ".join(parts) + ". The wording of the answer may differ."
+
+
+def friendly(reason: str) -> str:
+    """'case has no expected_answer' -> 'no reference answer' (other reasons as they are)."""
+    return "no reference answer" if "expected_answer" in reason else reason
+
+
+def render_run(case: CaseResult) -> None:
+    """One run of a repeated case: its answer, confidence, latency and scores."""
+    d = case.details or {}
+    meta = [ui.chip(case.status.upper(), {PASS: "good-soft", FAIL: "bad-soft", ERROR: "warn-soft"}[case.status])]
+    if d.get("confidence"):
+        conf = str(d["confidence"]).upper()
+        meta.append(ui.chip(f"confidence: {conf}",
+                            {"HIGH": "good-soft", "MEDIUM": "warn-soft", "LOW": "bad-soft"}.get(conf, "plain")))
+    if case.latency_ms:
+        meta.append(ui.chip(f"{case.latency_ms / 1000:.1f}s"))
+    for r in ui.split(case)[0]:
+        if r.score is not None:
+            kind = "good-soft" if r.status == PASS else "bad-soft"
+            meta.append(ui.chip(f"{ui.label(r.name).lower()} {r.score:.2f}", kind, title=r.reason))
+        elif r.status == SKIP:
+            meta.append(ui.chip(f"{ui.label(r.name).lower()} not judged", "ghost", title=r.reason))
+    html(f'<div class="stat-line">{"".join(meta)}</div>')
+    if case.error:
+        html(f'<div class="problem-reason">{ui.esc(case.error)}</div>')
+    st.markdown(case.answer or "_No answer._")
+    for note in [*(ui.as_list(d.get("caveats"))), *(ui.as_list(d.get("user_warnings")))]:
+        st.caption(f":material/info: {note}")
+
+
+if consistency_tab is not None:
+    with consistency_tab:
+        spec = run.consistency or {}
+        reps_by_case: dict[str, list[CaseResult]] = {}
+        for c in run.cases:
+            reps_by_case.setdefault(c.case_id, []).append(c)
+        st.caption(f"Each case was asked {run.reps} times. {consistency_rule(spec)}")
+        for row in consistency_rows:
+            reps = sorted(reps_by_case[row["case"]], key=lambda c: c.rep)
+            ok = row["consistent"]
+            if ok:
+                headline = (f"same {release.field_label(row['same'])} in every run" if row["same"]
+                            else "same result in every run")
+            else:
+                headline = row["why"]
+            headline += "".join(f" · {ui.label(n).lower()} not judged ({friendly(why)})"
+                                for n, why in row["not_judged"].items())
+            title = f":{'green' if ok else 'red'}[**{'CONSISTENT' if ok else 'INCONSISTENT'}**]  ·  " \
+                    f"**{row['case']}**  ·  {headline}"
+            with st.expander(title, icon=":material/check_circle:" if ok else ":material/cancel:", expanded=not ok):
+                html(f'<div class="question">{ui.esc(reps[0].question or "-")}</div>')
+                stats_line = []
+                if row["same"]:
+                    overlap = row["overlap"]
+                    stats_line.append(ui.chip(f"{release.field_label(row['same'])}: {overlap:.0%} in common",
+                                              "good-soft" if overlap >= spec.get("min_overlap", 1.0) else "bad-soft"))
+                for name, value in row["passes"].items():
+                    k, n = (int(x) for x in value.split("/"))
+                    stats_line.append(ui.chip(f"{ui.label(name).lower()} passed {k} of {n}",
+                                              "good-soft" if k == n else "bad-soft"))
+                for name, why in row["not_judged"].items():
+                    stats_line.append(ui.chip(f"{ui.label(name).lower()}: not judged ({friendly(why)})", "ghost"))
+                for field, overlap in row["also"].items():
+                    stats_line.append(ui.chip(f"{release.field_label(field)}: {overlap:.0%} in common", "ghost"))
+                html(f'<div class="stat-line">{"".join(stats_line)}</div>')
+
+                grid = ui.pages_by_run(reps)
+                if grid:
+                    html('<div class="card-label">Pages used in each run</div>')
+                    html(ui.pages_grid_html(grid, len(reps)))
+                    st.caption("anchor = the main page the answer is built on · expanded = related page added · "
+                               "cited = referenced in the answer · used = in the evidence list only. "
+                               "Highlighted rows changed between runs.")
+                html('<div class="card-label" style="margin-top:14px">The answer in each run</div>')
+                for tab, case in zip(st.tabs([f"Run {c.rep + 1}" for c in reps]), reps, strict=True):
+                    with tab:
+                        render_run(case)
 
 # --- Trends ----------------------------------------------------------------------------------------
 

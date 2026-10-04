@@ -189,17 +189,18 @@ def _targets(spec: Any, where: str) -> dict[str, float]:
 def _consistency(spec: Any, where: str) -> dict[str, Any]:
     """
     `consistency:` (agent level) — what "the same" means when a case is repeated (REPS > 1):
-        same: evidence_page_ids     a fields.yaml field that must match across repetitions (e.g. source pages)
+        same: anchor_page_ids       a fields.yaml field that must match across repetitions (e.g. the main pages)
         min_overlap: 1.0            how much it must match: 1.0 = identical in every repetition
         all_pass: [correctness]     results that must pass in every repetition (default: every judge)
+        report: [cited_page_ids]    fields whose overlap is shown, but doesn't decide consistency
     """
     if not spec:
         return {}
-    unknown = set(spec) - {"same", "min_overlap", "all_pass"}
+    unknown = set(spec) - {"same", "min_overlap", "all_pass", "report"} if isinstance(spec, dict) else set()
     if not isinstance(spec, dict) or unknown:
-        raise ConfigError(f"{where}: consistency: allows same, min_overlap, all_pass (got {sorted(unknown)})")
+        raise ConfigError(f"{where}: consistency: allows same, min_overlap, all_pass, report (got {sorted(unknown)})")
     return {"same": spec.get("same"), "min_overlap": float(spec.get("min_overlap", 1.0)),
-            "all_pass": list(spec.get("all_pass") or [])}
+            "all_pass": list(spec.get("all_pass") or []), "report": list(spec.get("report") or [])}
 
 
 def _message_fields(spec: Any, where: str) -> dict[str, str]:

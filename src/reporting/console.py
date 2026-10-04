@@ -60,9 +60,14 @@ def print_release(run: Run) -> None:
     if run.reps > 1:
         rows_c = consistency(run)
         bad = [r for r in rows_c if not r["consistent"]]
-        print(f"\nConsistency over {run.reps} reps: {len(rows_c) - len(bad)}/{len(rows_c)} cases consistent")
+        print(f"\nConsistency over {run.reps} runs: {len(rows_c) - len(bad)}/{len(rows_c)} cases consistent")
         for r in bad:
             print(f"  INCONSISTENT {r['case']}: {r['why']}")
+        for r in rows_c:
+            for name, why in r["not_judged"].items():
+                print(f"  note: {r['case']} {name} not judged in any run ({why})")
+        if rows_c:
+            print("  The pages and answer of every run: make dashboard -> Consistency tab")
 
 
 def print_verdict(run: Run, passed: bool, rows: list[dict[str, Any]], baseline: dict[str, Any]) -> None:

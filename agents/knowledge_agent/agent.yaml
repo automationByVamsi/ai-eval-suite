@@ -137,12 +137,15 @@ checks:
       field: evidence_page_ids
       expected: source_page_id
 
-# Consistency (REPS > 1, HIVE-6165): a case is consistent only if the source pages are the same in
-# every repetition AND correctness passed every time. An inconsistent case counts as a failure.
+# Consistency (REPS > 1, HIVE-6165): the same question asked several times. A case is consistent only if
+# the anchor pages (the main pages the answer stands on) are the same in every run AND correctness passes
+# every run. The answer's wording may differ. Cited and expanded pages are shown, not gated: citations
+# follow the wording, and expansion (related pages) is expected to vary.
 consistency:
-  same: evidence_page_ids
+  same: anchor_page_ids
   min_overlap: 1.0
   all_pass: [correctness]
+  report: [cited_page_ids, expanded_page_ids]
 
 # Which judges (metrics:) and which deterministic checks (checks:) each suite runs.
 #   checks: all                      every check (the default when checks: is left out)
