@@ -47,6 +47,7 @@ RETRY_STATUS = {429, 500, 502, 503, 504}   # busy or briefly broken gateway: wor
 # DeepEval (and ragas inside Pegasus) insist an OpenAI key exists even when, as here, every call goes
 # to CORTEX. A placeholder stops them failing at start-up; it is never sent anywhere. (main did the same.)
 os.environ.setdefault("OPENAI_API_KEY", "sk-not-used-all-calls-go-to-cortex")
+os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")   # also for the synthesizer, which never imports judges
 
 
 def cortex_headers() -> dict[str, str]:
@@ -89,6 +90,11 @@ class CortexLLM(DeepEvalBaseLLM):
     def get_model_name(self) -> str:
         return self.model_id
 
+    def target(self) -> str:
+        """The full URL chat requests go to (DevKit: its base address + the chat path)."""
+        base = str(getattr(self.http, "base_url", "") or "").rstrip("/")
+        return self.url if self.url.startswith("http") else f"{base}{self.url}"
+
     def generate(self, prompt: str, schema: Any = None) -> Any:
         """
         Send one prompt, return the text — or, when DeepEval passes a pydantic `schema`, an
@@ -112,9 +118,10 @@ class CortexLLM(DeepEvalBaseLLM):
             last_try = attempt == self.retries
             try:
                 response = self.http.post(self.url, json=body)
-            except httpx.TransportError:
-                if last_try:
-                    raise
+            except httpx.TransportError as exc:
+                if last_try:   # say WHERE it tried: a DNS error alone doesn't tell which setting is wrong
+                    raise ConnectionError(f"could not reach CORTEX at {self.target()} ({self.mode} mode): "
+                                          f"{type(exc).__name__}: {exc}") from exc
             else:
                 if response.status_code not in RETRY_STATUS or last_try:
                     response.raise_for_status()

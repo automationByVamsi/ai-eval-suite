@@ -130,3 +130,25 @@ def test_athena_url_with_or_without_v1_mcp(monkeypatch, base):
     from src.clients.athena_client import mcp_url
     monkeypatch.setenv("HIVE_ATHENA_BASE_URL", base)
     assert mcp_url() == "https://h/athena-mcp-server/v1/mcp"
+
+
+def test_unreachable_cortex_says_where_it_tried(monkeypatch):
+    import httpx
+    import pytest
+
+    from src.clients import cortex_client
+
+    monkeypatch.setenv("CORTEX_AUTH", "api_key")
+    monkeypatch.setenv("CORTEX_HOST", "https://cortex.example.invalid/v1")
+    monkeypatch.setenv("CORTEX_RETRIES", "0")
+    monkeypatch.setenv("CORTEX_CLIENT_ID", "test-client")
+    monkeypatch.setenv("CORTEX_API_KEY", "test-key")
+    llm = cortex_client.CortexLLM()
+
+    def boom(*args, **kwargs):
+        raise httpx.ConnectError("[Errno 8] nodename nor servname provided, or not known")
+
+    monkeypatch.setattr(llm.http, "post", boom)
+    where = r"could not reach CORTEX at https://cortex\.example\.invalid/v1/chat/completions"
+    with pytest.raises(ConnectionError, match=where):
+        llm.generate("hi")

@@ -103,8 +103,9 @@ def run_doctor(ping: bool = True) -> int:
     if ping and ready:
         try:
             from src.clients import cortex_client
-            reply = cortex_client.deepeval_llm().generate("Reply with the single word OK.")
-            line(OK, "CORTEX call", f"answered: {str(reply)[:40]!r}")
+            llm = cortex_client.deepeval_llm()
+            reply = llm.generate("Reply with the single word OK.")
+            line(OK, "CORTEX call", f"answered: {str(reply)[:40]!r}  ({llm.target()})")
         except Exception as exc:  # noqa: BLE001 — the whole point is to show the error
             hint = ""
             if "CERTIFICATE_VERIFY_FAILED" in str(exc):
