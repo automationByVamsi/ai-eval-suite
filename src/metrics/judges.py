@@ -211,10 +211,25 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
     score = first(out["score"])
     if score is None or pd.isna(score):
         raise RuntimeError(f"Pegasus returned no numeric score: {out}")
-    # Different Pegasus metrics name their explanation differently.
-    reason = next((first(out[k]) for k in ("reasoning", "reasons", "reason", "explanation", "score_details",
-                                            "details") if _has(out, k)), "")
-    return float(score), str(reason or "")
+    return float(score), _pegasus_reason(out)
+
+
+REASON_KEYS = ("reasoning", "reasons", "reason", "explanation", "score_details", "details")
+
+
+def _pegasus_reason(out: Any) -> str:
+    """
+    The judge's explanation. RAG metrics return it at the top level (e.g. out["reasoning"]); agentic
+    metrics per sample, in out["individual_results"][0]["explanation"], next to the raw 1-10 score.
+    """
+    reason = next((first(out[k]) for k in REASON_KEYS if _has(out, k) and first(out[k])), "")
+    if not reason and _has(out, "individual_results"):
+        sample = first(out["individual_results"])
+        if isinstance(sample, dict):
+            reason = next((sample[k] for k in REASON_KEYS if sample.get(k)), "")
+            if reason and sample.get("raw_score") is not None:
+                reason = f"{reason} (raw score {sample['raw_score']}/10)"
+    return str(reason or "")
 
 
 def _as_text(value: Any) -> str:

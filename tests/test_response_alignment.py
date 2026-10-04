@@ -74,6 +74,10 @@ def _fake_pegasus(monkeypatch, calls):
 
         def evaluate(self, frame):
             calls[-1]["row"] = frame.to_dict("records")[0]
+            if type(self).__name__ == "ResponseAlignment":       # agentic: the reason is per sample
+                return {"score": 0.9, "passed": True, "individual_scores": [0.9], "individual_results": [{
+                    "score": 0.9, "raw_score": 9.1,
+                    "explanation": "The answer gives definitions, as a what question needs."}]}
             return {"score": [0.9], "reasoning": ["The answer gives definitions, as a what question needs."]}
 
     agentic = types.ModuleType("pegasus.metrics.agentic")
@@ -101,7 +105,7 @@ def test_response_alignment_run_on_a_saved_what_trace(outputs, monkeypatch):
     case = run_suite("knowledge_agent", "response_alignment_only", offline=True, case_ids=["TC_QT_WHAT"]).cases[0]
     [result] = case.results
     assert (result.name, result.status, result.score, result.engine) == ("response_alignment", "pass", 0.9, "pegasus")
-    assert "definitions" in result.reason
+    assert result.reason == "The answer gives definitions, as a what question needs. (raw score 9.1/10)"
 
     [call] = calls
     assert call["class"] == "ResponseAlignment"
