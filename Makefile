@@ -6,7 +6,7 @@
 #   make verdict  AGENT=knowledge_agent SUITE=sanity BUILD=1.5.0 REPS=5
 #   make new-agent NAME=my_agent INPUT_FIELD=question
 #   make sources  AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626 39696"]
-#   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]     (synthesizer)
+#   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]   (synthesizer)
 #   make fields   AGENT=knowledge_agent [SUITE=..] [CASE=..] [TRACE=file]   (what fields.yaml reads from traces)
 #   make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [SHEET=..] [MAPPING=..] [DRY_RUN=1]
 
@@ -49,7 +49,7 @@ help:
 	@echo "make baseline AGENT=.. SUITE=.. BUILD=..    run a stable build and save it as the baseline [REPS=5]"
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
 	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"
-	@echo "make goldens  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: generate test cases [REPLACE=1]"
+	@echo "make goldens  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: generate test cases [STYLES='type_how type_why'] [REPLACE=1]"
 	@echo "make summary  AGENT=.. SUITE=.. [LAST=10]  pass rate of every check and judge across the last N runs"
 	@echo "make fields   AGENT=.. [SUITE=..] [CASE=..] preview the fields.yaml values + checks on saved traces [TRACE=file]"
 	@echo "make import-cases AGENT=.. FILE=..          spreadsheet (.xlsx/.csv) -> test case JSON [SHEET=..] [MAPPING=..] [DRY_RUN=1]"
@@ -93,7 +93,7 @@ sources:
 	$(EVAL) sources $(AGENT) $(SYNTH)
 
 goldens:
-	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(REPLACE),--replace)
+	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(STYLES),--styles $(STYLES)) $(if $(REPLACE),--replace)
 
 # Rates (e.g. anchor hit rate) across the last N saved runs of a suite — no agent call, no judges.
 summary:

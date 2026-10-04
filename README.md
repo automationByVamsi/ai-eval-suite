@@ -422,7 +422,8 @@ agents/knowledge_agent/synth/
 make sources AGENT=knowledge_agent                                  # fetch every page in page_ids.json
 make goldens AGENT=knowledge_agent GROUP="Recoveries Commercial Bank"  # generate for one domain
 make goldens AGENT=knowledge_agent IDS="36626"                      # …or for specific pages
-make run     AGENT=knowledge_agent SUITE=golden                     # evaluate the agent on them
+make goldens AGENT=knowledge_agent IDS="36626" STYLES="type_how type_why"   # …only some styles
+make run     AGENT=knowledge_agent SUITE=synthetic                  # evaluate the agent on them
 ```
 
 **Sources.** Every source turns what it reads into the same document —
@@ -447,13 +448,20 @@ evolution weights that don't add up to 1, a missing file.
 
 **Output template.** `output:` in synth.yaml is the exact shape of one test case, with placeholders:
 `{generated.input}` `{generated.expected_output}` `{source.id}` `{source.title}` `{source.metadata.<key>}`
-`{style}` `{group}` `{group_slug}` `{run.id}` `{run.generated_at}` `{run.model}` `{agent.input_field}` `{id}` `{n:03}`.
+`{style}` `{question_type}` `{group}` `{group_slug}` `{domain}` `{domain_folder}` `{run.id}` `{run.generated_at}` `{run.model}` `{agent.input_field}` `{id}` `{n:03}`.
 Leave `output:` out to get the standard evaluation case (`input.<input_field>`, `expected.expected_answer`,
 `metadata.approval_status: UNREVIEWED`). If a style asks for JSON in its `input_format`, the template can
 read its fields: `{generated.input.request}` (cases where the JSON is missing that field are skipped).
 
-- New cases are **added** next to existing ones (numbering continues). `REPLACE=1` clears the folders being
-  generated into — only after generation succeeded.
+- Knowledge Agent cases are written **domain-wise**, like the golden importer:
+  `testdata/synthetic/<domain>/KA_SYN_<DOMAIN>_<n>.json` (the style is in `metadata.style`). The domain is
+  the group in `page_ids.json`, so name groups like the sheet's Workstreams (`CVH` -> `KA_SYN_CVH_001`).
+- **Question types.** The generic styles (direct, procedural, conditional, eligibility, simple, complex)
+  send plain questions. The typed styles `type_how`, `type_what`, `type_why`, `type_yes_no` set
+  `question_type:` in synth.yaml: it is sent to the agent, and the reference answer is written in the
+  shape the agent gives for that type (steps, definitions, reasons, yes/no + explanation).
+- New cases are **added** next to existing ones (numbering continues). `REPLACE=1` replaces the earlier
+  cases of the styles being generated (other styles in the same folder stay) — only after generation succeeded.
 - Generated cases start as `approval_status: UNREVIEWED`. They all run by default; a suite can keep only
   reviewed ones with `only: {metadata.approval_status: APPROVED}`.
 - **Add a style:** a new `styles/<name>.md` + one line under `styles:`.

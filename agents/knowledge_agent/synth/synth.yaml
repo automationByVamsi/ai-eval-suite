@@ -1,7 +1,7 @@
 # Knowledge Agent — generate test cases from Athena knowledge-base pages.
 #
 #   make sources AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626"]   fetch pages -> cache/
-#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [REPLACE=1]                      generate -> testdata/synthetic/
+#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]         generate -> testdata/synthetic/<domain>/
 #   make run     AGENT=knowledge_agent SUITE=synthetic                                        evaluate the agent on them
 #
 # Paths are relative to this folder. The generator model is the CORTEX model in .env.
@@ -16,13 +16,20 @@ include_expected_answer: true        # also generate the reference answer (used 
 per_source: 1                        # cases per page per style (a style can override it)
 instructions: instructions.md        # rules every style must follow
 
-styles:                              # one file per question style, see styles/
+styles:                              # one file per question style, see styles/; STYLES= picks some
+  # Generic: sent as plain text, so the agent treats them as general questions.
   direct_query:      {file: styles/direct_query.md}
   procedural_query:  {file: styles/procedural_query.md}
   conditional_query: {file: styles/conditional_query.md}
   eligibility:       {file: styles/eligibility.md}
   simple_query:      {file: styles/simple_query.md}
   complex_query:     {file: styles/complex_query.md}
+  # Typed: sent with question_type (agent.yaml message:), and the reference answer is written in the
+  # shape the agent gives for that type (steps, definitions, reasons, yes/no + explanation).
+  type_how:          {file: styles/type_how.md,    question_type: how}
+  type_what:         {file: styles/type_what.md,   question_type: what}
+  type_why:          {file: styles/type_why.md,    question_type: why}
+  type_yes_no:       {file: styles/type_yes_no.md, question_type: yes_no}
 
 evolutions:                          # how questions are varied; weights must add up to 1.0
   rounds: 1
@@ -39,17 +46,20 @@ quality_filter:                      # regenerate questions the critic scores be
 
 # 3. OUTPUT TEMPLATE — the shape of one generated test case.
 # Placeholders: {generated.input} {generated.expected_output} {source.id} {source.title} {source.text}
-#   {source.metadata.<key>} {style} {group} {group_slug} {run.id} {run.generated_at} {run.date}
-#   {run.model} {agent.name} {agent.input_field} {id} {n:03}
+#   {source.metadata.<key>} {style} {question_type} {group} {domain} {domain_folder} {run.id}
+#   {run.generated_at} {run.date} {run.model} {agent.name} {agent.input_field} {id} {n:03}
 # folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
+# Domain-wise, like the golden importer: testdata/synthetic/cvh/KA_SYN_CVH_001.json
+# (the domain is the group in page_ids.json — name groups like the sheet's Workstream codes).
 output:
-  folder: testdata/synthetic/{style}/{group_slug}
-  id: "TC_SYN_{style}_{group_slug}_{n:03}"
+  folder: testdata/synthetic/{domain_folder}
+  id: "KA_SYN_{domain}_{n:03}"
   case:
     test_case_id: "{id}"
     description: "Synthesized {style} case from Athena page {source.id} ({source.title})"
     input:
       question: "{generated.input}"
+      question_type: "{question_type}"      # typed styles only; left out for generic ones
     expected:
       expected_answer: "{generated.expected_output}"
       source_page_id: "{source.id}"
@@ -58,7 +68,9 @@ output:
       approval_status: UNREVIEWED
       generation_scope: SINGLE_PAGE
       style: "{style}"
-      domain: "{group}"
+      question_type: "{question_type}"
+      domain: "{domain}"
+      group: "{group}"
       source_page_title: "{source.title}"
       source_revision: "{source.metadata.revision}"
       generation_run_id: "{run.id}"

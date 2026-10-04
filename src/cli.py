@@ -5,7 +5,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src list
   python -m src new-agent <name> [--input-field question]
   python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
-  python -m src goldens  <agent> [--group G] [--ids ID ...] [--replace]  generate test cases
+  python -m src goldens  <agent> [--group G] [--ids ID ...] [--styles S ...] [--replace]  generate test cases
   python -m src summary  <agent> <suite> [--last N | --run ID ...]   rates across several saved runs
   python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
@@ -57,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
         cmd.add_argument("--group", action="append", help="only this group/domain (repeatable, or comma-separated)")
         cmd.add_argument("--ids", nargs="+", help="only these document ids")
         if name == "goldens":
+            cmd.add_argument("--styles", nargs="+", help="only these styles from synth.yaml (default: all)")
             cmd.add_argument("--replace", action="store_true",
                              help="clear the folders being generated into (after generation succeeds)")
 
@@ -127,7 +128,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "sources":
             generator.fetch_sources(args.agent, groups, args.ids)
         else:
-            generator.generate_goldens(args.agent, groups, args.ids, replace=args.replace)
+            styles = [x for value in args.styles or [] for x in value.replace(",", " ").split()] or None
+            generator.generate_goldens(args.agent, groups, args.ids, replace=args.replace, styles=styles)
         return 0
 
     if args.command == "summary":

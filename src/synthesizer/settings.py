@@ -29,6 +29,7 @@ STYLE_SECTIONS = ("scenario", "task", "additional_guidance", "input_format", "ex
 SETTINGS_KEYS = {"source", "per_source", "include_expected_answer", "instructions", "styles",
                  "evolutions", "quality_filter", "output"}
 OUTPUT_KEYS = {"folder", "id", "case"}
+STYLE_KEYS = {"file", "per_source", "question_type"}     # question_type: sent to the agent ({question_type})
 
 
 def load_settings(agent: Agent) -> dict[str, Any]:
@@ -47,6 +48,10 @@ def load_settings(agent: Agent) -> dict[str, Any]:
     if not settings.get("styles"):
         raise ConfigError(f"{path}: add at least one style under styles:")
     for name, style in settings["styles"].items():
+        unknown_style = set(style or {}) - STYLE_KEYS
+        if unknown_style:
+            raise ConfigError(f"{path}: style '{name}' has unknown keys {sorted(unknown_style)} "
+                              f"(allowed: {sorted(STYLE_KEYS)})")
         style_file = folder / str((style or {}).get("file", ""))
         if not style_file.is_file():
             raise ConfigError(f"{path}: style '{name}' file not found: {style_file}")

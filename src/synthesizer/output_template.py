@@ -9,13 +9,17 @@ from default_output() — the standard evaluation test case. Strings can hold pl
   {generated.input.request}     a field of the generated input, when a style asks for JSON input
   {source.id} {source.title} {source.text} {source.metadata.revision}   the document
   {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
+  {domain} {domain_folder}      the group as a code and a folder: "Brand Change" -> BRAND_CHANGE, brand_change
+                                (the same as the spreadsheet importer, so goldens and synthetic cases line up)
+  {question_type}               the style's question_type in synth.yaml ("" for a generic style)
   {run.id} {run.date} {run.generated_at} {run.model}                  this generation run
   {agent.name} {agent.input_field}
   {id} {n}                      the case id, and its number (format like {n:03} -> 001)
 
 A string that is exactly one placeholder keeps the value's type (e.g. a list stays a list).
 If the generated text lacks a field the template asks for, that case is skipped (and listed
-in the run manifest) instead of being written half-empty.
+in the run manifest) instead of being written half-empty. Empty values in `input` are left out, so a
+generic style sends no question_type at all (empty metadata values are left out too).
 """
 
 from __future__ import annotations
@@ -30,7 +34,8 @@ from src.core.exceptions import ConfigError
 from src.utils.text import safe_filename, slug, strip_code_fence
 
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_][\w.]*)(?::([^{}]*))?\}")
-_ROOTS = ("generated", "source", "style", "group", "group_slug", "run", "agent", "id", "n")
+_ROOTS = ("generated", "source", "style", "group", "group_slug", "domain", "domain_folder", "question_type",
+          "run", "agent", "id", "n")
 _MAX_NUMBER = 9999
 
 
@@ -56,17 +61,21 @@ def default_output(agent: Agent) -> dict[str, Any]:
 
 
 def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style: str,
-                document: dict[str, Any], golden: Any, taken: set[Path], replace: bool
-                ) -> tuple[Path, dict[str, Any]]:
+                document: dict[str, Any], golden: Any, taken: set[Path], replace: Any,
+                question_type: str = "") -> tuple[Path, dict[str, Any]]:
     """
     (file path, case JSON) for one generated golden.
 
     Numbering: {n} counts up from 1 until the id is free — not used earlier in this run and, unless
     REPLACE=1, not already on disk. So re-running adds new cases after the existing ones.
+    `replace`: False, True (any file may be overwritten), or the styles being replaced — then only a
+    file holding a case of one of those styles may be reused (others in the same folder are kept).
     """
     context = {
         "generated": {"input": golden.input, "expected_output": golden.expected_output or ""},
         "source": document, "style": style, "group": document["group"], "group_slug": slug(document["group"]),
+        "domain": slug(document["group"]).upper(), "domain_folder": slug(document["group"]),
+        "question_type": question_type or "",
         "run": run, "agent": {"name": agent.name, "input_field": agent.input_field},
     }
     folder = agent.folder / str(render(output["folder"], context))
@@ -74,9 +83,24 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
     for n in range(1, _MAX_NUMBER + 1):
         case_id = str(render(output["id"], {**context, "n": n}))
         path = folder / f"{safe_filename(case_id)}.json"
-        if path not in taken and path.stem not in taken_ids and (replace or not path.exists()):
-            return path, render(output["case"], {**context, "n": n, "id": case_id})
+        if path not in taken and path.stem not in taken_ids and _free(path, replace):
+            case = render(output["case"], {**context, "n": n, "id": case_id})
+            for part in ("input", "metadata"):             # e.g. no question_type for a generic style
+                if isinstance(case.get(part), dict):
+                    case[part] = {k: v for k, v in case[part].items() if v not in ("", None, [])}
+            return path, case
     raise ConfigError(f"Output template id '{output['id']}' never gives a free name — include {{n}} in it")
+
+
+def _free(path: Path, replace: Any) -> bool:
+    if not path.exists() or replace is True:
+        return True
+    if not replace:
+        return False
+    try:
+        return (json.loads(path.read_text()).get("metadata") or {}).get("style") in replace
+    except (ValueError, OSError):
+        return False
 
 
 def render(template: Any, context: dict[str, Any], roots: tuple[str, ...] = _ROOTS) -> Any:

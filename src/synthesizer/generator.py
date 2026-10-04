@@ -23,6 +23,7 @@ from typing import Any
 
 from src.clients import cortex_client
 from src.core.agent_config import load_agent
+from src.core.exceptions import ConfigError
 from src.synthesizer.documents import documents_for_generation, fetch, save_to_cache, select
 from src.synthesizer.output_template import MissingGenerated, default_output, render_case
 from src.synthesizer.settings import load_settings, style_sections
@@ -40,7 +41,7 @@ def fetch_sources(agent_name: str, groups: list[str] | None = None, ids: list[st
 
 
 def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list[str] | None = None,
-                     replace: bool = False) -> list[Path]:
+                     replace: bool = False, styles: list[str] | None = None) -> list[Path]:
     """Generate test cases for the selected documents and write them with the output template."""
     from deepeval.synthesizer import Synthesizer  # imported here: DeepEval is slow to import
     from deepeval.synthesizer.config import StylingConfig
@@ -61,7 +62,13 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
     planned: dict[Path, dict] = {}          # file -> case, written at the end
     seen_inputs: set[str] = set()           # for duplicate detection across styles
     failures, skipped = [], []
-    for style_name, style in settings["styles"].items():
+    chosen = settings["styles"]
+    if styles:
+        unknown = [s for s in styles if s not in chosen]
+        if unknown:
+            raise ConfigError(f"Unknown style(s) {unknown}. synth.yaml has: {', '.join(chosen)}")
+        chosen = {name: chosen[name] for name in styles}
+    for style_name, style in chosen.items():
         sections = style_sections(settings["folder"] / style["file"])
         # DeepEval's StylingConfig has four fields; our extra sections are folded into them.
         task = "\n\n".join(s for s in [sections.get("task"), sections.get("additional_guidance")] if s)
@@ -93,7 +100,8 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
                     continue
                 try:
                     path, case = render_case(agent, output, run, style_name, document, golden,
-                                             set(planned), replace)
+                                             set(planned), set(chosen) if replace else False,
+                                             question_type=style.get("question_type", ""))
                 except MissingGenerated as exc:
                     skipped.append({"source": document["id"], "style": style_name, "reason": str(exc)})
                     continue
@@ -102,12 +110,12 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
                 made += 1
         print(f"Style {style_name}: {made} case(s) from {len(documents)} document(s)")
 
-    _write_cases(planned, replace)
+    _write_cases(planned, replace, set(chosen))
     manifest = settings["folder"] / "runs" / f"{run['id']}.json"
     manifest.parent.mkdir(parents=True, exist_ok=True)
     manifest.write_text(json.dumps({
         "run": run, "agent": agent.name, "source": settings["source"],
-        "documents": [d["id"] for d in documents], "styles": list(settings["styles"]),
+        "documents": [d["id"] for d in documents], "styles": list(chosen),
         "generated": len(planned), "skipped": skipped, "failed": failures,
         "files": [str(p.relative_to(agent.folder)) for p in planned],
     }, indent=2, ensure_ascii=False))
@@ -117,12 +125,20 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
     return list(planned)
 
 
-def _write_cases(planned: dict[Path, dict], replace: bool) -> None:
-    """Write the new cases. With REPLACE=1, first clear the folders they go into."""
+def _write_cases(planned: dict[Path, dict], replace: bool, styles: set[str]) -> None:
+    """
+    Write the new cases. With REPLACE=1, first remove the earlier cases of the styles just generated
+    from the folders they go into (cases of other styles in the same domain folder stay).
+    """
     if replace:
         for folder in {p.parent for p in planned}:
             for old in folder.glob("*.json"):
-                old.unlink()
+                try:
+                    style = (json.loads(old.read_text()).get("metadata") or {}).get("style")
+                except (ValueError, OSError):
+                    continue
+                if style is None or style in styles:
+                    old.unlink()
     for path, case in planned.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(case, indent=2, ensure_ascii=False) + "\n")
