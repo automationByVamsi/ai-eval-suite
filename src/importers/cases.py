@@ -17,6 +17,9 @@ test case JSON looks like is set per agent, in a mapping file:
                               "Anchor: 26942  Relational: 8412; 7053"  ->  anchor_page_ids, related_page_ids
                             (a cell with no label at all goes to the first label)
       normalise             lower | upper | slug | code   (code: "Brand Change" -> BRAND_CHANGE)
+      allowed               the only values a column may have, e.g. what the agent accepts; any other
+                            value is left out (and counted in the summary). The sheet's value is kept
+                            as {row.<name>_in_sheet}
       lists                 cells that hold several values: lines (one per line) | items (lines or ;) |
                             any (lines, , ; or spaces)
       strip                 a regex removed from each value (or each list item), e.g. a trailing "(27429)"
@@ -54,8 +57,8 @@ from src.synthesizer.output_template import render
 from src.utils.text import safe_filename, slug
 
 _ROOTS = ("row", "domain", "domain_folder", "source", "agent", "id")
-_KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "labelled", "normalise", "lists", "strip",
-         "domain", "warn_if_empty", "output"}
+_KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "labelled", "normalise", "allowed", "lists",
+         "strip", "domain", "warn_if_empty", "output"}
 
 
 def import_cases(agent_name: str, file: str, *, mapping: str | None = None, sheet: str | None = None,
@@ -74,7 +77,7 @@ def import_cases(agent_name: str, file: str, *, mapping: str | None = None, shee
     warnings: Counter[str] = Counter()
     warned_ids: dict[str, list[str]] = {}
     for raw in rows:
-        values = _row_values(raw, headers, config)
+        values = _row_values(raw, headers, config, warnings)
         missing = [name for name in config.get("required", []) if _empty(values.get(name))]
         if missing:
             skipped.append(f"row {raw['_row']}: no {', '.join(missing)}")
@@ -170,7 +173,8 @@ def _header_key(text: str) -> str:
 
 # --- one row -----------------------------------------------------------------------------------
 
-def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, Any]) -> dict[str, Any]:
+def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, Any],
+                warnings: Counter[str] | None = None) -> dict[str, Any]:
     """Our name -> the cleaned cell value: 'no value' markers blanked, labelled parts split out, then
     normalised, then split into lists, then `strip` applied."""
     empty = {str(v).strip().lower() for v in config.get("empty_values", [])}
@@ -186,6 +190,12 @@ def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, 
     for name, how in (config.get("normalise") or {}).items():
         if not _empty(values.get(name)):
             values[name] = _normalise(str(values[name]), how)
+    for name, allowed in (config.get("allowed") or {}).items():
+        values[f"{name}_in_sheet"] = values.get(name, "")
+        if not _empty(values.get(name)) and str(values[name]) not in {str(a) for a in allowed}:
+            if warnings is not None:
+                warnings[f"{name} '{values[name]}' is not one of {', '.join(map(str, allowed))}: left out"] += 1
+            values[name] = ""
     for name, how in (config.get("lists") or {}).items():
         values[name] = _split(values.get(name), how, empty)
     for name, pattern in (config.get("strip") or {}).items():

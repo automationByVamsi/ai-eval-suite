@@ -41,6 +41,9 @@ normalise:
   query_type: lower           # Simple -> simple (the agent's own query_type values)
   question_type: slug         # How -> how, Yes/No -> yes_no
 
+allowed:                      # question types the agent accepts; any other value (Explanation, Procedural ...)
+  question_type: [how, what, why, yes_no]   # is left out, so the question goes as a general one (plain text)
+
 lists:                        # cells that can hold several values
   anchor_pages: items         # page titles, one per line or separated by ;
   related_pages: items        # (titles can contain commas and dashes, so only lines and ; split them)
@@ -82,6 +85,7 @@ output:
     metadata:
       domain: "{domain}"
       workstream: "{row.workstream}"
+      question_type_in_sheet: "{row.question_type_in_sheet}"   # as the sheet had it, even if not sent
       origin: CJM_GOLDEN
       approval_status: APPROVED
       source:

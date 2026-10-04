@@ -160,3 +160,20 @@ def test_csv_and_unknown_domains(ka_copy, tmp_path):
     summary = import_cases("knowledge_agent", str(csv_file))
     assert (ka_copy / "testdata/golden/pca/KA_GLD_PCA_007.json").is_file()
     assert any("domain 'PCA' not in domain.codes" in w for w in summary["warnings"])
+
+
+def test_question_types_the_agent_does_not_accept_are_left_out(ka_copy, tmp_path):
+    csv_file = tmp_path / "golden.csv"
+    csv_file.write_text(",".join(HEADERS) + "\n"
+                        "1,CVH,Simple,Why do we record support needs?,Explanation,An answer.,Some Page,,\n"
+                        "2,CVH,Simple,How do I add a support need?,Procedural,An answer.,Some Page,,\n"
+                        "3,CVH,Simple,Can a third party add one?,Yes/No,An answer.,Some Page,,\n")
+    summary = import_cases("knowledge_agent", str(csv_file))
+    explanation = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_001.json").read_text())
+    assert explanation["input"] == {"question": "Why do we record support needs?"}       # sent as plain text
+    assert explanation["metadata"]["question_type_in_sheet"] == "explanation"             # still traceable
+    yes_no = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_003.json").read_text())
+    assert yes_no["input"]["question_type"] == "yes_no"                                   # accepted: sent
+    assert summary["warnings"] == {
+        "question_type 'explanation' is not one of how, what, why, yes_no: left out": 1,
+        "question_type 'procedural' is not one of how, what, why, yes_no: left out": 1}
