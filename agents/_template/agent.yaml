@@ -40,3 +40,11 @@ suites:
   # regression:
   #   metrics: [relevance, correctness]
   #   checks: [basic, answer]
+  #   targets:                       # release bar: pass RATES across the run (see the README)
+  #     correctness: 0.90
+  #     error_rate: 0.05             # ceiling
+
+# With REPS > 1: a case is consistent only if these are the same / pass in every repetition.
+# consistency:
+#   same: evidence_page_ids
+#   all_pass: [correctness]

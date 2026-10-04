@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_005",
+  "description": "A fabricated specific: no page states this",
+  "input": {
+    "question": "How many days exactly does a colleague have to review a support need for a customer with a pet goldfish?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

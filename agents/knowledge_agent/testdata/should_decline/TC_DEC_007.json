@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_007",
+  "description": "Not a banking question",
+  "input": {
+    "question": "What will the weather be in London tomorrow?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

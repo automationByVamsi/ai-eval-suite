@@ -94,7 +94,7 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
                                                                "How to Add a support need in MCP"]
     assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text
-    assert case["metadata"]["domain"] == "CVH" and case["metadata"]["query_type"] == "complex"
+    assert case["metadata"]["domain"] == "CVH" and case["expected"]["expected_query_type"] == "complex"
     assert case["metadata"]["source"] == {"file": "KA golden.xlsx", "sheet": "Sheet1", "row": 5, "test_id": 44}
 
     brand = json.loads((ka_copy / "testdata/golden/brand_change/KA_GLD_BRAND_CHANGE_028.json").read_text())

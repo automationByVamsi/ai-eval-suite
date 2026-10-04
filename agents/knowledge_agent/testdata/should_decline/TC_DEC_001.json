@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_001",
+  "description": "Out of scope: product rates are not in the Customer Vulnerability knowledge base",
+  "input": {
+    "question": "What is the current interest rate on a Club Lloyds current account?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

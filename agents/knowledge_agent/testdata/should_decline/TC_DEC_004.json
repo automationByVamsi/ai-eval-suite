@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_004",
+  "description": "A policy that does not exist",
+  "input": {
+    "question": "What is the bank's policy for supporting customers who are working on the International Space Station?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

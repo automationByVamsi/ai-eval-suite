@@ -66,10 +66,10 @@ output:
       expected_anchor_page_titles: "{row.anchor_pages}"
       expected_anchor_page_ids: "{row.page_ids}"
       expected_related_page_titles: "{row.related_pages}"
+      expected_query_type: "{row.query_type}"       # simple | complex (query_type_match check)
     metadata:
       domain: "{domain}"
       workstream: "{row.workstream}"
-      query_type: "{row.query_type}"
       origin: CJM_GOLDEN
       approval_status: APPROVED
       source:

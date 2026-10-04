@@ -123,6 +123,8 @@ You should never need to edit `src/` to onboard an agent or change metrics.
 | generate test cases from them               | `make goldens AGENT=knowledge_agent [GROUP=…] [IDS=…]` |
 | pass rate of every check / judge (e.g. anchor hit rate) over the last N runs | `make summary AGENT=knowledge_agent SUITE=golden LAST=10` |
 | look at results                             | `make dashboard` |
+| SME review sheet for a run (judge calibration) | `make review-sheet AGENT=knowledge_agent SUITE=golden [RUN=<run id>]` |
+| judge vs SME agreement, best threshold      | `make calibrate FILE=outputs/review/<run id>.csv` |
 | test the framework itself                   | `make test` |
 
 Every command exits with 1 when something failed, so it drops straight into CI.
@@ -325,6 +327,26 @@ Types: `present`, `one_of`, `equals`, `min_words`, `not_contains`, `range`, `sam
 `any_in`, `all_in`, `precision`, `recall` (see `src/fields/checks.py`). A check whose expected value
 the case lacks is SKIPPED. `parser.py` is still there for logic YAML can't express.
 
+Options:
+
+```yaml
+  search_recall_at_5:                    # Recall@k / Precision@k on the list the agent logged, in its order
+    type: recall
+    k: 5
+    compare: [{field: search_candidates, expected: expected_anchor_page_ids}]
+  search_precision_at_5:
+    type: precision
+    k: 5
+    compare: [{field: search_candidates, expected: [expected_anchor_page_ids, expected_related_page_ids]}]  # union
+  warns_when_it_cannot_answer:           # only for cases whose expected block says should_decline: true
+    {type: present, field: disclosures, when: {expected: should_decline, is: true}}
+  validation_reasons_logged:             # every listed field must be non-empty
+    {type: present, fields: [anchor_rationale, validation_reasons]}
+```
+
+Retrieval checks only see what the agent's trace logs (e.g. `search_branches.*.filtered_page_ids`):
+"Precision@5" means precision of the top 5 candidates *as logged*, not of the full search index.
+
 Checks can be written in groups (`answer:`, `citations:`, `retrieval:` …; the dashboard shows them by
 group), and **each suite chooses which checks it runs** — judges and checks are set separately:
 
@@ -433,6 +455,42 @@ read its fields: `{generated.input.request}` (cases where the JSON is missing th
   reviewed ones with `only: {metadata.approval_status: APPROVED}`.
 - **Add a style:** a new `styles/<name>.md` + one line under `styles:`.
 - **Another agent:** copy `agents/knowledge_agent/synth/`, change `source:` and `output:`.
+
+## Release targets and consistency
+
+Thresholds decide pass / fail **per case** (correctness ≥ 0.7). Targets decide whether the **run** is
+good enough to release — pass rates across all cases, per suite in `agent.yaml`:
+
+```yaml
+suites:
+  golden:
+    metrics: [correctness, faithfulness, ...]
+    targets:
+      correctness: 0.90        # ≥ 90% of case runs pass the correctness judge
+      within_60s: 0.95         # a check name works too
+      error_rate: 0.05         # ceiling: ≤ 5% of case runs could not be evaluated
+      case_pass_rate: 0.90     # ≥ 90% of case runs pass everything
+      consistency: 1.0         # with REPS > 1: every case consistent (below)
+```
+
+A target with no verdict in the run (skipped everywhere) counts as **missed**. Targets show on the
+console, on the dashboard Overview, and `make verdict` fails if one is missed.
+
+**Consistency** (REPS > 1) is set once per agent:
+
+```yaml
+consistency:
+  same: evidence_page_ids      # the source pages must be the same in every repetition
+  min_overlap: 1.0             # 1.0 = identical sets (order ignored); the lowest pair counts
+  all_pass: [correctness]      # and these must pass in every repetition (default: every judge)
+```
+
+A case is consistent only if both hold; an inconsistent case is a failure. Run with `REPS=5`.
+
+**Judge calibration.** `make review-sheet` writes one CSV row per case (question, answer, reference,
+every judge's score) with an empty `sme_verdict` column. An SME marks ~20 rows pass / fail;
+`make calibrate FILE=...` then shows per judge how often it agrees with the SME, its false passes,
+and the threshold that would agree best.
 
 ## Baseline and verdict
 

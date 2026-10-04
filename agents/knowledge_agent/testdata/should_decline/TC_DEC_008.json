@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_008",
+  "description": "Ambiguous, unverifiable details: the agent should flag uncertainty rather than answer confidently",
+  "input": {
+    "question": "Which support need code should I use for a customer who told us about a temporary health issue last year but has since recovered, and the system shows a code ending in 7?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

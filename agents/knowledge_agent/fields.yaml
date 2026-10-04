@@ -30,6 +30,7 @@ fields:
   disclosures:       {from: final, path: [caveats, user_warnings]}     # caveats, or else user warnings
   evidence_page_ids: {from: final, path: "evidence[].page_id"}
   evidence_titles:   {from: final, path: "evidence[].title"}
+  evidence_links:    {from: final, path: "evidence[].uri_ui"}   # one link per evidence page
 
   # --- 1. Input normalisation -----------------------------------------------------------------
   agent_query:       {from: state, path: query}            # the question as the agent received it

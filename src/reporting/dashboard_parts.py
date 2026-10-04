@@ -285,6 +285,22 @@ def check_scoreboard_html(rows: list[dict[str, Any]]) -> str:
     return "".join(out) or '<div class="muted">This suite runs no deterministic checks.</div>'
 
 
+def targets_html(rows: list[dict[str, Any]]) -> str:
+    """Release targets: actual vs target, with a bar and a met / missed / n/a chip."""
+    out = []
+    for r in rows:
+        kind = {True: "good", False: "bad", None: "muted"}[r["met"]]
+        word = {True: "met", False: "missed", None: "n/a"}[r["met"]]
+        sign = "≤" if r["ceiling"] else "≥"
+        actual = "–" if r["actual"] is None else f"{r['actual']:.0%}"
+        out.append(f'<div class="sb-row"><div class="row-top"><span class="row-name">{esc(label(r["name"]))}</span>'
+                   f'{chip(word, kind + "-soft" if kind != "muted" else "ghost")}'
+                   f'<span class="score {kind}">{actual} <span class="muted">target {sign} {r["target"]:.0%}</span>'
+                   f'</span></div>{bar(r["actual"], kind, None if r["ceiling"] else r["target"])}'
+                   f'<div class="row-reason">{esc(r["detail"])}</div></div>')
+    return "".join(out)
+
+
 # --- the pages behind an answer ----------------------------------------------------------------
 
 def evidence_pages(case: CaseResult) -> list[dict[str, Any]]:

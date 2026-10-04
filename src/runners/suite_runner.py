@@ -55,7 +55,8 @@ def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: 
         cases = [c for c in cases if c["test_case_id"] in case_ids]
 
     run = Run(agent=agent.name, suite=suite.name, build=build, reps=reps, offline=offline,
-              metrics=list(suite.metrics) if judges else [], checks=suite.checks)
+              metrics=list(suite.metrics) if judges else [], checks=suite.checks,
+              targets=dict(suite.targets), consistency=dict(agent.consistency))
     for case in cases:
         for rep in range(reps):
             label = case["test_case_id"] + (f" rep {rep + 1}/{reps}" if reps > 1 else "")

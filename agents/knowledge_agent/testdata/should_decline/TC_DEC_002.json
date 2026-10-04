@@ -1,0 +1,10 @@
+{
+  "test_case_id": "TC_DEC_002",
+  "description": "Outside the business area: mortgages, not customer vulnerability",
+  "input": {
+    "question": "How do I set up a mortgage payment holiday for a customer?"
+  },
+  "expected": {
+    "should_decline": true
+  }
+}

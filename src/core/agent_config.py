@@ -42,6 +42,7 @@ class Suite:
     metrics: list[str]            # judge metrics to run; names defined under the agent's `metrics:`
     only: dict[str, Any]          # optional filter, e.g. {"metadata.approval_status": "APPROVED"}
     checks: list[str] | None = None   # deterministic checks to run: None = all, [] = none, else names/groups
+    targets: dict[str, float] = field(default_factory=dict)   # release targets: pass rate per judge / check
 
 
 @dataclass
@@ -58,6 +59,7 @@ class Agent:
     fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks: in agent.yaml
     message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
+    consistency: dict[str, Any] = field(default_factory=dict)         # consistency: rules for REPS > 1
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
         """The checks: from agent.yaml that this suite runs (a group name selects its whole group)."""
@@ -129,6 +131,7 @@ def load_agent(name: str) -> Agent:
             metrics=wanted,
             only=dict(spec.get("only") or {}),
             checks=_suite_checks(spec.get("checks", "all"), f"{path}: suite '{suite_name}'"),
+            targets=_targets(spec.get("targets"), f"{path}: suite '{suite_name}'"),
         )
 
     fields_file = folder / "fields.yaml"
@@ -144,6 +147,12 @@ def load_agent(name: str) -> Agent:
         if unknown:
             raise ConfigError(f"{path}: suite '{suite.name}' checks: {unknown} are neither checks nor groups. "
                               f"Known: {sorted(known)}")
+        allowed = {*suite.metrics, *checks, "answer_non_empty", *SPECIAL_TARGETS}
+        unknown = sorted(set(suite.targets) - allowed)
+        if unknown:
+            raise ConfigError(f"{path}: suite '{suite.name}' targets: {unknown} are not judges of this suite, "
+                              f"checks, or one of {list(SPECIAL_TARGETS)}")
+    consistency = _consistency(raw.get("consistency"), str(path))
 
     return Agent(
         name=name,
@@ -152,6 +161,7 @@ def load_agent(name: str) -> Agent:
         input_field=raw.get("input_field", "question"),
         message_template=raw.get("message_template"),
         message_fields=_message_fields(raw.get("message"), str(path)),
+        consistency=consistency,
         metrics=metrics,
         suites=suites,
         fields=fields,
@@ -161,6 +171,35 @@ def load_agent(name: str) -> Agent:
 
 # The checks every agent gets (runner._standard_checks), selectable by name or as the group "basic".
 BASIC_CHECKS = ("basic", "answer_non_empty", "keywords")
+
+
+# Targets that aren't a judge or check pass rate (see src/reporting/release.py).
+SPECIAL_TARGETS = ("error_rate", "case_pass_rate", "consistency")
+
+
+def _targets(spec: Any, where: str) -> dict[str, float]:
+    """`targets: {correctness: 0.90, error_rate: 0.05}`: numbers between 0 and 1."""
+    if not spec:
+        return {}
+    if not isinstance(spec, dict) or not all(isinstance(v, (int, float)) and 0 <= v <= 1 for v in spec.values()):
+        raise ConfigError(f"{where}: targets: must map names to numbers between 0 and 1, e.g. {{correctness: 0.9}}")
+    return {str(k): float(v) for k, v in spec.items()}
+
+
+def _consistency(spec: Any, where: str) -> dict[str, Any]:
+    """
+    `consistency:` (agent level) — what "the same" means when a case is repeated (REPS > 1):
+        same: evidence_page_ids     a fields.yaml field that must match across repetitions (e.g. source pages)
+        min_overlap: 1.0            how much it must match: 1.0 = identical in every repetition
+        all_pass: [correctness]     results that must pass in every repetition (default: every judge)
+    """
+    if not spec:
+        return {}
+    unknown = set(spec) - {"same", "min_overlap", "all_pass"}
+    if not isinstance(spec, dict) or unknown:
+        raise ConfigError(f"{where}: consistency: allows same, min_overlap, all_pass (got {sorted(unknown)})")
+    return {"same": spec.get("same"), "min_overlap": float(spec.get("min_overlap", 1.0)),
+            "all_pass": list(spec.get("all_pass") or [])}
 
 
 def _message_fields(spec: Any, where: str) -> dict[str, str]:

@@ -9,6 +9,8 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src summary  <agent> <suite> [--last N | --run ID ...]   rates across several saved runs
   python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
+  python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   CSV for an SME to mark
+  python -m src calibrate <file.csv>                                   judges vs the SME's marks
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
   python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
   python -m src verdict  <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
@@ -28,7 +30,8 @@ from src.fields.preview import preview
 from src.importers.cases import import_cases
 from src.onboarding.doctor import run_doctor
 from src.onboarding.new_agent import create_agent
-from src.reporting.console import print_run, print_verdict
+from src.reporting.console import print_release, print_run, print_verdict
+from src.reporting.release import gate
 from src.reporting.summary import print_summary, summarise
 from src.runners.suite_runner import run_suite
 from src.synthesizer import generator
@@ -75,6 +78,14 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--mapping", help="agents/<agent>/importers/<mapping>.yaml (default: the only one)")
     imp.add_argument("--sheet", help="sheet name (default: the mapping's sheet, else the first sheet)")
     imp.add_argument("--dry-run", action="store_true", help="show what would be written, write nothing")
+
+    review = commands.add_parser("review-sheet", help="CSV of a run's answers and judge verdicts for an SME")
+    review.add_argument("agent")
+    review.add_argument("suite")
+    review.add_argument("--run", default="latest", help="'latest' (default) or a run id")
+    review.add_argument("--out", help="where to write the CSV (default outputs/review/<run id>.csv)")
+    cal = commands.add_parser("calibrate", help="compare the judges with an SME-marked review sheet")
+    cal.add_argument("file")
 
     for name, text in [("run", "run a suite and report pass/fail"),
                        ("baseline", "run (or reuse a run) and save it as the baseline"),
@@ -132,6 +143,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "fields":
         return preview(args.agent, args.suite, args.cases, args.trace)
 
+    if args.command == "review-sheet":
+        from pathlib import Path
+
+        from src.reporting.calibration import review_sheet
+        out = review_sheet(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None)
+        print(f"Review sheet: {out}\nAsk the SME to fill sme_verdict (pass / fail), then: make calibrate FILE={out}")
+        return 0
+
+    if args.command == "calibrate":
+        from pathlib import Path
+
+        from src.reporting.calibration import calibrate, print_calibration
+        print_calibration(calibrate(Path(args.file)), Path(args.file))
+        return 0
+
     if args.command == "import-cases":
         import_cases(args.agent, args.file, mapping=args.mapping, sheet=args.sheet, dry_run=args.dry_run)
         return 0
@@ -144,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
                         judges=not args.no_judges, case_ids=args.cases)
         print_run(run)
 
+    if getattr(args, "from_run", None):
+        print_release(run)
     if args.command == "run":
         return 0 if run.passed else 1
     if args.command == "baseline":
@@ -151,7 +179,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     passed, rows, baseline = compare(run)
     print_verdict(run, passed, rows, baseline)
-    return 0 if passed else 1
+    targets_met, _ = gate(run)
+    if not targets_met:
+        print("VERDICT: FAIL — release targets missed (see Targets above)")
+    return 0 if passed and targets_met else 1
 
 
 def run_cli() -> int:

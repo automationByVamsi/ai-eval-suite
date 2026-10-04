@@ -82,6 +82,8 @@ class Run:
     started_at: str = ""
     metrics: list[str] = field(default_factory=list)       # the judges this suite runs
     checks: list[str] | None = None                        # the checks it runs (None: all of them)
+    targets: dict = field(default_factory=dict)            # release targets of the suite (agent.yaml)
+    consistency: dict = field(default_factory=dict)        # consistency rules for REPS > 1 (agent.yaml)
     cases: list[CaseResult] = field(default_factory=list)
 
     def __post_init__(self) -> None:

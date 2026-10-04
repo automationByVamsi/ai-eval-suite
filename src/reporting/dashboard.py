@@ -25,6 +25,7 @@ import streamlit as st  # noqa: E402
 from src.core import paths  # noqa: E402
 from src.core.results import ERROR, FAIL, PASS, SKIP, CaseResult, Run, load_run  # noqa: E402
 from src.reporting import dashboard_parts as ui  # noqa: E402
+from src.reporting import release  # noqa: E402
 from src.reporting.summary import summarise  # noqa: E402
 from src.verdict.baseline import baseline_path  # noqa: E402
 from src.verdict.compare import compare  # noqa: E402
@@ -243,6 +244,32 @@ with overview_tab:
         ui.kpi("Latency", latency, f"median · p95 {stats['p95_s']:.1f}s" if stats["p95_s"] else "median",
                "accent"),
     ]) + "</div>")
+
+    gate_ok, target_rows = release.gate(run)
+    if target_rows:
+        with st.container(border=True):
+            missed = sum(r["met"] is False for r in target_rows)
+            status = ui.chip("all targets met", "good") if gate_ok else ui.chip(f"{missed} target(s) missed", "bad")
+            html(f'<div class="card-label">Release targets<span class="count">{status}</span></div>')
+            html(ui.targets_html(target_rows))
+            st.caption("Targets are pass rates across the whole run (agent.yaml `targets:`), not per-case scores. "
+                       "A target with no data counts as missed.")
+    if run.reps > 1:
+        rows_c = release.consistency(run)
+        if rows_c:
+            with st.container(border=True):
+                ok = sum(r["consistent"] for r in rows_c)
+                html(f'<div class="card-label">Consistency over {run.reps} repetitions<span class="count">'
+                     f'{ui.chip(f"{ok}/{len(rows_c)} cases consistent", "good" if ok == len(rows_c) else "bad")}'
+                     '</span></div>')
+                st.dataframe(pd.DataFrame([{
+                    "case": r["case"], "consistent": "yes" if r["consistent"] else "NO",
+                    "same sources (overlap)":
+                        None if r["evidence_overlap"] is None else round(r["evidence_overlap"], 2),
+                    **{f"{k} passed": v for k, v in r["passes"].items()}, "why not": r["why"],
+                } for r in rows_c]), hide_index=True, width="stretch")
+                st.caption("A case is consistent only if its source pages are the same in every repetition and the "
+                           "results in agent.yaml `consistency: all_pass` passed every time (HIVE-6165).")
 
     left, right = st.columns(2, gap="large")
     with left.container(border=True):

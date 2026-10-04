@@ -8,7 +8,7 @@ from fields.yaml. Each produces one pass / fail / skip result, like a parser.py 
       fallback_disclosed: {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
 
 Types:
-  present       the field has a value (not empty)
+  present       the field has a value (not empty); with fields: [...], every one of them
   one_of        the value (or every item of a list) is one of `values`
   equals        the field equals `other:` (another field) or `value:`
   min_words     the text has at least `min` words
@@ -39,10 +39,15 @@ Checks can be grouped (the group name shows on the dashboard, and a suite can pi
 Which checks a suite runs: `checks:` under the suite (all | none | [group or check names]),
 see src/core/agent_config.py.
 
+`k: 5` on a comparing check counts only the first 5 items of the field (precision@k / recall@k on
+a ranked list, e.g. the agent's search candidates). `expected:` may list several keys; their values
+are combined, e.g. expected: [expected_anchor_page_ids, expected_related_page_ids].
+
 `when:` runs the check only if a condition holds, else SKIP:
       when: {field: confidence, in: [MEDIUM, LOW]}     the value is one of these
       when: {field: metadata_missing, is: true}         the value (or any item of a list) is true
       when: {field: cited_page_ids, present: true}      the field has a value
+      when: {expected: should_decline, is: true}        a value in the test case's expected block
 """
 
 from __future__ import annotations
@@ -56,7 +61,7 @@ from src.fields.extract import is_empty
 TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset",
          "any_in", "all_in", "precision", "recall"}
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
-        "threshold", "when", "description", "group"}
+        "threshold", "when", "description", "group", "k"}
 COMPARING = {"any_in", "all_in", "precision", "recall"}
 
 
@@ -119,7 +124,7 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
 
 def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any]) -> Result:
     result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""))
-    skip_reason = _when(spec.get("when"), fields)
+    skip_reason = _when(spec.get("when"), fields, expected)
     if skip_reason:
         result.reason = skip_reason
         return result
@@ -133,6 +138,8 @@ def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict
             return result
         field_name, want = pair
         have = _items(fields.get(field_name))
+        if spec.get("k"):                       # only the first k items count (ranked lists: precision@k ...)
+            have = have[: int(spec["k"])]
         common = [w for w in want if w in have]
         if kind in ("precision", "recall"):
             base = have if kind == "precision" else want
@@ -152,7 +159,9 @@ def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict
         return _done(result, passed, detail)
 
     if kind == "present":
-        return _done(result, not is_empty(value), f"{spec['field']} is empty")
+        names = spec.get("fields") or [spec.get("field")]          # several fields: every one must have a value
+        empty = [n for n in names if is_empty(fields.get(n))]
+        return _done(result, not empty, f"{', '.join(empty)} empty")
     if kind == "one_of":
         allowed = _items(spec.get("values"))
         bad = [v for v in _items(value) if v not in allowed]
@@ -183,11 +192,19 @@ def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict
     return _done(result, not extra, f"{spec['field']} has {extra} not in {spec.get('of')}")
 
 
-def _when(condition: dict[str, Any] | None, fields: dict[str, Any]) -> str:
-    """'' when the check should run, else the reason it is skipped."""
+def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: dict[str, Any] | None = None) -> str:
+    """
+    '' when the check should run, else the reason it is skipped. The condition reads a field, or
+    with `expected:` a key of the test case's expected block, e.g. {expected: should_decline, is: true}.
+    """
     if not condition:
         return ""
-    value = fields.get(condition.get("field", ""))
+    if "expected" in condition:
+        value = (expected or {}).get(condition["expected"])
+        condition = {"field": f"expected.{condition['expected']}",
+                     **{k: v for k, v in condition.items() if k != "expected"}}
+    else:
+        value = fields.get(condition.get("field", ""))
     if "in" in condition:
         allowed = _items(condition["in"])
         holds = any(v in allowed for v in _items(value))
@@ -203,7 +220,9 @@ def _pair(spec: dict[str, Any], expected: dict[str, Any]) -> tuple[str, list[str
     """(field name, expected items) of the first compare pair the case has an expected value for."""
     pairs = spec.get("compare") or [{"field": spec.get("field"), "expected": spec.get("expected")}]
     for pair in pairs:
-        want = _items(expected.get(pair.get("expected", "")))
+        keys = pair.get("expected", "")
+        keys = keys if isinstance(keys, list) else [keys]          # several keys: their values together
+        want = list(dict.fromkeys(item for key in keys for item in _items(expected.get(key))))
         if want:
             return pair["field"], want
     return None
@@ -211,7 +230,8 @@ def _pair(spec: dict[str, Any], expected: dict[str, Any]) -> tuple[str, list[str
 
 def _expected_names(spec: dict[str, Any]) -> str:
     pairs = spec.get("compare") or [{"expected": spec.get("expected")}]
-    return " or ".join(f"expected.{p.get('expected')}" for p in pairs)
+    names = [p.get("expected") for p in pairs]
+    return " or ".join("+".join(f"expected.{k}" for k in (n if isinstance(n, list) else [n])) for n in names)
 
 
 def _items(value: Any) -> list[str]:

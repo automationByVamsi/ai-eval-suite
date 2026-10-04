@@ -1,0 +1,148 @@
+"""Release targets, consistency across repetitions (HIVE-6165), new check options, SME calibration."""
+
+import csv
+
+from conftest import ROOT
+from streamlit.testing.v1 import AppTest
+
+from src.core.results import CaseResult, Result, Run
+from src.fields import checks
+from src.reporting import release
+from src.reporting.calibration import calibrate, review_sheet
+from src.runners.suite_runner import run_suite
+
+
+def _case(case_id, rep, evidence, correctness="pass", score=0.9, error=""):
+    return CaseResult(case_id, rep=rep, error=error, details={"evidence_page_ids": evidence}, results=[
+        Result("correctness", "judge", correctness, score=score, threshold=0.7),
+        Result("within_60s", "check", "pass"),
+    ])
+
+
+def _run(cases, reps=1, targets=None):
+    return Run("knowledge_agent", "golden", reps=reps, cases=cases, targets=targets or {},
+               consistency={"same": "evidence_page_ids", "min_overlap": 1.0, "all_pass": ["correctness"]})
+
+
+# --- targets: pass rates across the run ------------------------------------------------------------
+
+def test_targets_met_missed_and_no_data():
+    cases = [_case(f"C{i}", 0, ["1"], "pass" if i < 9 else "fail") for i in range(10)]
+    run = _run(cases, targets={"correctness": 0.9, "within_60s": 1.0, "faithfulness": 0.95, "error_rate": 0.05})
+    rows = {r["name"]: r for r in release.targets(run)}
+    assert rows["correctness"]["met"] is True and rows["correctness"]["actual"] == 0.9
+    assert rows["within_60s"]["met"] is True
+    assert rows["faithfulness"]["met"] is False and "no verdict" in rows["faithfulness"]["detail"]   # no data = missed
+    assert rows["error_rate"]["met"] is True and rows["error_rate"]["ceiling"]
+    passed, _ = release.gate(run)
+    assert not passed
+
+
+def test_error_rate_is_a_ceiling():
+    cases = [_case("A", 0, ["1"]), _case("B", 0, ["1"], error="agent: timeout")]
+    rows = {r["name"]: r for r in release.targets(_run(cases, targets={"error_rate": 0.05}))}
+    assert rows["error_rate"]["actual"] == 0.5 and rows["error_rate"]["met"] is False
+
+
+# --- consistency (HIVE-6165) ----------------------------------------------------------------------
+
+def test_consistent_only_if_same_sources_and_every_rep_passes():
+    cases = [
+        _case("STABLE", 0, ["40345", "40015"]), _case("STABLE", 1, ["40015", "40345"]),
+        _case("STABLE", 2, ["40345", "40015"]),
+        _case("DRIFT", 0, ["40345"]), _case("DRIFT", 1, ["40017"]), _case("DRIFT", 2, ["40345"]),
+        _case("FLAKY", 0, ["1"]), _case("FLAKY", 1, ["1"], "fail", 0.5), _case("FLAKY", 2, ["1"]),
+    ]
+    run = _run(cases, reps=3, targets={"consistency": 1.0})
+    rows = {r["case"]: r for r in release.consistency(run)}
+    assert rows["STABLE"]["consistent"] and rows["STABLE"]["evidence_overlap"] == 1.0   # order doesn't matter
+    assert not rows["DRIFT"]["consistent"] and "evidence_page_ids differed" in rows["DRIFT"]["why"]
+    assert not rows["FLAKY"]["consistent"] and rows["FLAKY"]["passes"]["correctness"] == "2/3"
+    target = release.targets(run)[0]
+    assert target["actual"] == 1 / 3 and target["met"] is False
+
+
+def test_consistency_target_is_not_applicable_with_one_rep():
+    run = _run([_case("A", 0, ["1"])], reps=1, targets={"consistency": 1.0})
+    [row] = release.targets(run)
+    assert row["met"] is None and "REPS > 1" in row["detail"]
+    assert release.gate(run)[0] is True
+
+
+# --- new check options -------------------------------------------------------------------------------
+
+def test_precision_and_recall_at_k_on_logged_search_candidates():
+    spec = {"type": "recall", "k": 3, "threshold": 1.0,
+            "compare": [{"field": "search_candidates", "expected": "expected_anchor_page_ids"}]}
+    checks.validate({"r": spec}, "test")
+    fields = {"search_candidates": ["40346", "40345", "40011", "40017"]}
+    def recall(anchor):
+        return checks.run_checks({"r": spec}, fields, {"expected": {"expected_anchor_page_ids": [anchor]}})[0].status
+
+    assert recall("40345") == "pass"         # in the top 3 logged candidates
+    assert recall("40017") == "fail"         # logged 4th: outside k
+
+    spec = {"type": "precision", "k": 2, "threshold": 0,
+            "compare": [{"field": "search_candidates",
+                         "expected": ["expected_anchor_page_ids", "expected_related_page_ids"]}]}
+    [result] = checks.run_checks({"p": spec}, fields, {"expected": {"expected_anchor_page_ids": ["40345"],
+                                                                    "expected_related_page_ids": ["40346"]}})
+    assert result.score == 1.0 and result.status == "pass"
+
+
+def test_when_can_read_the_test_cases_expected_block():
+    spec = {"type": "present", "field": "disclosures", "when": {"expected": "should_decline", "is": True}}
+    decline = {"expected": {"should_decline": True}}
+    assert checks.run_checks({"w": spec}, {"disclosures": []}, decline)[0].status == "fail"
+    assert checks.run_checks({"w": spec}, {"disclosures": ["Not in the knowledge base"]}, decline)[0].status == "pass"
+    assert checks.run_checks({"w": spec}, {"disclosures": []}, {"expected": {}})[0].status == "skip"
+
+
+def test_present_over_several_fields():
+    spec = {"type": "present", "fields": ["a", "b"]}
+    assert checks.run_checks({"p": spec}, {"a": "x", "b": "y"}, {})[0].status == "pass"
+    result = checks.run_checks({"p": spec}, {"a": "x", "b": ""}, {})[0]
+    assert result.status == "fail" and "b empty" in result.reason
+
+
+def test_knowledge_agent_suites_load_with_targets_and_new_checks(outputs):
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"])
+    names = {r.name: r.status for r in run.cases[0].results}
+    assert names["within_60s"] == "pass" and names["page_link_for_every_source"] == "pass"
+    assert names["anchor_rationale_logged"] == "pass" and names["validation_reasons_logged"] == "pass"
+    assert names["warns_when_it_cannot_answer"] == "skip"                 # not a should-decline case
+    assert run.targets == {"case_pass_rate": 1.0, "error_rate": 0.05}
+
+
+# --- SME calibration ---------------------------------------------------------------------------------
+
+def test_review_sheet_and_calibration(tmp_path):
+    cases = [CaseResult(f"C{i}", question="q", answer="a", results=[
+        Result("correctness", "judge", "pass" if s >= 0.7 else "fail", score=s, threshold=0.7)])
+        for i, s in enumerate([0.95, 0.9, 0.75, 0.72, 0.4, 0.3])]
+    sheet = review_sheet(_run(cases), tmp_path / "review.csv")
+    rows = list(csv.DictReader(sheet.open()))
+    assert rows[0]["correctness_score"] == "0.95" and rows[0]["sme_verdict"] == ""
+    for row, sme in zip(rows, ["pass", "pass", "fail", "fail", "fail", "fail"], strict=True):
+        row["sme_verdict"] = sme                                     # the SME says 0.75 and 0.72 aren't good enough
+    with sheet.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    [report] = calibrate(sheet)
+    assert report["n"] == 6 and report["false_pass"] == 2 and report["false_fail"] == 0
+    assert round(report["agreement"], 2) == 0.67
+    assert 0.75 < report["best_threshold"] <= 0.9 and report["best_agreement"] == 1.0
+
+
+# --- dashboard ---------------------------------------------------------------------------------------
+
+def test_dashboard_shows_targets_and_consistency(outputs):
+    cases = [_case("A", 0, ["1"]), _case("A", 1, ["2"])]
+    for case in cases:
+        case.question, case.answer = "q", "a"
+    _run(cases, reps=2, targets={"correctness": 0.9, "consistency": 1.0}).save()
+    app = AppTest.from_file(str(ROOT / "src/reporting/dashboard.py"), default_timeout=60).run()
+    assert not app.exception, app.exception
+    text = " ".join(m.value for m in app.markdown)
+    assert "Release targets" in text and "Consistency over 2 repetitions" in text
