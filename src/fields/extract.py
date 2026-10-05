@@ -198,7 +198,7 @@ class TraceView:
         for event in reversed(self.events):
             targets = (event.get("nodeInfo") or {}).get("outputFor") or []
             if "output" in event and any("/" not in str(t) for t in targets):   # the top-level workflow
-                return event["output"]
+                return _unwrap(event["output"])
         output = _json(self.trace.get("agentOutput"))
         return output if isinstance(output, dict) else None
 
@@ -298,3 +298,15 @@ def _as_list(value: Any) -> list[Any]:
 
 def is_empty(value: Any) -> bool:
     return value is None or value == "" or value == [] or value == {}
+
+
+def _unwrap(output: Any) -> Any:
+    """
+    Newer traces wrap the final output in an envelope: {"response_type": "answer", "answer": {question_type,
+    answer, confidence, caveats, user_warnings, evidence}}. Return the inner object, so `from: final`
+    paths work for both shapes; response_type is kept alongside.
+    """
+    if isinstance(output, dict) and "response_type" in output and isinstance(output.get("answer"), dict) \
+            and "answer" in output["answer"]:
+        return {"response_type": output["response_type"], **output["answer"]}
+    return output

@@ -15,7 +15,7 @@ input_field: question        # testdata input.question is sent to the agent
 # (the agent's input contract). A case with only a question is sent as plain text.
 message:
   format: json
-  fields: {query: question, question_type: question_type}
+  fields: {query: question, question_type: question_type, business_area: business_area}   # all but query optional
 
 # Every metric the agent can be judged on. Built-ins run on Pegasus when Pegasus has them,
 # otherwise DeepEval. Metrics with a rubric run on DeepEval GEval.

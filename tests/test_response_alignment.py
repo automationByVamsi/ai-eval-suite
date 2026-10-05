@@ -129,3 +129,15 @@ def test_rag_metrics_still_get_method_and_their_columns(outputs, monkeypatch):
     [call] = calls
     assert call["kwargs"] == {"llm": "LLM", "method": "pegasus"}
     assert set(call["row"]) == {"question", "answer", "retrieved_contexts"}
+
+
+def test_new_trace_shape_answer_envelope_and_business_area():
+    """Final output wrapped as {response_type, answer: {...}}: the same fields still extract."""
+    values = _fields(json.loads((ROOT / "tests/fixtures/ka_trace_v2_general.json").read_text()))
+    assert values["question_type"] == "general" and values["confidence"] == "HIGH"
+    assert values["answer"].startswith("To support a customer experiencing financial harm")
+    assert values["cited_page_ids"] == ["32177"] and values["evidence_page_ids"] == ["32177"]
+    assert values["agent_response"]["response_type"] == "answer"
+    agent = load_agent("knowledge_agent")
+    sent = json.loads(_message(agent, {"input": {"question": "q?", "business_area": "Business Banking"}}))
+    assert sent == {"query": "q?", "business_area": "Business Banking"}           # question_type optional
