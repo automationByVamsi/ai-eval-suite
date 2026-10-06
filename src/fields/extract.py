@@ -57,6 +57,15 @@ SOURCES = ("state", "final", "node", "model", "message", "timing", "trace", "loo
 KEYS = {"from", "path", "node", "agent", "contains", "regex", "where", "pick", "matches", "flatten", "unique",
         "count", "first", "join", "default", "required", "description", "ids", "lookup"}
 
+# The key some sources need, and what to write there (for the error message).
+SOURCE_NEEDS = {
+    "node": ("node", "<part of the node name>"),
+    "model": ("agent", "<model agent name>"),
+    "message": ("contains", "<text in the message>"),
+}
+
+
+# --- loading: check fields.yaml once, when the agent loads ---------------------------------------
 
 def validate(fields: dict[str, Any], where: str, folder: Path | None = None) -> dict[str, dict[str, Any]]:
     """
@@ -65,40 +74,51 @@ def validate(fields: dict[str, Any], where: str, folder: Path | None = None) -> 
     """
     checked: dict[str, dict[str, Any]] = {}
     for name, spec in (fields or {}).items():
-        if not isinstance(spec, dict):
-            raise ConfigError(f"{where}: field '{name}' must be a mapping like {{from: state, path: ...}}")
-        unknown = set(spec) - KEYS
-        if unknown:
-            raise ConfigError(f"{where}: field '{name}' has unknown keys {sorted(unknown)} (allowed: {sorted(KEYS)})")
-        source = spec.get("from")
-        if source not in SOURCES:
-            raise ConfigError(f"{where}: field '{name}' needs from: one of {list(SOURCES)} (got {source!r})")
-        if source == "node" and not spec.get("node"):
-            raise ConfigError(f"{where}: field '{name}' (from: node) needs node: <part of the node name>")
-        if source == "model" and not spec.get("agent"):
-            raise ConfigError(f"{where}: field '{name}' (from: model) needs agent: <model agent name>")
-        if source == "message" and not spec.get("contains"):
-            raise ConfigError(f"{where}: field '{name}' (from: message) needs contains: <text in the message>")
-        if source == "lookup":
-            if spec.get("ids") not in checked:
-                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs ids: <a field above it with the ids>")
-            if not spec.get("lookup"):
-                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs lookup: <function in lookups.py>")
-            if folder is None:
-                raise ConfigError(f"{where}: field '{name}' (from: lookup) needs the agent's folder")
-            from src.fields import lookup
-            lookup.check(folder, spec["lookup"], where)
-            spec = {**spec, "_folder": folder}
-        for path in _paths(spec):
-            parse(path)                                        # raises on an invalid path
-        for other in (spec.get("where") or {}).values():
-            if other not in checked:
-                raise ConfigError(f"{where}: field '{name}' uses where: ...{other} — define '{other}' above it")
-        if spec.get("regex"):
-            re.compile(spec["regex"])
-        checked[name] = spec
+        checked[name] = _validate_field(name, spec, checked, where, folder)
     return checked
 
+
+def _validate_field(name: str, spec: Any, earlier: dict[str, Any], where: str, folder: Path | None) -> dict:
+    """One field spec, checked. `earlier`: the fields defined above it (the only ones it may refer to)."""
+    label = f"{where}: field '{name}'"
+    if not isinstance(spec, dict):
+        raise ConfigError(f"{label} must be a mapping like {{from: state, path: ...}}")
+    unknown = set(spec) - KEYS
+    if unknown:
+        raise ConfigError(f"{label} has unknown keys {sorted(unknown)} (allowed: {sorted(KEYS)})")
+    source = spec.get("from")
+    if source not in SOURCES:
+        raise ConfigError(f"{label} needs from: one of {list(SOURCES)} (got {source!r})")
+    if source in SOURCE_NEEDS:
+        key, hint = SOURCE_NEEDS[source]
+        if not spec.get(key):
+            raise ConfigError(f"{label} (from: {source}) needs {key}: {hint}")
+    if source == "lookup":
+        spec = _validate_lookup(label, spec, earlier, where, folder)
+    for path in _paths(spec):
+        parse(path)                                        # raises on an invalid path
+    for other in (spec.get("where") or {}).values():
+        if other not in earlier:
+            raise ConfigError(f"{label} uses where: ...{other} — define '{other}' above it")
+    if spec.get("regex"):
+        re.compile(spec["regex"])
+    return spec
+
+
+def _validate_lookup(label: str, spec: dict, earlier: dict[str, Any], where: str, folder: Path | None) -> dict:
+    """A `from: lookup` field: its ids field is above it and its function exists in lookups.py."""
+    if spec.get("ids") not in earlier:
+        raise ConfigError(f"{label} (from: lookup) needs ids: <a field above it with the ids>")
+    if not spec.get("lookup"):
+        raise ConfigError(f"{label} (from: lookup) needs lookup: <function in lookups.py>")
+    if folder is None:
+        raise ConfigError(f"{label} (from: lookup) needs the agent's folder")
+    from src.fields import lookup
+    lookup.check(folder, spec["lookup"], where)
+    return {**spec, "_folder": folder}
+
+
+# --- extracting: every field of one trace ----------------------------------------------------------
 
 def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: bool = False,
             fetch: set[str] | None = None, local: bool = False) -> tuple[dict[str, Any], list[str]]:
@@ -114,18 +134,12 @@ def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: b
     values: dict[str, Any] = {}
     missing: list[str] = []
     for name, spec in fields.items():
-        if spec["from"] == "lookup" and fetch is not None and name not in fetch:
-            value = None                                   # not needed by this suite: not looked up
-        elif spec["from"] == "lookup":
-            from src.fields import lookup
-            value, problems = lookup.texts(spec["_folder"], spec["lookup"], _as_list(values.get(spec["ids"])),
-                                           offline, local)
-            if problems:
-                values.setdefault("_fetch_errors", []).extend(f"{name}: {p}" for p in problems)
-            if value and "join" in spec:                   # e.g. one text for a judge's answer
-                value = spec["join"].join(value)
-        else:
+        if spec["from"] != "lookup":
             value = field_value(view, spec, values)
+        elif fetch is None or name in fetch:
+            value = _looked_up(name, spec, values, offline, local)
+        else:
+            value = None                                   # not needed by this suite: not looked up
         if is_empty(value) and "default" in spec:
             value = spec["default"]
         if is_empty(value) and spec.get("required"):
@@ -134,34 +148,77 @@ def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: b
     return values, missing
 
 
+def _looked_up(name: str, spec: dict[str, Any], values: dict[str, Any], offline: bool, local: bool) -> Any:
+    """A `from: lookup` field: one text per id. Problems go to values["_fetch_errors"]."""
+    from src.fields import lookup
+    ids = _as_list(values.get(spec["ids"]))
+    texts, problems = lookup.texts(spec["_folder"], spec["lookup"], ids, offline, local)
+    if problems:
+        values.setdefault("_fetch_errors", []).extend(f"{name}: {p}" for p in problems)
+    if texts and "join" in spec:                           # e.g. one text for a judge's answer
+        return spec["join"].join(texts)
+    return texts
+
+
 def field_value(view: TraceView, spec: dict[str, Any], earlier: dict[str, Any]) -> Any:
-    """One field: its source, then path, where, pick and the other steps (see the top of this file)."""
-    source = view.source(spec)
-    value = _first_found(source, _paths(spec), many=spec["from"] in ("node", "model"))
+    """One field: its source, then path, then each step in the order listed at the top of this file."""
+    value = _first_found(view.source(spec), _paths(spec), many=spec["from"] in ("node", "model"))
     if spec.get("where"):
-        value = [item for item in _as_list(value) if all(
-            isinstance(item, dict) and _contains(earlier.get(other), item.get(key))
-            for key, other in spec["where"].items())]
+        value = _keep_where(value, spec["where"], earlier)
     if spec.get("pick"):
-        value = [item.get(spec["pick"]) for item in _as_list(value) if isinstance(item, dict)]
-        value = [v for v in value if v is not None]
+        value = _pick(value, spec["pick"])
     if spec.get("matches"):
-        pattern = re.compile(spec["matches"], re.IGNORECASE)
-        return any(pattern.search(str(v)) for v in _as_list(value))
+        return _matches(value, spec["matches"])            # a yes / no answer: no step after it applies
     if spec.get("flatten"):
-        value = [x for item in _as_list(value) for x in (item if isinstance(item, list) else [item])]
+        value = _flatten(value)
     if spec.get("unique"):
-        value = list(dict.fromkeys(json.dumps(v, sort_keys=True, default=str) for v in _as_list(value)))
-        value = [json.loads(v) for v in value]
+        value = _unique(value)
     if spec.get("count"):
-        return len(_as_list(value))
+        return len(_as_list(value))                        # a number: no step after it applies
     if spec.get("first"):
-        items = _as_list(value)
-        value = items[0] if items else None
+        value = _first(value)
     if "join" in spec and isinstance(value, list):
         value = str(spec["join"]).join(str(v) for v in value)
     return value
 
+
+# The steps, one small function each (see the top of this file).
+
+def _keep_where(value: Any, where: dict[str, str], earlier: dict[str, Any]) -> list[Any]:
+    """Keep the items whose key k is in (or equals) the value of an earlier field, for every k in where:."""
+    def keep(item: Any) -> bool:
+        return isinstance(item, dict) and all(_contains(earlier.get(other), item.get(key))
+                                              for key, other in where.items())
+    return [item for item in _as_list(value) if keep(item)]
+
+
+def _pick(value: Any, key: str) -> list[Any]:
+    """That key from every item (items without it are dropped)."""
+    picked = [item.get(key) for item in _as_list(value) if isinstance(item, dict)]
+    return [v for v in picked if v is not None]
+
+
+def _matches(value: Any, pattern: str) -> bool:
+    regex = re.compile(pattern, re.IGNORECASE)
+    return any(regex.search(str(v)) for v in _as_list(value))
+
+
+def _flatten(value: Any) -> list[Any]:
+    return [x for item in _as_list(value) for x in (item if isinstance(item, list) else [item])]
+
+
+def _unique(value: Any) -> list[Any]:
+    """Drop repeats, keep order (works for dicts and lists too: compared as JSON)."""
+    seen = dict.fromkeys(json.dumps(v, sort_keys=True, default=str) for v in _as_list(value))
+    return [json.loads(v) for v in seen]
+
+
+def _first(value: Any) -> Any:
+    items = _as_list(value)
+    return items[0] if items else None
+
+
+# --- the trace's sources ---------------------------------------------------------------------------
 
 class TraceView:
     """The sources of one trace, each worked out once (see `from` at the top of this file)."""
@@ -172,22 +229,25 @@ class TraceView:
         self._state: dict[str, Any] | None = None
 
     def source(self, spec: dict[str, Any]) -> Any:
-        kind = spec["from"]
-        if kind == "state":
-            return self.state()
-        if kind == "final":
-            return self.final()
-        if kind == "node":
-            return [e["output"] for e in self.events if "output" in e and spec["node"] in _node_name(e)]
-        if kind == "model":
-            return [_json(t) for e in self.events if e.get("author") == spec["agent"] for t in _texts(e, "model")]
-        if kind == "message":
-            return self.message(spec["contains"], spec.get("regex"))
-        if kind == "timing":
-            return self.timing()
-        return self.trace
+        """The part of the trace a field's `from:` names."""
+        match spec["from"]:
+            case "state":
+                return self.state()
+            case "final":
+                return self.final()
+            case "node":
+                return self.node_outputs(spec["node"])
+            case "model":
+                return self.model_replies(spec["agent"])
+            case "message":
+                return self.message(spec["contains"], spec.get("regex"))
+            case "timing":
+                return self.timing()
+            case _:                                        # "trace": the saved trace file itself
+                return self.trace
 
     def state(self) -> dict[str, Any]:
+        """Every event's stateDelta merged in order: the latest value of each key wins."""
         if self._state is None:
             self._state = {}
             for event in self.events:
@@ -195,6 +255,7 @@ class TraceView:
         return self._state
 
     def final(self) -> Any:
+        """The output of the top-level workflow (else agentOutput, when that is a JSON object)."""
         for event in reversed(self.events):
             targets = (event.get("nodeInfo") or {}).get("outputFor") or []
             if "output" in event and any("/" not in str(t) for t in targets):   # the top-level workflow
@@ -202,19 +263,38 @@ class TraceView:
         output = _json(self.trace.get("agentOutput"))
         return output if isinstance(output, dict) else None
 
+    def node_outputs(self, node: str) -> list[Any]:
+        """The output of every event from a node whose name contains `node`."""
+        return [e["output"] for e in self.events if "output" in e and node in _node_name(e)]
+
+    def model_replies(self, agent: str) -> list[Any]:
+        """Every model reply written by `agent`, parsed as JSON when it is JSON."""
+        return [_json(text) for e in self.events if e.get("author") == agent for text in _texts(e, "model")]
+
     def message(self, contains: str, regex: str | None) -> Any:
+        """The last text containing `contains`; with `regex:`, its first group (numbers become numbers)."""
         found = [t for e in self.events for t in _texts(e) if contains in t]
         if not found:
             return None
         if not regex:
             return found[-1]
         match = re.search(regex, found[-1])
-        return _number(match.group(1) if match.groups() else match.group(0)) if match else None
+        if not match:
+            return None
+        return _number(match.group(1) if match.groups() else match.group(0))
 
     def timing(self) -> dict[str, float]:
         """{step: seconds}: time from the end of the previous top-level step to the end of this one."""
-        ends: dict[str, float] = {}
-        start = None
+        start, ends = self._step_ends()
+        seconds, previous = {}, start
+        for step, end in sorted(ends.items(), key=lambda item: item[1]):
+            seconds[step] = round(end - previous, 2)
+            previous = end
+        return seconds
+
+    def _step_ends(self) -> tuple[float | None, dict[str, float]]:
+        """(first timestamp, {top-level step: its last timestamp})."""
+        start, ends = None, {}
         for event in self.events:
             stamp = event.get("timestamp")
             parts = str((event.get("nodeInfo") or {}).get("path") or "").split("/")
@@ -223,11 +303,7 @@ class TraceView:
             start = stamp if start is None else min(start, stamp)
             step = re.sub(r"@\d+$", "", parts[1])
             ends[step] = max(ends.get(step, stamp), stamp)
-        seconds, previous = {}, start
-        for step, end in sorted(ends.items(), key=lambda item: item[1]):
-            seconds[step] = round(end - previous, 2)
-            previous = end
-        return seconds
+        return start, ends
 
 
 # --- helpers -----------------------------------------------------------------------------------
@@ -245,15 +321,17 @@ def _first_found(source: Any, paths: list[str], many: bool) -> Any:
     """
     fallback = None
     for path in paths:
-        if many:
-            value = [v for v in (get(item, path) for item in _as_list(source)) if v is not None]
-        else:
-            value = get(source, path)
+        value = _get_each(source, path) if many else get(source, path)
         if not is_empty(value):
             return value
         if fallback is None:
             fallback = value
     return [] if many and fallback is None else fallback
+
+
+def _get_each(items: Any, path: str) -> list[Any]:
+    """The path on every item (items where it finds nothing are dropped)."""
+    return [v for v in (get(item, path) for item in _as_list(items)) if v is not None]
 
 
 def _node_name(event: dict[str, Any]) -> str:
@@ -263,6 +341,7 @@ def _node_name(event: dict[str, Any]) -> str:
 
 
 def _texts(event: dict[str, Any], role: str | None = None) -> list[str]:
+    """The text parts of an event's content (only for `role`, when given)."""
     content = event.get("content") or {}
     if role and content.get("role") != role:
         return []
@@ -270,6 +349,7 @@ def _texts(event: dict[str, Any], role: str | None = None) -> list[str]:
 
 
 def _json(text: Any) -> Any:
+    """Parsed JSON when `text` is JSON (code fences allowed), else `text` unchanged."""
     if not isinstance(text, str):
         return text
     try:
@@ -279,13 +359,13 @@ def _json(text: Any) -> Any:
 
 
 def _number(text: str) -> Any:
-    try:
-        return int(text)
-    except ValueError:
+    """'3' -> 3, '2.5' -> 2.5, anything else unchanged."""
+    for kind in (int, float):
         try:
-            return float(text)
+            return kind(text)
         except ValueError:
-            return text
+            pass
+    return text
 
 
 def _contains(container: Any, value: Any) -> bool:
@@ -306,7 +386,7 @@ def _unwrap(output: Any) -> Any:
     answer, confidence, caveats, user_warnings, evidence}}. Return the inner object, so `from: final`
     paths work for both shapes; response_type is kept alongside.
     """
-    if isinstance(output, dict) and "response_type" in output and isinstance(output.get("answer"), dict) \
-            and "answer" in output["answer"]:
-        return {"response_type": output["response_type"], **output["answer"]}
+    inner = output.get("answer") if isinstance(output, dict) and "response_type" in output else None
+    if isinstance(inner, dict) and "answer" in inner:
+        return {"response_type": output["response_type"], **inner}
     return output

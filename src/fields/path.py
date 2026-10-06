@@ -27,15 +27,12 @@ _TOKEN = re.compile(r"\[\]|\[\*\]|\[(-?\d+)\]|\*|[^.\[\]*]+|\.")
 
 def get(data: Any, path: str) -> Any:
     """The value at `path` in `data` (see the top of this file). An empty path returns `data`."""
-    segments = parse(path)
-    value = _evaluate(segments[0], data)
-    for segment in segments[1:]:               # each later segment starts after a `[]` (flatten)
+    first, *after_flatten = parse(path)
+    value = _evaluate(first, data)
+    for segment in after_flatten:              # each later segment starts after a `[]` (flatten)
         if not isinstance(value, list):
             return None
-        flat: list[Any] = []
-        for item in value:
-            flat.extend(item) if isinstance(item, list) else flat.append(item)
-        value = [r for r in (_evaluate(segment, item) for item in flat) if r is not None]
+        value = [r for r in (_evaluate(segment, item) for item in _flatten(value)) if r is not None]
     return value
 
 
@@ -45,24 +42,25 @@ def parse(path: str) -> list[list[tuple[str, Any]]]:
     Split into segments at every `[]`; ConfigError for anything that isn't a valid path.
     """
     segments: list[list[tuple[str, Any]]] = [[]]
-    position = 0
     text = (path or "").strip()
+    position = 0
     while position < len(text):
-        match = _TOKEN.match(text, position)
-        if not match:
+        found = _TOKEN.match(text, position)
+        if not found:
             raise ConfigError(f"Invalid path {path!r} at position {position}")
-        token = match.group(0)
-        position = match.end()
-        if token == ".":
-            continue
-        if token == "[]":
-            segments.append([])
-        elif token in ("*", "[*]"):
-            segments[-1].append(("all", None))
-        elif match.group(1) is not None:
-            segments[-1].append(("index", int(match.group(1))))
-        else:
-            segments[-1].append(("key", token.strip()))
+        position = found.end()
+        token, index = found.group(0), found.group(1)
+        match token:
+            case ".":
+                pass                                          # separator only
+            case "[]":
+                segments.append([])                           # flatten: a new segment starts
+            case "*" | "[*]":
+                segments[-1].append(("all", None))
+            case _ if index is not None:
+                segments[-1].append(("index", int(index)))    # [0], [-1]
+            case _:
+                segments[-1].append(("key", token.strip()))
     return segments
 
 
@@ -71,14 +69,27 @@ def _evaluate(ops: list[tuple[str, Any]], value: Any) -> Any:
     for i, (op, arg) in enumerate(ops):
         if value is None:
             return None
-        if op == "key":
-            value = value.get(arg) if isinstance(value, dict) else None
-        elif op == "index":
-            value = value[arg] if isinstance(value, list) and -len(value) <= arg < len(value) else None
-        else:  # "all"
-            items = list(value.values()) if isinstance(value, dict) else value if isinstance(value, list) else None
-            if items is None:
-                return None
-            rest = ops[i + 1:]
-            return [r for r in (_evaluate(rest, item) for item in items) if r is not None]
+        match op:
+            case "key":
+                value = value.get(arg) if isinstance(value, dict) else None
+            case "index":
+                value = value[arg] if isinstance(value, list) and -len(value) <= arg < len(value) else None
+            case "all":
+                items = _all_items(value)
+                if items is None:
+                    return None
+                rest = ops[i + 1:]
+                return [r for r in (_evaluate(rest, item) for item in items) if r is not None]
     return value
+
+
+def _all_items(value: Any) -> list[Any] | None:
+    """`*`: the values of a dict, or the items of a list (None for anything else)."""
+    if isinstance(value, dict):
+        return list(value.values())
+    return value if isinstance(value, list) else None
+
+
+def _flatten(items: list[Any]) -> list[Any]:
+    """One level: [[a, b], c] -> [a, b, c]."""
+    return [x for item in items for x in (item if isinstance(item, list) else [item])]

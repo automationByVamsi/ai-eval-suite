@@ -80,24 +80,31 @@ def clear_cache() -> None:
 
 
 def _value(folder: Path, name: str, item: str, offline: bool, local: bool) -> Any:
+    """One id's value: this run's copy, else a saved copy (offline / local), else a real call."""
     key = (str(folder), name, item)
-    if key in _values:
-        return _values[key]
+    if key not in _values:
+        _values[key] = _fetch(folder, name, item, offline, local)
+    return _values[key]
+
+
+def _fetch(folder: Path, name: str, item: str, offline: bool, local: bool) -> Any:
     saved = paths.OUTPUTS_DIR / "lookups" / folder.name / name / f"{_safe(item)}.json"
     if (offline or local) and saved.is_file():
-        value = json.loads(saved.read_text())["value"]
-    elif local:
+        return json.loads(saved.read_text())["value"]
+    if local:
         raise FileNotFoundError("no saved copy yet — a run (OFFLINE=1 is fine) looks it up")
-    else:
-        value = function(folder, name)(item)
-        if value in (None, "", [], {}):
-            raise ValueError(f"{name} returned nothing")
-        saved.parent.mkdir(parents=True, exist_ok=True)
-        saved.write_text(json.dumps({"id": item, "value": value,
-                                     "saved_at": datetime.now(UTC).isoformat(timespec="seconds")},
-                                    indent=2, ensure_ascii=False, default=str) + "\n")
-    _values[key] = value
+    value = function(folder, name)(item)
+    if value in (None, "", [], {}):
+        raise ValueError(f"{name} returned nothing")
+    _save(saved, item, value)
     return value
+
+
+def _save(saved: Path, item: str, value: Any) -> None:
+    saved.parent.mkdir(parents=True, exist_ok=True)
+    saved.write_text(json.dumps({"id": item, "value": value,
+                                 "saved_at": datetime.now(UTC).isoformat(timespec="seconds")},
+                                indent=2, ensure_ascii=False, default=str) + "\n")
 
 
 def _module(folder: Path) -> ModuleType:

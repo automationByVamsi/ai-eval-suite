@@ -52,18 +52,19 @@ are combined, e.g. expected: [expected_anchor_page_ids, expected_related_page_id
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 
 from src.core.exceptions import ConfigError
 from src.core.results import FAIL, PASS, SKIP, Result
 from src.fields.extract import is_empty
 
-TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset",
-         "any_in", "all_in", "precision", "recall"}
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
         "threshold", "when", "description", "group", "k"}
-COMPARING = {"any_in", "all_in", "precision", "recall"}
 
+
+# --- loading: check the YAML once, when the agent loads ------------------------------------------
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
     """
@@ -85,11 +86,13 @@ def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
 
 
 def _is_group(spec: Any) -> bool:
+    """A group is a mapping of checks (no `type:` of its own)."""
     return (isinstance(spec, dict) and "type" not in spec and bool(spec)
             and all(isinstance(v, dict) for v in spec.values()))
 
 
 def _add(flat: dict[str, dict[str, Any]], name: str, spec: Any, where: str) -> None:
+    """Validate one check and add it to `flat`."""
     if not isinstance(spec, dict):
         raise ConfigError(f"{where}: check '{name}' must be a mapping like {{type: present, field: answer}}")
     if name in flat:
@@ -116,6 +119,26 @@ def _as_names(value: Any) -> list[str]:
     return value if isinstance(value, list) else [value] if value else []
 
 
+# --- running: one Result per check ---------------------------------------------------------------
+
+@dataclass
+class Outcome:
+    """What one check decided. passed=None means skipped."""
+
+    passed: bool | None
+    reason: str = ""                 # why it failed or was skipped ("" when it passed)
+    score: float | None = None       # precision / recall only
+    threshold: float | None = None
+
+
+def _verdict(passed: bool, reason_if_failed: str) -> Outcome:
+    return Outcome(passed, "" if passed else reason_if_failed)
+
+
+def _skipped(reason: str) -> Outcome:
+    return Outcome(None, f"skipped: {reason}")
+
+
 def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: dict[str, Any]) -> list[Result]:
     """One Result per check, in the order they are written."""
     expected = case.get("expected") or {}
@@ -123,74 +146,175 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
 
 
 def _one(name: str, spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any]) -> Result:
-    result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""))
+    """Run one check: its `when:` condition first, then the rule for its type."""
     skip_reason = _when(spec.get("when"), fields, expected)
     if skip_reason:
-        result.reason = skip_reason
-        return result
-    kind = spec["type"]
-    value = fields.get(spec.get("field", ""))
+        outcome = Outcome(None, skip_reason)
+    elif spec["type"] in COMPARING:
+        outcome = _compare(spec, fields, expected)
+    else:
+        outcome = RULES[spec["type"]](spec, fields)
+    return _result(name, spec, outcome)
 
-    if kind in COMPARING:
-        pair = _pair(spec, expected)
-        if pair is None:
-            result.reason = f"skipped: case has no {_expected_names(spec)}"
-            return result
-        field_name, want = pair
-        have = _items(fields.get(field_name))
-        if spec.get("k"):                       # only the first k items count (ranked lists: precision@k ...)
-            have = have[: int(spec["k"])]
-        common = [w for w in want if w in have]
-        if kind in ("precision", "recall"):
-            base = have if kind == "precision" else want
-            if not base:
-                result.reason = f"skipped: {field_name} is empty"
-                return result
-            result.threshold = float(spec.get("threshold", 0.7))
-            result.score = round(len({*common}) / len({*base}), 4)
-            passed = result.score >= result.threshold
-            detail = (f"{kind} {result.score:.2f} < {result.threshold}: "
-                      f"{field_name}={sorted(have)} expected={sorted(want)}")
-        elif kind == "any_in":
-            passed, detail = bool(common), f"none of {sorted(want)} in {field_name}={sorted(have)}"
-        else:
-            missing = [w for w in want if w not in have]
-            passed, detail = not missing, f"{field_name} lacks {missing}"
-        return _done(result, passed, detail)
 
-    if kind == "present":
-        names = spec.get("fields") or [spec.get("field")]          # several fields: every one must have a value
-        empty = [n for n in names if is_empty(fields.get(n))]
-        return _done(result, not empty, f"{', '.join(empty)} empty")
-    if kind == "one_of":
-        allowed = _items(spec.get("values"))
-        bad = [v for v in _items(value) if v not in allowed]
-        return _done(result, not is_empty(value) and not bad, f"{spec['field']}={value!r} not in {spec.get('values')}")
-    if kind == "equals":
-        other = fields.get(spec["other"]) if "other" in spec else spec.get("value")
-        label = spec.get("other", repr(spec.get("value")))
-        return _done(result, _norm(value) == _norm(other), f"{spec['field']}={value!r} != {label}={other!r}")
-    if kind == "min_words":
-        words = len(str(value or "").split())
-        minimum = int(spec.get("min", 1))
-        return _done(result, words >= minimum, f"{spec['field']} has {words} words (< {minimum})")
-    if kind == "not_contains":
-        text = _norm(value)
-        found = [v for v in spec.get("values") or [] if _norm(v) in text]
-        return _done(result, not found, f"{spec['field']} contains {found}")
-    if kind == "range":
-        low, high = float(spec.get("min", 0)), float(spec.get("max", 1))
-        bad = {f: fields.get(f) for f in spec.get("fields") or [spec.get("field")]
-               if not isinstance(fields.get(f), (int, float)) or not low <= fields.get(f) <= high}
-        return _done(result, not bad, f"not numbers in [{low}, {high}]: {bad}")
-    if kind == "same_count":
-        counts = {f: len(_items(fields.get(f))) for f in spec.get("fields") or []}
-        return _done(result, len(set(counts.values())) <= 1, f"counts differ: {counts}")
-    # subset
-    allowed = [x for f in _items(spec.get("of")) for x in _items(fields.get(f))]
-    extra = [v for v in _items(value) if v not in allowed]
-    return _done(result, not extra, f"{spec['field']} has {extra} not in {spec.get('of')}")
+def _result(name: str, spec: dict[str, Any], outcome: Outcome) -> Result:
+    status = SKIP if outcome.passed is None else PASS if outcome.passed else FAIL
+    return Result(name=name, kind="check", status=status, reason=outcome.reason,
+                  score=outcome.score, threshold=outcome.threshold, group=spec.get("group", ""))
 
+
+# --- the rules that read fields only: (spec, fields) -> Outcome ----------------------------------
+
+def _value(spec: dict[str, Any], fields: dict[str, Any]) -> Any:
+    """The value of the check's `field:`."""
+    return fields.get(spec.get("field", ""))
+
+
+def _present(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    names = spec.get("fields") or [spec.get("field")]          # several fields: every one must have a value
+    empty = [n for n in names if is_empty(fields.get(n))]
+    return _verdict(not empty, f"{', '.join(empty)} empty")
+
+
+def _one_of(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    value = _value(spec, fields)
+    allowed = _items(spec.get("values"))
+    bad = [v for v in _items(value) if v not in allowed]
+    return _verdict(not is_empty(value) and not bad, f"{spec['field']}={value!r} not in {spec.get('values')}")
+
+
+def _equals(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    value = _value(spec, fields)
+    other = fields.get(spec["other"]) if "other" in spec else spec.get("value")
+    label = spec.get("other", repr(spec.get("value")))
+    return _verdict(_norm(value) == _norm(other), f"{spec['field']}={value!r} != {label}={other!r}")
+
+
+def _min_words(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    words = len(str(_value(spec, fields) or "").split())
+    minimum = int(spec.get("min", 1))
+    return _verdict(words >= minimum, f"{spec['field']} has {words} words (< {minimum})")
+
+
+def _not_contains(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    text = _norm(_value(spec, fields))
+    found = [v for v in spec.get("values") or [] if _norm(v) in text]
+    return _verdict(not found, f"{spec['field']} contains {found}")
+
+
+def _range(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    low, high = float(spec.get("min", 0)), float(spec.get("max", 1))
+
+    def in_range(value: Any) -> bool:
+        return isinstance(value, (int, float)) and low <= value <= high
+
+    names = spec.get("fields") or [spec.get("field")]
+    bad = {name: fields.get(name) for name in names if not in_range(fields.get(name))}
+    return _verdict(not bad, f"not numbers in [{low}, {high}]: {bad}")
+
+
+def _same_count(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    counts = {name: len(_items(fields.get(name))) for name in spec.get("fields") or []}
+    return _verdict(len(set(counts.values())) <= 1, f"counts differ: {counts}")
+
+
+def _subset(spec: dict[str, Any], fields: dict[str, Any]) -> Outcome:
+    allowed = [item for name in _items(spec.get("of")) for item in _items(fields.get(name))]
+    extra = [v for v in _items(_value(spec, fields)) if v not in allowed]
+    return _verdict(not extra, f"{spec['field']} has {extra} not in {spec.get('of')}")
+
+
+RULES: dict[str, Callable[[dict[str, Any], dict[str, Any]], Outcome]] = {
+    "present": _present,
+    "one_of": _one_of,
+    "equals": _equals,
+    "min_words": _min_words,
+    "not_contains": _not_contains,
+    "range": _range,
+    "same_count": _same_count,
+    "subset": _subset,
+}
+
+
+# --- the rules that compare a field with the case's expected values -----------------------------
+# Each gets (spec, field name, the field's items, the expected items) -> Outcome.
+
+def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any]) -> Outcome:
+    """Find what to compare (first `compare:` pair the case has), then apply the comparison."""
+    pair = _pair(spec, expected)
+    if pair is None:
+        return _skipped(f"case has no {_expected_names(spec)}")
+    field_name, want = pair
+    have = _items(fields.get(field_name))
+    if spec.get("k"):                       # only the first k items count (ranked lists: precision@k ...)
+        have = have[: int(spec["k"])]
+    return COMPARISONS[spec["type"]](spec, field_name, have, want)
+
+
+def _any_in(spec: dict[str, Any], field_name: str, have: list[str], want: list[str]) -> Outcome:
+    return _verdict(any(w in have for w in want), f"none of {sorted(want)} in {field_name}={sorted(have)}")
+
+
+def _all_in(spec: dict[str, Any], field_name: str, have: list[str], want: list[str]) -> Outcome:
+    missing = [w for w in want if w not in have]
+    return _verdict(not missing, f"{field_name} lacks {missing}")
+
+
+def _precision(spec: dict[str, Any], field_name: str, have: list[str], want: list[str]) -> Outcome:
+    return _ratio(spec, field_name, have, want, base=have)        # share of what was found that was expected
+
+
+def _recall(spec: dict[str, Any], field_name: str, have: list[str], want: list[str]) -> Outcome:
+    return _ratio(spec, field_name, have, want, base=want)        # share of what was expected that was found
+
+
+def _ratio(spec: dict[str, Any], field_name: str, have: list[str], want: list[str], base: list[str]) -> Outcome:
+    """|have ∩ want| / |base|, passed when >= threshold. Skipped when base is empty (nothing to divide by)."""
+    if not base:
+        return _skipped(f"{field_name} is empty")
+    common = {w for w in want if w in have}
+    threshold = float(spec.get("threshold", 0.7))
+    score = round(len(common) / len(set(base)), 4)
+    passed = score >= threshold
+    reason = f"{spec['type']} {score:.2f} < {threshold}: {field_name}={sorted(have)} expected={sorted(want)}"
+    return Outcome(passed, "" if passed else reason, score=score, threshold=threshold)
+
+
+COMPARISONS: dict[str, Callable[[dict[str, Any], str, list[str], list[str]], Outcome]] = {
+    "any_in": _any_in,
+    "all_in": _all_in,
+    "precision": _precision,
+    "recall": _recall,
+}
+
+COMPARING = set(COMPARISONS)
+TYPES = set(RULES) | COMPARING
+
+
+def _pair(spec: dict[str, Any], expected: dict[str, Any]) -> tuple[str, list[str]] | None:
+    """(field name, expected items) of the first compare pair the case has an expected value for."""
+    pairs = spec.get("compare") or [{"field": spec.get("field"), "expected": spec.get("expected")}]
+    for pair in pairs:
+        want = _expected_items(expected, pair.get("expected", ""))
+        if want:
+            return pair["field"], want
+    return None
+
+
+def _expected_items(expected: dict[str, Any], keys: str | list[str]) -> list[str]:
+    """The case's expected items for one key, or for several keys together (repeats dropped)."""
+    keys = keys if isinstance(keys, list) else [keys]
+    return list(dict.fromkeys(item for key in keys for item in _items(expected.get(key))))
+
+
+def _expected_names(spec: dict[str, Any]) -> str:
+    """'expected.a or expected.b+expected.c' — for the skip reason."""
+    pairs = spec.get("compare") or [{"expected": spec.get("expected")}]
+    names = [p.get("expected") for p in pairs]
+    return " or ".join("+".join(f"expected.{k}" for k in (n if isinstance(n, list) else [n])) for n in names)
+
+
+# --- when: ----------------------------------------------------------------------------------------
 
 def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: dict[str, Any] | None = None) -> str:
     """
@@ -201,38 +325,28 @@ def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: di
         return ""
     if "expected" in condition:
         value = (expected or {}).get(condition["expected"])
-        condition = {"field": f"expected.{condition['expected']}",
-                     **{k: v for k, v in condition.items() if k != "expected"}}
+        label = condition.get("field", f"expected.{condition['expected']}")
     else:
         value = fields.get(condition.get("field", ""))
-    if "in" in condition:
-        allowed = _items(condition["in"])
-        holds = any(v in allowed for v in _items(value))
-    elif "is" in condition:
-        holds = any(v == condition["is"] for v in (value if isinstance(value, list) else [value]))
-    else:
-        holds = (not is_empty(value)) == bool(condition.get("present", True))
-    rule = ", ".join(f"{k} {v}" for k, v in condition.items() if k != "field")
-    return "" if holds else f"skipped: runs only when {condition.get('field')} {rule}"
+        label = condition.get("field")
+    if _holds(condition, value):
+        return ""
+    rule = ", ".join(f"{k} {v}" for k, v in condition.items() if k not in ("field", "expected"))
+    return f"skipped: runs only when {label} {rule}"
 
 
-def _pair(spec: dict[str, Any], expected: dict[str, Any]) -> tuple[str, list[str]] | None:
-    """(field name, expected items) of the first compare pair the case has an expected value for."""
-    pairs = spec.get("compare") or [{"field": spec.get("field"), "expected": spec.get("expected")}]
-    for pair in pairs:
-        keys = pair.get("expected", "")
-        keys = keys if isinstance(keys, list) else [keys]          # several keys: their values together
-        want = list(dict.fromkeys(item for key in keys for item in _items(expected.get(key))))
-        if want:
-            return pair["field"], want
-    return None
+def _holds(condition: dict[str, Any], value: Any) -> bool:
+    """Does `value` meet the condition's rule (in: / is: / present:)?"""
+    match condition:
+        case {"in": allowed}:
+            return any(v in _items(allowed) for v in _items(value))
+        case {"is": wanted}:
+            return any(v == wanted for v in (value if isinstance(value, list) else [value]))
+        case _:
+            return (not is_empty(value)) == bool(condition.get("present", True))
 
 
-def _expected_names(spec: dict[str, Any]) -> str:
-    pairs = spec.get("compare") or [{"expected": spec.get("expected")}]
-    names = [p.get("expected") for p in pairs]
-    return " or ".join("+".join(f"expected.{k}" for k in (n if isinstance(n, list) else [n])) for n in names)
-
+# --- helpers ----------------------------------------------------------------------------------------
 
 def _items(value: Any) -> list[str]:
     """Anything -> a list of normalised texts (so ids and titles compare cleanly)."""
@@ -242,10 +356,5 @@ def _items(value: Any) -> list[str]:
 
 
 def _norm(value: Any) -> str:
+    """Lower case, single spaces: "How To  Add" -> "how to add"."""
     return " ".join(str(value if value is not None else "").casefold().split())
-
-
-def _done(result: Result, passed: bool, reason_if_failed: str) -> Result:
-    result.status = PASS if passed else FAIL
-    result.reason = "" if passed else reason_if_failed
-    return result
