@@ -2,7 +2,7 @@
 Knowledge Agent lookups: values the trace only names by id, fetched from where the agent got them.
 fields.yaml uses them as, e.g.
 
-    contexts: {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}
+    contexts: {lookup: get_page_content_from_athena, ids: evidence_page_ids}
 
 The framework calls each function once per id per run, saves the result under
 outputs/lookups/knowledge_agent/<function>/<id>.json (OFFLINE=1 reuses it), and turns any exception

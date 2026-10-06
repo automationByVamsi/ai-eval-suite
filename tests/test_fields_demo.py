@@ -37,14 +37,14 @@ def run_fields(title: str, fields_yaml: str) -> tuple[dict, list]:
 
 
 def test_1_correct_paths():
-    """The happy path: each line says where to look (from) and what to take (path)."""
+    """The happy path: each line is a JMESPath query on the trace document (final, state, nodes, ...)."""
     values, missing = run_fields("1. correct paths", """
 fields:
-  answer:          {from: final, path: answer.summary}
-  confidence:      {from: final, path: confidence}
-  anchor_page_ids: {from: state, path: evidence_set.anchor_page_ids}
-  evidence_titles: {from: final, path: "evidence[].title"}
-  branch_count:    {from: state, path: "search_branches.*.sub_query", count: true}
+  answer:          final.answer.summary
+  confidence:      final.confidence
+  anchor_page_ids: state.evidence_set.anchor_page_ids
+  evidence_titles: "final.evidence[].title"
+  branch_count:    "length(state.search_branches.*.sub_query)"
 """)
     assert values["answer"].startswith("To add a Support Need")
     assert values["confidence"] == "HIGH"
@@ -58,8 +58,8 @@ def test_2_the_field_name_is_yours_to_choose():
     """The name on the left is just a label for checks and judges: rename it freely."""
     values, _ = run_fields("2. any field name works", """
 fields:
-  my_dummy_answer_name: {from: final, path: answer.summary}
-  vamsi_test_anchor:    {from: state, path: evidence_set.anchor_page_ids}
+  my_dummy_answer_name: final.answer.summary
+  vamsi_test_anchor:    state.evidence_set.anchor_page_ids
 """)
     assert values["my_dummy_answer_name"].startswith("To add a Support Need")
     assert values["vamsi_test_anchor"] == ["40345"]
@@ -69,10 +69,10 @@ def test_3_a_wrong_path_gives_none_never_a_crash():
     """A typo in a path, or a key the agent stopped logging: the value is None (NOT FOUND)."""
     values, missing = run_fields("3. wrong paths -> NOT FOUND", """
 fields:
-  typo_in_key:      {from: final, path: answer.sumary}
-  wrong_source:     {from: state, path: answer.summary}
-  not_in_trace:     {from: state, path: decision}
-  index_too_far:    {from: final, path: "evidence[9].title"}
+  typo_in_key:      final.answer.sumary
+  wrong_part:       state.answer.summary
+  not_in_trace:     state.decision
+  index_too_far:    "final.evidence[9].title"
 """)
     assert all(value is None for value in values.values())
     assert missing == []                       # not required, so a run would just SKIP what needs them
@@ -82,7 +82,7 @@ def test_4_required_turns_a_missing_field_into_an_error():
     """required: true -> a run ERRORs with "has the trace format changed?" instead of silently skipping."""
     _, missing = run_fields("4. required field missing", """
 fields:
-  answer: {from: final, path: answer.text, required: true}
+  answer: {path: final.answer.text, required: true}
 """)
     assert missing == ["answer"]
 
@@ -91,34 +91,34 @@ def test_5_a_list_of_paths_survives_a_trace_change():
     """Several paths: the first one that finds something wins (old format first or new first)."""
     values, _ = run_fields("5. fallback paths", """
 fields:
-  answer: {from: final, path: [answer.text, answer.summary]}
+  answer: {path: [final.answer.text, final.answer.summary]}
 """)
     assert values["answer"].startswith("To add a Support Need")
 
 
-def test_6_extras_join_first_where_pick():
-    """The optional steps after the path."""
-    values, _ = run_fields("6. join / first / where + pick / matches", """
+def test_6_options_and_jmespath_functions():
+    """The few options (join, where + pick), and what plain JMESPath already does ([0], contains, | [-1])."""
+    values, _ = run_fields("6. join / where + pick / JMESPath", """
 fields:
-  rewritten_query:   {from: state, path: rewritten_query, join: " | "}
-  first_evidence_id: {from: final, path: "evidence[].page_id", first: true}
-  anchor_page_ids:   {from: state, path: evidence_set.anchor_page_ids}
-  anchor_titles:     {from: final, path: evidence, where: {page_id: anchor_page_ids}, pick: title}
-  used_fallback:     {from: node, node: _anchor_branch_worker, path: rationale, matches: "top Athena result"}
-  content_length:    {from: message, contains: "Validation complete", regex: 'content_length=(\\d+)'}
+  rewritten_query:    {path: state.rewritten_query, join: " | "}
+  first_evidence_id:  "final.evidence[0].page_id"
+  anchor_page_ids:    state.evidence_set.anchor_page_ids
+  anchor_titles:      {path: final.evidence, where: {page_id: anchor_page_ids}, pick: title}
+  fallback_reasons:   "nodes._anchor_branch_worker[?contains(rationale, 'top Athena result')].rationale"
+  validation_message: "messages[?contains(@, 'Validation complete')] | [-1]"
 """)
     assert values["rewritten_query"] == "add support need process"
     assert values["first_evidence_id"] == "40345"
     assert values["anchor_titles"] == ["How To Add a Support Need in MCP"]
-    assert values["used_fallback"] is False
-    assert values["content_length"] == 8535
+    assert values["fallback_reasons"] == []
+    assert values["validation_message"].endswith("content_length=8535")
 
 
 @pytest.mark.parametrize("bad_line, error", [
-    ("{from: finall, path: answer.summary}", "needs from: one of"),          # unknown source
-    ("{from: final, pth: answer.summary}", "unknown keys"),                  # misspelt key
-    ("{from: node, path: rationale}", "needs node:"),                        # node without which node
-    ("{from: final, path: 'answer.]summary'}", "Invalid path"),              # broken path
+    ("{from: final, path: answer.summary}", "old {from: x, path: y} form"),   # the old way of writing it
+    ("{pth: final.answer.summary}", "unknown keys"),                          # misspelt key
+    ("{join: ','}", "needs path:"),                                           # no path at all
+    ("'final.answer.]summary'", "invalid path"),                              # broken path
 ])
 def test_7_mistakes_in_the_yaml_stop_before_any_run(bad_line, error):
     """Config mistakes are caught when the agent loads — not halfway through a 2-hour run."""

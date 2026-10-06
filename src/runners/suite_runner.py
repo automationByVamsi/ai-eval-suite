@@ -166,7 +166,7 @@ def _judge_fields(agent: Agent, suite: Suite, judges: bool) -> dict[str, set[str
 
 def _fields_needed(agent: Agent, suite: Suite, checks: dict[str, dict[str, Any]], judges: bool,
                    parser: ModuleType | None) -> set[str]:
-    """Every field this suite's judges and checks read: only those `from: lookup` fields are computed."""
+    """Every field this suite's judges and checks read: only those `lookup:` fields are computed."""
     needed = set(_judge_fields(agent, suite, judges))
     for spec in checks.values():
         needed |= fields_read(spec)

@@ -2,7 +2,7 @@
 Values looked up OUTSIDE the trace, by id, with a function the agent provides — e.g. the text of
 the pages the agent used, which the trace names by id only (fields.yaml):
 
-    contexts: {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}
+    contexts: {lookup: get_page_content_from_athena, ids: evidence_page_ids}
 
 `lookup:` is a function in agents/<agent>/lookups.py that takes one id and returns its value:
 a text, a {"title", "text"} mapping, or any JSON (e.g. a record from the agent's own API). Where
@@ -80,31 +80,24 @@ def clear_cache() -> None:
 
 
 def _value(folder: Path, name: str, item: str, offline: bool, local: bool) -> Any:
-    """One id's value: this run's copy, else a saved copy (offline / local), else a real call."""
     key = (str(folder), name, item)
-    if key not in _values:
-        _values[key] = _fetch(folder, name, item, offline, local)
-    return _values[key]
-
-
-def _fetch(folder: Path, name: str, item: str, offline: bool, local: bool) -> Any:
+    if key in _values:
+        return _values[key]
     saved = paths.OUTPUTS_DIR / "lookups" / folder.name / name / f"{_safe(item)}.json"
     if (offline or local) and saved.is_file():
-        return json.loads(saved.read_text())["value"]
-    if local:
+        value = json.loads(saved.read_text())["value"]
+    elif local:
         raise FileNotFoundError("no saved copy yet — a run (OFFLINE=1 is fine) looks it up")
-    value = function(folder, name)(item)
-    if value in (None, "", [], {}):
-        raise ValueError(f"{name} returned nothing")
-    _save(saved, item, value)
+    else:
+        value = function(folder, name)(item)
+        if value in (None, "", [], {}):
+            raise ValueError(f"{name} returned nothing")
+        saved.parent.mkdir(parents=True, exist_ok=True)
+        saved.write_text(json.dumps({"id": item, "value": value,
+                                     "saved_at": datetime.now(UTC).isoformat(timespec="seconds")},
+                                    indent=2, ensure_ascii=False, default=str) + "\n")
+    _values[key] = value
     return value
-
-
-def _save(saved: Path, item: str, value: Any) -> None:
-    saved.parent.mkdir(parents=True, exist_ok=True)
-    saved.write_text(json.dumps({"id": item, "value": value,
-                                 "saved_at": datetime.now(UTC).isoformat(timespec="seconds")},
-                                indent=2, ensure_ascii=False, default=str) + "\n")
 
 
 def _module(folder: Path) -> ModuleType:

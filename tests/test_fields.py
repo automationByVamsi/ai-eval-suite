@@ -1,4 +1,4 @@
-"""fields.yaml (trace fields), JMESPath-style paths, YAML checks, and `make fields`."""
+"""fields.yaml (trace fields as JMESPath queries), YAML checks, and `make fields`."""
 
 import json
 
@@ -10,7 +10,6 @@ from src.core.agent_config import load_agent
 from src.core.exceptions import ConfigError
 from src.core.results import FAIL, PASS, SKIP
 from src.fields import checks, extract
-from src.fields.path import get
 from src.runners.suite_runner import run_suite
 
 TRACES = ROOT / "outputs/traces/knowledge_agent/sanity"
@@ -20,32 +19,26 @@ def trace(case_id):
     return json.loads((TRACES / f"{case_id}.json").read_text())
 
 
-# --- paths ------------------------------------------------------------------------------------
+# --- the trace as one document -------------------------------------------------------------
 
-@pytest.mark.parametrize("path, expected", [
-    ("a.b", 1),
-    ("a.missing.x", None),
-    ("items[0].id", "x"),
-    ("items[-1].id", "y"),
-    ("items[5]", None),
-    ("items[].id", ["x", "y"]),
-    ("items[*].id", ["x", "y"]),
-    ("groups.*.ids", [["1", "2"], ["3"]]),
-    ("groups.*.ids[]", ["1", "2", "3"]),
-    ("pairs[*][1]", ["p", "q"]),
-    ("pairs[]", ["1", "p", "2", "q"]),                 # [] flattens one level, like JMESPath
-    ("groups.*.pairs[][1]", ["p", "q"]),
-])
-def test_paths_behave_like_jmespath(path, expected):
-    data = {"a": {"b": 1}, "items": [{"id": "x"}, {"id": "y"}], "pairs": [["1", "p"], ["2", "q"]],
-            "groups": {"u1": {"ids": ["1", "2"], "pairs": [["1", "p"]]}, "u2": {"ids": ["3"], "pairs": [["2", "q"]]}}}
-    assert get(data, path) == expected
-    assert get(data, "") == data
-
-
-def test_bad_path_is_a_config_error():
-    with pytest.raises(ConfigError, match="Invalid path"):
-        get({}, "a.]b")
+def test_the_trace_becomes_one_document():
+    data = {"raw_events": [
+        {"actions": {"stateDelta": {"ids": ["1", "2"], "old": "o"}}},
+        {"actions": {"stateDelta": {"ids": ["1", "2", "2", "3"]}}},                      # latest state wins
+        {"nodeInfo": {"path": "wf@1/worker@1"}, "output": {"x": "a"}, "timestamp": 10},
+        {"nodeInfo": {"path": "wf@1/worker@2"}, "output": {"x": "b"}, "timestamp": 12},
+        {"author": "judge_agent", "content": {"role": "model", "parts": [{"text": "```json\n{\"s\": 0.5}\n```"}]}},
+        {"content": {"role": "user", "parts": [{"text": "Done. total=7"}]}},
+        {"nodeInfo": {"path": "wf@1", "outputFor": ["wf"]}, "output": {"answer": "hi"}},
+    ], "latency_ms": 12.5}
+    document = extract.view(data)
+    assert document["final"] == {"answer": "hi"}
+    assert document["state"] == {"ids": ["1", "2", "2", "3"], "old": "o"}
+    assert document["nodes"]["worker"] == [{"x": "a"}, {"x": "b"}]
+    assert document["models"] == {"judge_agent": [{"s": 0.5}]}                       # JSON reply parsed
+    assert document["messages"][-1] == "Done. total=7"
+    assert document["timing"] == {"worker": 2}
+    assert document["trace"]["latency_ms"] == 12.5
 
 
 # --- fields on the real Knowledge Agent traces -------------------------------------------------
@@ -62,9 +55,8 @@ def test_knowledge_agent_fields_from_the_full_metadata_path():
     assert values["expansion_labels"] == ["reference", "exception_to"]                 # pairs[][1]
     assert values["cited_page_ids"] == ["40345", "40015"]
     assert values["caveats"] == [] and values["disclosures"] == []                     # present but empty
-    assert values["metadata_missing"] == [False] and values["anchor_fallback"] is False
-    assert values["evidence_content_length"] == 8535                                   # from a status message
-    assert values["output_guardrail"] == "disabled"
+    assert values["metadata_missing"] == [False] and values["anchor_fallback"] == []
+    assert values["validation_message"].endswith("content_length=8535")               # a status message
     assert values["synthesizer_page_ids"] == ["40345", "40015"]                        # from the model reply
     assert values["stage_seconds"]["search_node"] == 5.0
 
@@ -74,46 +66,36 @@ def test_knowledge_agent_fields_from_the_fallback_path():
     assert values["branch_count"] == 2
     assert values["rewritten_query"] == "third party verification process\ncustomer absent third party support protocol"
     assert values["metadata_missing"] == [True, True]
-    assert values["anchor_fallback"] is True and values["expansion_skipped"] is True
+    assert values["anchor_fallback"] and values["expansion_skipped"]                  # the agent's reasons
     assert values["anchor_page_ids"] == ["40022", "40015"]
     assert values["expanded_page_ids"] == []                                          # present, but empty
 
 
 def test_field_options():
-    data = {"raw_events": [
-        {"actions": {"stateDelta": {"ids": ["1", "2", "2"], "old": "o"}}},
-        {"actions": {"stateDelta": {"ids": ["1", "2", "2", "3"]}}},                      # latest state wins
-        {"nodeInfo": {"path": "wf@1/worker@1"}, "output": {"x": "a"}},
-        {"nodeInfo": {"path": "wf@1/worker@2"}, "output": {"x": "b"}},
-        {"author": "judge_agent", "content": {"role": "model", "parts": [{"text": "```json\n{\"s\": 0.5}\n```"}]}},
-        {"content": {"role": "user", "parts": [{"text": "Done. total=7 ok=yes"}]}},
-    ], "latency_ms": 12.5}
+    data = {"raw_events": [{"actions": {"stateDelta": {
+        "ids": ["1", "2", "2", "3"], "old": "o", "items": [{"id": "1", "t": "A"}, {"id": "3", "t": "C"}]}}}]}
     fields = extract.validate({
-        "ids": {"from": "state", "path": "ids", "unique": True},
-        "count": {"from": "state", "path": "ids", "count": True},
-        "first_id": {"from": "state", "path": "ids", "first": True},
-        "text": {"from": "state", "path": "ids", "join": ","},
-        "renamed": {"from": "state", "path": ["new_name", "old"]},                     # first path that finds it
-        "workers": {"from": "node", "node": "worker", "path": "x"},
-        "score": {"from": "model", "agent": "judge_agent", "path": "s", "first": True},
-        "total": {"from": "message", "contains": "Done.", "regex": r"total=(\d+)"},
-        "latency": {"from": "trace", "path": "latency_ms"},
-        "absent": {"from": "state", "path": "nope", "default": "n/a"},
+        "ids": {"path": "state.ids", "unique": True},
+        "count": "length(state.ids)",                                                 # plain JMESPath
+        "text": {"path": "state.ids", "join": ","},
+        "renamed": {"path": ["state.new_name", "state.old"]},                          # first path that finds it
+        "picked": {"path": "state.items", "where": {"id": "ids"}, "pick": "t"},
+        "absent": {"path": "state.nope", "default": "n/a"},
     }, "test")
     values, missing = extract.extract(data, fields)
-    assert values == {"ids": ["1", "2", "3"], "count": 4, "first_id": "1", "text": "1,2,2,3", "renamed": "o",
-                      "workers": ["a", "b"], "score": 0.5, "total": 7, "latency": 12.5, "absent": "n/a"}
+    assert values == {"ids": ["1", "2", "3"], "count": 4, "text": "1,2,2,3", "renamed": "o",
+                      "picked": ["A", "C"], "absent": "n/a"}
     assert missing == []
-    required = extract.validate({"answer": {"from": "final", "path": "a", "required": True}}, "t")
-    _, missing = extract.extract({}, required)
+    _, missing = extract.extract({}, extract.validate({"answer": {"path": "final.a", "required": True}}, "t"))
     assert missing == ["answer"]
 
 
 @pytest.mark.parametrize("spec, message", [
-    ({"from": "stat", "path": "a"}, "needs from:"),
-    ({"from": "state", "pth": "a"}, "unknown keys"),
-    ({"from": "node", "path": "a"}, "needs node:"),
-    ({"from": "state", "path": "a", "where": {"id": "later"}}, "define 'later' above"),
+    ({"from": "state", "path": "a"}, "old {from: x, path: y} form"),
+    ({"pth": "state.a"}, "unknown keys"),
+    ({"join": ","}, "needs path:"),
+    ("state.]a", "invalid path"),
+    ({"path": "state.a", "where": {"id": "later"}}, "define them above it"),
 ])
 def test_field_typos_fail_when_the_agent_loads(spec, message):
     with pytest.raises(ConfigError, match=message):
@@ -182,7 +164,7 @@ def test_make_fields_previews_fields_and_checks(capsys):
         cli.main(["fields", "knowledge_agent", "--case", "TC_999"])
 
 
-# --- values looked up outside the trace (from: lookup, agents/<agent>/lookups.py) ------------------
+# --- values looked up outside the trace (lookup:, agents/<agent>/lookups.py) -----------------------
 
 SAVED = "outputs/lookups/knowledge_agent/get_page_content_from_athena"
 
@@ -336,8 +318,8 @@ def test_lookup_mistakes_fail_when_the_agent_loads(temp_agents):
     folder.mkdir()
     (folder / "agent.yaml").write_text("connection: {base_url: http://x, app_name: demo}\n"
                                        "suites: {sanity: {metrics: []}}\n")
-    (folder / "fields.yaml").write_text("fields:\n  ids: {from: final, path: ids}\n"
-                                        "  texts: {from: lookup, lookup: get_record, ids: ids}\n")
+    (folder / "fields.yaml").write_text("fields:\n  ids: final.ids\n"
+                                        "  texts: {lookup: get_record, ids: ids}\n")
     with pytest.raises(ConfigError, match="lookups.py with a function get_record"):
         load_agent("demo")
     (folder / "lookups.py").write_text("def get_recrod(item):\n    return item\n")
@@ -397,4 +379,4 @@ def test_checks_live_only_in_checks_yaml(temp_agents):
 
 def test_lookup_field_needs_ids_defined_above():
     with pytest.raises(ConfigError, match="needs ids:"):
-        extract.validate({"contexts": {"from": "lookup", "lookup": "f", "ids": "page_ids"}}, "fields.yaml")
+        extract.validate({"contexts": {"lookup": "f", "ids": "page_ids"}}, "fields.yaml")

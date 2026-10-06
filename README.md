@@ -156,7 +156,7 @@ src/                            the framework — src/__init__.py has a map of i
   core/                         paths, env files, HTTPS certificates (tls), agent.yaml loading, results, errors
   clients/                      adk_client (the agent), cortex_client (judge model: API key or DevKit), athena_client
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
-  fields/                       path (JMESPath subset), extract (fields.yaml), checks (checks:), preview (make fields)
+  fields/                       extract (fields.yaml), checks (checks.yaml), lookup (lookups.py), preview (make fields)
   importers/                    spreadsheet -> test cases (make import-cases)
   metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
   verdict/                      baseline (save), compare (verdict + tolerances)
@@ -270,31 +270,31 @@ ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
 ## Trace fields and checks
 
 Everything evaluation reads from a trace is listed in `agents/<agent>/fields.yaml` — one line per
-field, no Python. Each line says **where** to look and **what** to take there:
+field, no Python. The trace is first turned into one JSON document with these parts:
+`final` (the final output), `state` (session state, latest value wins), `nodes` ({node name: its
+outputs}), `models` ({agent name: its model replies}), `messages` (every text), `timing` and `trace`
+(the file itself). Each field is then a [JMESPath](https://jmespath.org) query on that document:
 
 ```yaml
 fields:
-  answer:            {from: final, path: answer.summary, required: true}
-  rewritten_query:   {from: state, path: rewritten_query, join: "\n"}
-  branch_anchor_ids: {from: state, path: "search_branches.*.anchor_page_id"}   # every branch
-  anchor_titles:     {from: final, path: evidence, where: {page_id: anchor_page_ids}, pick: title}
-  anchor_rationales: {from: node,  node: _anchor_branch_worker, path: rationale}
-  content_length:    {from: message, contains: "Validation complete", regex: 'content_length=(\d+)'}
+  answer:            {path: final.answer.summary, required: true}
+  rewritten_query:   {path: state.rewritten_query, join: "\n"}
+  branch_anchor_ids: "state.search_branches.*.anchor_page_id"            # every branch
+  anchor_titles:     {path: final.evidence, where: {page_id: anchor_page_ids}, pick: title}
+  anchor_rationales: "nodes._anchor_branch_worker[*].rationale"
+  validation_status: "messages[?contains(@, 'Validation complete')] | [-1]"
 ```
 
-- `from:` handles the ADK trace layout once, for every agent: `state` (session state, latest value
-  wins), `final` (the workflow's final output), `node` (outputs of matching nodes, one per branch),
-  `model` (a model agent's JSON reply), `message` (status text), `timing`, `trace` (the file itself).
-- `path:` is [JMESPath](https://jmespath.org) — `a.b`, `list[].key`, `dict.*.key`, `list[0]`. Try
-  expressions on the website; ours give the same results. A list of paths means "the first that finds
-  something", handy while a trace format is changing.
-- More options (`where`, `pick`, `join`, `count`, `first`, `unique`, `matches`, `default`, `required`)
-  are explained at the top of `src/fields/extract.py`.
-- `from: lookup` gets values **outside the trace, by id**, with a function the agent provides in
+- A plain string is the path. Paste a trace into jmespath.org to try a query (the paths start at
+  `final`, `state`, ... — `make fields` shows what each field gives on a real trace).
+- A list of paths means "the first that finds something", handy while a trace format is changing.
+- More options (`where`, `pick`, `unique`, `join`, `default`, `required`) are explained at the top of
+  `src/fields/extract.py`.
+- `lookup:` gets values **outside the trace, by id**, with a function the agent provides in
   `agents/<agent>/lookups.py`. The Knowledge Agent's `get_page_content_from_athena` fetches each
   evidence page from Athena and cleans the HTML, which is how Faithfulness gets its evidence while
   the trace carries only page ids:
-  `contexts: {from: lookup, lookup: get_page_content_from_athena, ids: evidence_page_ids}`.
+  `contexts: {lookup: get_page_content_from_athena, ids: evidence_page_ids}`.
   Another agent writes its own function (e.g. calling its API and returning the JSON); the framework
   knows nothing about Athena or HTML. Each id is looked up once per run and saved under
   `outputs/lookups/<agent>/<function>/`; `OFFLINE=1` reuses saved copies (and looks up ids it never
@@ -359,7 +359,7 @@ suites:
 ```
 
 `basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Lookups
-(`from: lookup`) run only when one of the suite's judges or checks reads the field, so a
+(`lookup:` fields) run only when one of the suite's judges or checks reads the field, so a
 relevance-only suite never calls Athena.
 
 **Dashboard** (`make dashboard`): Overview (pass rates, every judge and check across the run, a

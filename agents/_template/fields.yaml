@@ -2,25 +2,19 @@
 #
 # Without this file, judges get the standard fields: question (the case input), answer (the
 # agent's final text), contexts (trace["context"], if any) and expected_answer (from the case).
-# Add a field here to judge or check anything else in the trace — one line each, no Python:
+# Add a field here to judge or check anything else in the trace — one line each, no Python.
 #
-#   name: {from: <where to look>, path: <what to take there>}
-#
-# from:  state    the agent's session state (latest value of each key)
-#        final    the workflow's final output
-#        node     output of nodes whose name contains `node:` (one item per branch)
-#        model    JSON reply of the model agent named in `agent:`
-#        message  status text containing `contains:` (optionally a `regex:` group)
-#        timing   seconds per workflow step
-#        trace    the saved trace file itself
-# path:  JMESPath, e.g. answer.summary, evidence[].title, branches.*.page_id  (try it on jmespath.org)
-# Extras: required, default, join, first, count, unique, flatten, where, pick, matches —
-# see the top of src/fields/extract.py. agents/knowledge_agent/fields.yaml is a full example.
+# Each field is a JMESPath query (try it on https://jmespath.org) on one document made from the trace:
+#   final     the final output             state     the agent's session state (latest value wins)
+#   nodes     {node name: [its outputs]}   models    {agent name: [its model replies]}
+#   messages  [every text in the trace]    timing    {step: seconds}       trace   the trace file itself
+# Options (path list, where/pick, unique, join, default, required, lookup): see src/fields/extract.py.
+# agents/knowledge_agent/fields.yaml is a full example.
 #
 # Check your fields on a saved trace (after one `make run`):
 #   make fields AGENT=my_agent CASE=TC_001
 
-fields: {}
-  # answer:          {from: final, path: answer.summary, required: true}
-  # rewritten_query: {from: state, path: rewritten_query, join: "\n"}
-  # cited_page_ids:  {from: final, path: "evidence[].page_id"}
+fields:
+  # answer:          {path: final.answer.summary, required: true}
+  # rewritten_query: {path: state.rewritten_query, join: "\n"}
+  # cited_page_ids:  "final.evidence[].page_id"
