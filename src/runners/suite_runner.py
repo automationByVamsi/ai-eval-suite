@@ -9,12 +9,12 @@ Run a suite. For every test case (and every repetition, with REPS=n):
   4. pull fields from trace     question / answer / contexts / expected_answer, then every field
                                 in agents/<agent>/fields.yaml, then parser.py parse() if there is one
   5. checks and judges          the deterministic checks the suite selects (`checks:` under the suite:
-                                all by default — answer_non_empty, expected.keywords, the checks: in
-                                agent.yaml, parser.py checks()), then the suite's judge metrics
+                                all by default — answer_non_empty, expected.keywords, the checks in
+                                checks.yaml, parser.py checks()), then the suite's judge metrics
   6. record everything          outputs/runs/<run_id>/results.json
 
 Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belongs in the agent's
-fields.yaml, agent.yaml (checks:), parser.py or client.py — not here.
+fields.yaml, checks.yaml, agent.yaml, parser.py or client.py — not here.
 """
 
 from __future__ import annotations

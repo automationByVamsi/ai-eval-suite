@@ -6,7 +6,7 @@ For every test case the framework
   2. saves the trace                              runners/suite_runner.py
   3. reads input / expected from the test case    runners/test_cases.py
   4. pulls fields out of the trace                agents/<agent>/fields.yaml -> fields/extract.py
-  5. runs checks and LLM judges                   checks: in agent.yaml -> fields/checks.py;
+  5. runs checks and LLM judges                   agents/<agent>/checks.yaml -> fields/checks.py;
                                                   metrics/  (Pegasus first, DeepEval otherwise)
   6. reports pass / fail                          reporting/
   7. compares the build with a baseline           verdict/

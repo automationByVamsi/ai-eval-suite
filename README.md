@@ -84,7 +84,7 @@ CORTEX. `SSL: CERTIFICATE_VERIFY_FAILED` means the office proxy: keep `VERIFY_TL
 | add a custom judge for one agent                  | a rubric in `agents/<agent>/rubrics/` + one line under `metrics:` |
 | read a value from the trace (a stage output, …)   | one line in `agents/<agent>/fields.yaml`; preview with `make fields` — see [Trace fields and checks](#trace-fields-and-checks) |
 | judge a stage output (rewritten query, tool, …)   | a field in `fields.yaml`, then point the metric at it (`answer: rewritten_query`) |
-| add a deterministic check for one agent           | `checks:` in `agents/<agent>/agent.yaml` (YAML), or `checks()` in `parser.py` for real logic |
+| add a deterministic check for one agent           | `agents/<agent>/checks.yaml` (YAML), or `checks()` in `parser.py` for real logic |
 | send more than the question to the agent (e.g. question_type) | `message: {format: json, fields: {...}}` in `agent.yaml` |
 | use a Pegasus metric outside RAG (e.g. agentic)   | an entry with `module:` + `columns:` in `metric_library.yaml` (see `response_alignment`) |
 | choose which checks a suite runs                  | `checks: all \| none \| [groups or names]` under the suite in `agent.yaml` |
@@ -142,6 +142,7 @@ env/
 agents/
   <agent>/                      everything about one agent lives in its folder
     agent.yaml                  connection, metrics (+ thresholds), suites
+    checks.yaml                 deterministic checks, in groups (optional)
     testdata/<suite>/*.json     test cases, one per file
     rubrics/*.md                custom judge criteria, in plain English     (optional)
     fields.yaml                 what to read from the trace, one line per field (optional)
@@ -262,7 +263,7 @@ make new-agent NAME=claims_agent INPUT_FIELD=claim_id
 
 This creates `agents/claims_agent/` from the template and prints the next steps: put its URL in
 `env/.env`, choose metrics and suites in `agent.yaml`, add test cases, `make run AGENT=claims_agent SUITE=sanity`.
-Add `fields.yaml` entries when you want stage fields, and `checks:` in `agent.yaml` for
+Add `fields.yaml` entries when you want stage fields, and `checks.yaml` for
 agent-specific checks — `agents/knowledge_agent/` is a full example. For an agent that is not Google
 ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
 
@@ -310,7 +311,7 @@ When the agent's trace format changes, run this, fix the paths that come back `N
 again. A field marked `required: true` that finds nothing makes the case an ERROR ("has the trace
 format changed?") instead of silently skipping judges.
 
-**Checks** are YAML too, under `checks:` in `agent.yaml`, on any field:
+**Checks** are YAML too, in `agents/<agent>/checks.yaml` (next to `agent.yaml`, like `fields.yaml`), on any field:
 
 ```yaml
 checks:

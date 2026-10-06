@@ -1,5 +1,5 @@
 """
-Deterministic checks written in YAML (`checks:` in agents/<agent>/agent.yaml), run on the fields
+Deterministic checks written in YAML (agents/<agent>/checks.yaml), run on the fields
 from fields.yaml. Each produces one pass / fail / skip result, like a parser.py check.
 
     checks:

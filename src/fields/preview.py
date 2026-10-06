@@ -1,6 +1,6 @@
 """
 `make fields`: show what every field in fields.yaml gives for saved traces — and what the
-checks: in agent.yaml make of them — without calling the agent or any judge.
+checks in checks.yaml make of them — without calling the agent or any judge.
 
     make fields AGENT=knowledge_agent CASE=TC_002                 one saved trace of the sanity suite
     make fields AGENT=knowledge_agent SUITE=golden                every saved trace of a suite
@@ -66,7 +66,7 @@ def preview(agent_name: str, suite_name: str = "sanity", case_ids: list[str] | N
             print(f"  NOTE      {problem}")
         if case and agent.checks:
             fields = {"question": case["input"].get(agent.input_field, ""), **values}
-            print("  --- checks (agent.yaml) ---")
+            print("  --- checks (checks.yaml) ---")
             for result in run_checks(agent.checks, fields, case):
                 score = f" score={result.score:.2f}" if result.score is not None else ""
                 print(f"  {result.status.upper():<9} {result.name:<26}{score} {result.reason}")

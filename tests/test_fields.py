@@ -351,15 +351,17 @@ def test_checks_in_groups_and_suites_that_pick_them(temp_agents):
     (folder / "agent.yaml").write_text(
         "connection: {base_url: http://x, app_name: demo}\n"
         "metrics: {relevance: {threshold: 0.7}}\n"
+        "suites:\n"
+        "  everything: {metrics: [relevance]}\n"
+        "  judges_only: {metrics: [relevance], checks: none}\n"
+        "  picked: {metrics: [relevance], checks: [answer, basic]}\n"
+    )
+    (folder / "checks.yaml").write_text(
         "checks:\n"
         "  answer:\n"
         "    long_enough: {type: min_words, field: answer, min: 3}\n"
         "    no_markers:  {type: not_contains, field: answer, values: [page_ids]}\n"
         "  loose_check:   {type: present, field: answer}\n"
-        "suites:\n"
-        "  everything: {metrics: [relevance]}\n"
-        "  judges_only: {metrics: [relevance], checks: none}\n"
-        "  picked: {metrics: [relevance], checks: [answer, basic]}\n"
     )
     agent = load_agent("demo")
     assert agent.checks["long_enough"]["group"] == "answer" and "group" not in agent.checks["loose_check"]
@@ -369,6 +371,27 @@ def test_checks_in_groups_and_suites_that_pick_them(temp_agents):
 
     (folder / "agent.yaml").write_text((folder / "agent.yaml").read_text().replace("[answer, basic]", "[answr]"))
     with pytest.raises(ConfigError, match="neither checks nor groups"):
+        load_agent("demo")
+
+
+def test_checks_live_only_in_checks_yaml(temp_agents):
+    folder = temp_agents / "demo"
+    folder.mkdir()
+    agent_yaml = ("connection: {base_url: http://x, app_name: demo}\n"
+                  "metrics: {relevance: {threshold: 0.7}}\n"
+                  "suites: {everything: {metrics: [relevance]}}\n")
+    (folder / "agent.yaml").write_text(agent_yaml)
+    assert load_agent("demo").checks == {}                       # checks.yaml is optional
+
+    (folder / "checks.yaml").write_text("checks:\n#  answer: ...   (all commented out)\n")
+    assert load_agent("demo").checks == {}                       # the template's empty checks.yaml loads
+
+    (folder / "checks.yaml").write_text("checks:\n  answr:\n    long_enough: {type: min_wrds, field: answer}\n")
+    with pytest.raises(ConfigError, match="checks.yaml"):           # errors name the file the check is in
+        load_agent("demo")
+
+    (folder / "agent.yaml").write_text(agent_yaml + "checks:\n  extra: {type: present, field: answer}\n")
+    with pytest.raises(ConfigError, match="belongs in .*checks.yaml"):   # one place only: never silently ignored
         load_agent("demo")
 
 

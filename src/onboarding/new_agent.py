@@ -53,6 +53,6 @@ Next:
   3. Add test cases to           agents/{name}/testdata/sanity/   (see TC_001.json)
   4. Try it:                     make run AGENT={name} SUITE=sanity
   5. Only if you need them:      fields.yaml (stage fields: make fields AGENT={name} to preview),
-                                 checks: in agent.yaml, rubrics/ (own judges),
+                                 checks.yaml (deterministic checks), rubrics/ (own judges),
                                  client.py (agent is not Google ADK — see client.py.example),
                                  parser.py (logic YAML can't express — see parser.py.example)""")

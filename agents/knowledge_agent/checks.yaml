@@ -1,0 +1,85 @@
+# Knowledge Agent — deterministic checks, in groups (the dashboard shows them by group).
+# They read the fields from fields.yaml; a check whose expected value a case lacks is SKIPPED.
+# Types and options: see the top of src/fields/checks.py. "basic" (answer_non_empty, expected.keywords)
+# is built in. Which checks a suite runs (and its pass-rate targets) is set under suites: in agent.yaml.
+checks:
+  answer:                     # the answer the caller receives is well-formed
+    answer_min_words:       {type: min_words, field: answer, min: 8}
+    no_internal_markers:    {type: not_contains, field: answer,
+                             values: [page_ids, anchor_page, artifact_id, rewritten_query, search_branches]}
+    question_passed_through: {type: equals, field: agent_query, other: question}
+    confidence_valid:       {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
+
+  pipeline:                   # every stage ran and handed over what the next one needs
+    rewrite_present:        {type: present, field: rewritten_queries}
+    branch_per_sub_query:   {type: same_count, fields: [rewritten_queries, branch_sub_queries]}
+    anchor_per_branch:      {type: same_count, fields: [branch_sub_queries, branch_anchor_ids]}
+    anchor_from_search:     {type: subset, field: anchor_page_ids, of: [search_candidates]}
+    validation_scores_in_range: {type: range, fields: [relevance_score, applicability_score, sufficiency_score],
+                                 min: 0, max: 1}
+
+  citations:                  # every cited page was actually used, and is listed in the evidence
+    citations_in_evidence_set:    {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
+    citations_listed_in_evidence: {type: subset, field: cited_page_ids, of: [evidence_page_ids]}
+
+  performance:                # MVP success metric: a response within 60 seconds
+    within_60s:             {type: range, field: latency_ms, min: 0, max: 60000}
+
+  explainability:             # MVP success metric: the trace shows how the answer was derived
+    anchor_rationale_logged:     {type: present, field: anchor_rationales}
+    validation_reasons_logged:   {type: present, fields: [relevance_reason, applicability_reason, sufficiency_reason]}
+    page_link_for_every_source:  {type: same_count, fields: [evidence_page_ids, evidence_links]}
+    sources_listed:              {type: present, field: evidence_page_ids}
+
+  honesty:                    # should-decline cases (expected.should_decline: true): no confident answer
+    warns_when_it_cannot_answer: {type: present, field: disclosures, when: {expected: should_decline, is: true}}
+    not_high_confidence_when_it_cannot_answer:
+      type: one_of
+      field: confidence
+      values: [MEDIUM, LOW]
+      when: {expected: should_decline, is: true}
+
+  disclosure:                 # a fallback or a non-HIGH confidence is disclosed to the caller
+    fallback_disclosed:     {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
+    caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
+
+  retrieval:                  # golden cases: the expected pages were found (ids or titles, whichever the case has)
+    anchor_hit:
+      type: any_in
+      compare:
+        - {field: anchor_page_ids, expected: expected_anchor_page_ids}
+        - {field: anchor_titles,   expected: expected_anchor_page_titles}
+    expansion_precision:
+      type: precision
+      threshold: 0.7
+      compare:
+        - {field: expanded_page_ids, expected: expected_related_page_ids}
+        - {field: expanded_titles,   expected: expected_related_page_titles}
+    expansion_recall:
+      type: recall
+      threshold: 0.7
+      compare:
+        - {field: expanded_page_ids, expected: expected_related_page_ids}
+        - {field: expanded_titles,   expected: expected_related_page_titles}
+    # Search results (Precision@k / Recall@k). Measured on the candidates the agent LOGS in the trace
+    # (search_branches.*.filtered_page_ids, in logged order) — the only search evidence we have.
+    search_recall_at_5:       # every expected anchor page is among the first 5 logged candidates
+      type: recall
+      k: 5
+      threshold: 1.0
+      compare:
+        - {field: search_candidates, expected: expected_anchor_page_ids}
+    search_precision_at_5:    # share of the first 5 candidates that are expected pages (reported, not gated)
+      type: precision
+      k: 5
+      threshold: 0
+      compare:
+        - {field: search_candidates, expected: [expected_anchor_page_ids, expected_related_page_ids]}
+    query_type_match:         # the agent classified simple / complex as the golden sheet says
+      type: any_in
+      field: query_type
+      expected: expected_query_type
+    source_page_found:        # synthetic: the page the question was generated from is in the evidence
+      type: any_in
+      field: evidence_page_ids
+      expected: source_page_id

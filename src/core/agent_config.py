@@ -5,9 +5,10 @@ Everything about an agent lives in its own folder:
 
     agents/<name>/
       agent.yaml       how to reach it, which metrics it uses, which suites run which metrics and checks
+      checks.yaml      optional: the deterministic checks, in groups (see src/fields/checks.py)
       fields.yaml      optional: the fields evaluation reads from the trace (see src/fields/extract.py)
       lookups.py       optional: functions that look values up outside the trace by id (src/fields/lookup.py)
-      parser.py        optional: Python for what fields.yaml / checks: can't express
+      parser.py        optional: Python for what fields.yaml / checks.yaml can't express
       client.py        optional: only for agents that are not Google ADK (see agents/_template)
       rubrics/*.md     optional: custom judge criteria
       testdata/<suite>/*.json
@@ -57,12 +58,12 @@ class Agent:
     metrics: dict[str, dict[str, Any]]      # metric name -> settings (threshold, rubric, ...)
     suites: dict[str, Suite]
     fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
-    checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks: in agent.yaml
+    checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks.yaml
     message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
     consistency: dict[str, Any] = field(default_factory=dict)         # consistency: rules for REPS > 1
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
-        """The checks: from agent.yaml that this suite runs (a group name selects its whole group)."""
+        """The agent's checks that this suite runs (a group name selects its whole group)."""
         if suite.checks is None:
             return dict(self.checks)
         wanted = set(suite.checks)
@@ -140,7 +141,7 @@ def load_agent(name: str) -> Agent:
         fields = extract.validate((yaml.safe_load(fields_file.read_text()) or {}).get("fields") or {},
                                   str(fields_file), folder)
 
-    checks = yaml_checks.validate(raw.get("checks") or {}, str(path))
+    checks = _load_checks(raw, folder)
     known = {*checks, *(s.get("group") for s in checks.values() if s.get("group")), *BASIC_CHECKS}
     for suite in suites.values():
         unknown = sorted(set(suite.checks or []) - known)
@@ -167,6 +168,22 @@ def load_agent(name: str) -> Agent:
         fields=fields,
         checks=checks,
     )
+
+
+def _load_checks(raw: dict, folder: Path) -> dict[str, dict[str, Any]]:
+    """
+    The agent's deterministic checks, from checks.yaml next to agent.yaml (optional, like fields.yaml).
+
+    One place only: a `checks:` section at the top of agent.yaml is refused rather than merged or ignored.
+    (A suite's own `checks: all | none | [...]` only picks which of these run — that stays in agent.yaml.)
+    """
+    if raw.get("checks"):
+        raise ConfigError(f"{folder / 'agent.yaml'}: the `checks:` section belongs in {folder / 'checks.yaml'} "
+                          f"(move it there unchanged; suites keep their `checks:` selection in agent.yaml)")
+    file = folder / "checks.yaml"
+    if not file.is_file():
+        return {}
+    return yaml_checks.validate(env.expand(yaml.safe_load(file.read_text()) or {}).get("checks") or {}, str(file))
 
 
 # The checks every agent gets (runner._standard_checks), selectable by name or as the group "basic".

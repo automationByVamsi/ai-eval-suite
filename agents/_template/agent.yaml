@@ -24,13 +24,7 @@ metrics:
   correctness: {threshold: 0.7}           # only runs for cases that have expected.expected_answer
   # tone:      {rubric: rubrics/tone.md, threshold: 0.8}
 
-# Deterministic checks (optional), on the standard fields and those in fields.yaml, optionally in
-# groups (the dashboard shows them by group). Types and options: see the top of src/fields/checks.py.
-# checks:
-#   answer:
-#     answer_min_words: {type: min_words, field: answer, min: 8}
-#   retrieval:
-#     cited_page_hit:   {type: any_in, field: cited_page_ids, expected: expected_page_ids}
+# Deterministic checks (optional) go in checks.yaml next to this file; a suite picks which run below.
 
 # Suites = which judges (metrics:) and which checks (checks: all | none | [groups or names]; all
 # when left out) run on which test data. testdata defaults to testdata/<suite name>.

@@ -33,7 +33,7 @@ class Result:
     score: float | None = None   # judges only
     threshold: float | None = None
     engine: str = ""             # judges only: "pegasus" or "deepeval"
-    group: str = ""              # checks only: the group it is written under in agent.yaml (dashboard)
+    group: str = ""              # checks only: the group it is written under in checks.yaml (dashboard)
 
 
 def check(name: str, passed: bool, reason_if_failed: str = "", group: str = "") -> Result:

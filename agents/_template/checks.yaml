@@ -1,0 +1,9 @@
+# Deterministic checks (optional), on the standard fields and those in fields.yaml, in groups
+# (the dashboard shows them by group). Types and options: see the top of src/fields/checks.py.
+# A suite in agent.yaml picks which run: checks: all (default) | none | [groups or names].
+# A check whose expected value a case lacks is SKIPPED.
+checks:
+#   answer:
+#     answer_min_words: {type: min_words, field: answer, min: 8}
+#   retrieval:
+#     cited_page_hit:   {type: any_in, field: cited_page_ids, expected: expected_page_ids}
