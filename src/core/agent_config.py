@@ -61,6 +61,7 @@ class Agent:
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks.yaml
     message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
     consistency: dict[str, Any] = field(default_factory=dict)         # consistency: rules for REPS > 1
+    review_columns: list[str] = field(default_factory=list)           # extra fields in the SME review sheet
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
         """The agent's checks that this suite runs (a group name selects its whole group)."""
@@ -163,6 +164,7 @@ def load_agent(name: str) -> Agent:
         message_template=raw.get("message_template"),
         message_fields=_message_fields(raw.get("message"), str(path)),
         consistency=consistency,
+        review_columns=_review_columns(raw.get("review_columns"), fields, str(path)),
         metrics=metrics,
         suites=suites,
         fields=fields,
@@ -201,6 +203,15 @@ def _targets(spec: Any, where: str) -> dict[str, float]:
     if not isinstance(spec, dict) or not all(isinstance(v, (int, float)) and 0 <= v <= 1 for v in spec.values()):
         raise ConfigError(f"{where}: targets: must map names to numbers between 0 and 1, e.g. {{correctness: 0.9}}")
     return {str(k): float(v) for k, v in spec.items()}
+
+
+def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> list[str]:
+    """`review_columns: [anchor_page_ids, evidence_links]`: fields.yaml fields shown in make review-sheet."""
+    columns = [spec] if isinstance(spec, str) else list(spec or [])
+    unknown = [c for c in columns if c not in fields]
+    if unknown:
+        raise ConfigError(f"{where}: review_columns {unknown} are not fields in fields.yaml")
+    return columns
 
 
 def _consistency(spec: Any, where: str) -> dict[str, Any]:

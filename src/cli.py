@@ -149,7 +149,8 @@ def main(argv: list[str] | None = None) -> int:
         from pathlib import Path
 
         from src.reporting.calibration import review_sheet
-        out = review_sheet(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None)
+        out = review_sheet(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None,
+                           load_agent(args.agent).review_columns)
         print(f"Review sheet: {out}\nAsk the SME to fill sme_verdict (pass / fail), then: make calibrate FILE={out}")
         return 0
 

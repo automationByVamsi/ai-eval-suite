@@ -504,7 +504,8 @@ a **Consistency** tab: per case a pages × runs grid (anchor / expanded / cited 
 highlighted) and the answer, confidence and scores of every run.
 
 **Judge calibration.** `make review-sheet` writes one CSV row per case (question, answer, reference,
-every judge's score) with an empty `sme_verdict` column. An SME marks ~20 rows pass / fail;
+the fields in `review_columns:` of agent.yaml — e.g. anchor page ids and page links — and every
+judge's score) with an empty `sme_verdict` column. An SME marks ~20 rows pass / fail;
 `make calibrate FILE=...` then shows per judge how often it agrees with the SME, its false passes,
 and the threshold that would agree best.
 

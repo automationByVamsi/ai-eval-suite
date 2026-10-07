@@ -3,7 +3,8 @@ Judge calibration: do the LLM judges agree with a subject-matter expert (SME)?
 
   1. make review-sheet AGENT=knowledge_agent SUITE=golden [RUN=<run id>]
        writes outputs/review/<run id>.csv: one row per case — question, agent answer, expected
-       answer, every judge's score and verdict, and two empty columns for the SME:
+       answer, the agent's `review_columns:` (agent.yaml, e.g. anchor page ids and page links),
+       every judge's score and verdict, and two empty columns for the SME:
          sme_verdict   pass | fail      (is this answer good enough to give a colleague?)
          sme_notes     free text
   2. The SME fills sme_verdict (in Excel; keep it as CSV).
@@ -27,12 +28,13 @@ SME_PASS = {"pass", "p", "yes", "y", "good", "ok", "correct", "1", "true"}
 SME_FAIL = {"fail", "f", "no", "n", "bad", "wrong", "incorrect", "0", "false"}
 
 
-def review_sheet(run: Run, out: Path | None = None) -> Path:
-    """Write the SME review CSV for a run; returns its path."""
+def review_sheet(run: Run, out: Path | None = None, columns: list[str] | None = None) -> Path:
+    """Write the SME review CSV for a run; returns its path. columns: extra fields.yaml fields to show."""
     judges = list(dict.fromkeys(r.name for c in run.cases for r in c.results if r.kind == "judge"))
     out = out or paths.OUTPUTS_DIR / "review" / f"{run.run_id}.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
-    header = ["run_id", "case_id", "rep", "question", "agent_answer", "expected_answer"]
+    columns = columns or []
+    header = ["run_id", "case_id", "rep", "question", "agent_answer", "expected_answer", *columns]
     for name in judges:
         header += [f"{name}_score", f"{name}_verdict", f"{name}_threshold"]
     header += ["sme_verdict", "sme_notes"]
@@ -42,12 +44,20 @@ def review_sheet(run: Run, out: Path | None = None) -> Path:
         for case in run.cases:
             by_name = {r.name: r for r in case.results if r.kind == "judge"}
             row = [run.run_id, case.case_id, case.rep + 1, case.question, case.answer, case.expected_answer]
+            row += [_cell((case.details or {}).get(name)) for name in columns]
             for name in judges:
                 r = by_name.get(name)
                 scored = r is not None and r.status in (PASS, FAIL)
                 row += [r.score if scored else "", r.status if scored else "", r.threshold if r else ""]
             writer.writerow(row + ["", ""])
     return out
+
+
+def _cell(value: Any) -> Any:
+    """A field value for one CSV cell: a list becomes one item per line."""
+    if isinstance(value, list):
+        return "\n".join(str(v) for v in value)
+    return "" if value is None else value
 
 
 def calibrate(sheet: Path) -> list[dict[str, Any]]:
