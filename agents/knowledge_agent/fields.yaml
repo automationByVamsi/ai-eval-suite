@@ -82,6 +82,12 @@ fields:
   latency_ms:          trace.latency_ms
   stage_seconds:       timing
 
+  # --- Pages, with title and link (for the SME review sheet: review_columns in agent.yaml) ---------
+  # The final output's evidence lists every page the agent used (anchor + related): page_id, title, uri_ui.
+  anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}     # the anchor page(s) chosen
+  related_pages: {path: final.evidence, where: {page_id: expanded_page_ids}}   # pages added by relation expansion
+  cited_pages:   {path: final.evidence, where: {page_id: cited_page_ids}}      # pages the answer itself cites
+
   # --- Looked up outside the trace (agents/knowledge_agent/lookups.py) ----------------------
   # The trace has only page ids; the judges need the page text. get_page_content_from_athena
   # fetches each page from Athena and cleans the HTML (once per page per run, saved under

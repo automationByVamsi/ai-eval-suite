@@ -163,12 +163,15 @@ def test_review_sheet_and_calibration(tmp_path):
     cases = [CaseResult(f"C{i}", question="q", answer="a", results=[
         Result("correctness", "judge", "pass" if s >= 0.7 else "fail", score=s, threshold=0.7)])
         for i, s in enumerate([0.95, 0.9, 0.75, 0.72, 0.4, 0.3])]
-    cases[0].details = {"anchor_page_ids": ["40345"], "evidence_links": ["https://kb/1", "https://kb/2"]}
-    sheet = review_sheet(_run(cases), tmp_path / "review.csv", ["anchor_page_ids", "evidence_links"])
+    cases[0].details = {"search_candidates": ["1", "2"],
+                        "anchor_pages": [{"page_id": "1", "title": "Add a need", "uri_ui": "https://kb/1"}]}
+    columns = {"Pages search found": "search_candidates", "Anchor pages": "anchor_pages"}
+    sheet = review_sheet(_run(cases), tmp_path / "review.csv", columns)
     rows = list(csv.DictReader(sheet.open()))
     assert rows[0]["correctness_score"] == "0.95" and rows[0]["sme_verdict"] == ""
-    assert rows[0]["anchor_page_ids"] == "40345" and rows[0]["evidence_links"] == "https://kb/1\nhttps://kb/2"
-    assert rows[1]["anchor_page_ids"] == ""                          # a case without the field: empty cell
+    assert rows[0]["Pages search found"] == "1\n2"                   # one item per line
+    assert rows[0]["Anchor pages"] == "1 | Add a need | https://kb/1"  # id | title | link
+    assert rows[1]["Anchor pages"] == ""                             # a case without the field: empty cell
     for row, sme in zip(rows, ["pass", "pass", "fail", "fail", "fail", "fail"], strict=True):
         row["sme_verdict"] = sme                                     # the SME says 0.75 and 0.72 aren't good enough
     with sheet.open("w", newline="") as handle:

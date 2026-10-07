@@ -61,7 +61,7 @@ class Agent:
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks.yaml
     message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
     consistency: dict[str, Any] = field(default_factory=dict)         # consistency: rules for REPS > 1
-    review_columns: list[str] = field(default_factory=list)           # extra fields in the SME review sheet
+    review_columns: dict[str, str] = field(default_factory=dict)      # SME review sheet: {heading: field}
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
         """The agent's checks that this suite runs (a group name selects its whole group)."""
@@ -205,10 +205,14 @@ def _targets(spec: Any, where: str) -> dict[str, float]:
     return {str(k): float(v) for k, v in spec.items()}
 
 
-def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> list[str]:
-    """`review_columns: [anchor_page_ids, evidence_links]`: fields.yaml fields shown in make review-sheet."""
-    columns = [spec] if isinstance(spec, str) else list(spec or [])
-    unknown = [c for c in columns if c not in fields]
+def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> dict[str, str]:
+    """
+    Extra columns of make review-sheet, from fields.yaml: {heading: field}, or a list of fields
+    (the field name is then the heading).
+    """
+    columns = dict(spec) if isinstance(spec, dict) else {name: name for name in ([spec] if isinstance(spec, str)
+                                                                                 else spec or [])}
+    unknown = [f for f in columns.values() if f not in fields]
     if unknown:
         raise ConfigError(f"{where}: review_columns {unknown} are not fields in fields.yaml")
     return columns

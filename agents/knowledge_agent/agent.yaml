@@ -64,9 +64,14 @@ consistency:
   all_pass: [correctness]
   report: [cited_page_ids, expanded_page_ids]
 
-# Extra columns in the SME review sheet (make review-sheet), from fields.yaml: which anchor pages the
-# agent chose, and links to every page it used, so the SME can open them and judge the answer.
-review_columns: [anchor_page_ids, evidence_links]
+# Extra columns in the SME review sheet (make review-sheet): {column heading: field in fields.yaml}.
+# Which pages search found, which the agent chose as anchor, which it added as related, and which the
+# answer cites — each page as "id | title | link", one per line, so the SME can open and check them.
+review_columns:
+  Pages search found: search_candidates
+  Anchor pages: anchor_pages
+  Related pages: related_pages
+  Pages cited in the answer: cited_pages
 
 # Which judges (metrics:) and which deterministic checks (checks:) each suite runs.
 #   checks: all                      every check (the default when checks: is left out)
