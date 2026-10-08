@@ -1,5 +1,9 @@
 # AI Eval Suite
 
+> **New here? Start with [GETTING_STARTED.md](GETTING_STARTED.md)** — a step-by-step guide from an
+> empty laptop to running, reading and reviewing an evaluation, with architecture diagrams,
+> troubleshooting and a handover checklist. This README is the reference manual.
+
 One way to evaluate every AI agent:
 
 1. call the agent with each test case
@@ -285,8 +289,8 @@ fields:
   validation_status: "messages[?contains(@, 'Validation complete')] | [-1]"
 ```
 
-- A plain string is the path. Paste a trace into jmespath.org to try a query (the paths start at
-  `final`, `state`, ... — `make fields` shows what each field gives on a real trace).
+- A plain string is the path. Learn the syntax on jmespath.org with made-up JSON (never paste a
+  real trace into a website); `make fields` shows what each field gives on a real trace.
 - A list of paths means "the first that finds something", handy while a trace format is changing.
 - More options (`where`, `pick`, `unique`, `join`, `default`, `required`) are explained at the top of
   `src/fields/extract.py`.
