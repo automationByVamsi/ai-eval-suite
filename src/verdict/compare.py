@@ -31,6 +31,12 @@ def compare(run: Run) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
     baseline = json.loads(path.read_text())
     before, now = baseline["results"], summarize(run)
 
+    # Scores at different judge temperatures (or from different engines) are not comparable: say so.
+    temperature_note = ""
+    if "judge_temperature" in baseline and baseline["judge_temperature"] != run.judge_temperature:
+        temperature_note = (f"judge temperature changed {baseline['judge_temperature']} -> "
+                            f"{run.judge_temperature}: scores not comparable")
+
     rows = []
     for key in sorted(set(before) | set(now)):
         b, n = before.get(key), now.get(key)
@@ -47,8 +53,12 @@ def compare(run: Run) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
                 row["status"] = "regression"
             elif rate_delta >= PASS_RATE_DROP or score_delta >= SCORE_DROP:
                 row["status"] = "improved"
+            notes = []
             if b["engine"] != n["engine"]:
-                row["note"] = f"engine changed {b['engine']} -> {n['engine']}: scores not comparable"
+                notes.append(f"engine changed {b['engine']} -> {n['engine']}: scores not comparable")
+            if temperature_note and ":: judge:" in key:
+                notes.append(temperature_note)
+            row["note"] = "; ".join(notes)
         rows.append(row)
 
     errors = any(c.status == ERROR for c in run.cases)

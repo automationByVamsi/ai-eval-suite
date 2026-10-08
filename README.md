@@ -293,6 +293,7 @@ raw trace). Then decide: agent bug (report it with the case id and trace file), 
 | choose which metrics a suite runs                 | `suites:` → `metrics: [...]` in `agents/<agent>/agent.yaml` |
 | change a threshold                                | `metrics:` in `agents/<agent>/agent.yaml` |
 | add / remove a **Pegasus** (or DeepEval) metric   | `metric_library.yaml` — then use it by name in any agent |
+| the judges' LLM temperature (all judges)          | `judge_temperature:` at the top of `metric_library.yaml` (default 0.0) |
 | add a custom judge for one agent                  | a rubric in `agents/<agent>/rubrics/` + one line under `metrics:` |
 | read a value from the trace (a stage output, …)   | one line in `agents/<agent>/fields.yaml`; preview with `make fields` — see [Trace fields and checks](#trace-fields-and-checks) |
 | judge a stage output (rewritten query, tool, …)   | a field in `fields.yaml`, then point the metric at it (`answer: rewritten_query`) |
@@ -370,6 +371,11 @@ suites:
   e2e:        {testdata: testdata/sanity, metrics: [relevance, correctness, intent_preservation]}
   regression: {metrics: [relevance, correctness]}               # data in testdata/regression/
 ```
+
+**Judge temperature.** Every judge (Pegasus and DeepEval) runs at `judge_temperature` from the top of
+`metric_library.yaml` — `0.0`, so the same answer gets the same score from run to run (as far as the
+model allows). It is saved with each run, and `make verdict` notes when the baseline used another value.
+A Pegasus metric whose `evaluate()` doesn't accept a temperature runs at the model's default, with a warning.
 
 **Which engine runs a metric — one rule:** a custom rubric runs on DeepEval GEval; a library metric
 runs on **Pegasus if it has a `pegasus:` class and Pegasus is installed**, otherwise on DeepEval.
@@ -722,7 +728,8 @@ case × check/judge the baseline stores the pass rate and mean score. The verdic
 - a mean judge score drops by 0.10 or more — even if it is still above the threshold, or
 - something in the baseline didn't run at all, or the run had agent/judge errors.
 
-It also flags when a score came from a different engine than the baseline (not comparable).
+It also flags when a score came from a different engine, or a different `judge_temperature`, than the
+baseline (not comparable).
 To reuse a run instead of running again: `uv run python -m src verdict AGENT SUITE --from-run latest`.
 A baseline is refused if its run had errors.
 

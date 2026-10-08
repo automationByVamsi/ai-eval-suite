@@ -78,6 +78,7 @@ class Run:
     build: str = ""              # label of the build under test, e.g. "1.5.0"
     reps: int = 1
     offline: bool = False        # True when saved traces were replayed instead of calling the agent
+    judge_temperature: float | None = None   # temperature the judges ran at (None: no judges ran)
     run_id: str = ""
     started_at: str = ""
     metrics: list[str] = field(default_factory=list)       # the judges this suite runs

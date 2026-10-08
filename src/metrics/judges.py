@@ -40,7 +40,7 @@ from typing import Any
 
 from src.clients import cortex_client
 from src.core.results import ERROR, FAIL, PASS, SKIP, Result
-from src.metrics.library import definition
+from src.metrics.library import definition, judge_temperature
 from src.utils.text import first, is_empty
 
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")   # no usage data sent from the office network
@@ -207,11 +207,31 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
     if module_name == "rag" or "method" in metric:   # only the RAG metrics take method= (pegasus|ragas|deepeval)
         kwargs["method"] = metric.get("method", "pegasus")
     judge_class = getattr(importlib.import_module(f"pegasus.metrics.{module_name}"), metric["pegasus"])
-    out = judge_class(**kwargs).evaluate(frame)
+    out = _evaluate(judge_class(**kwargs), frame, metric["pegasus"])
     score = first(out["score"])
     if score is None or pd.isna(score):
         raise RuntimeError(f"Pegasus returned no numeric score: {out}")
     return float(score), _pegasus_reason(out)
+
+
+_NO_TEMPERATURE: set[str] = set()      # Pegasus metrics whose evaluate() doesn't take temperature (warned once)
+
+
+def _evaluate(judge: Any, frame: Any, name: str) -> Any:
+    """
+    judge.evaluate(frame, temperature=...) — Pegasus passes temperature to the LLM (metric_library.yaml
+    judge_temperature). A metric whose evaluate() doesn't accept it runs at the model's default, with a warning.
+    """
+    if name not in _NO_TEMPERATURE:
+        try:
+            return judge.evaluate(frame, temperature=judge_temperature())
+        except TypeError as exc:
+            if "temperature" not in str(exc):      # a real error inside evaluate(), not the keyword
+                raise
+            _NO_TEMPERATURE.add(name)
+            print(f"  WARNING: Pegasus {name}.evaluate() does not accept temperature — it runs at the "
+                  f"model's default, so its scores can vary between runs")
+    return judge.evaluate(frame)
 
 
 REASON_KEYS = ("reasoning", "reasons", "reason", "explanation", "score_details", "details")

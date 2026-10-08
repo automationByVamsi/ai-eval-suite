@@ -1,8 +1,10 @@
 """LLM judges: engine choice, skip / error handling, and DeepEval through a fake CORTEX gateway."""
 
+import pytest
 from conftest import ROOT
 
 from src.core import results
+from src.core.exceptions import ConfigError
 from src.metrics import judges
 from src.metrics.library import definition, library
 
@@ -163,9 +165,10 @@ def _fake_pegasus(monkeypatch, metric_calls=None):
             if metric_calls is not None:
                 metric_calls.append(kwargs)
 
-        def evaluate(self, frame):
+        def evaluate(self, frame, **kwargs):
             if metric_calls is not None:
                 metric_calls.append(list(frame.columns))
+                metric_calls.append(kwargs)
             return {"score": 0.82}
 
     adapters = types.SimpleNamespace(get_model=lambda **kwargs: seen.update(kwargs) or "pegasus-llm")
@@ -223,6 +226,44 @@ def test_pegasus_metric_is_called_like_the_knowledge_agent_guardrails(monkeypatc
     assert (result.status, result.score, result.engine) == (results.PASS, 0.82, "pegasus")
     assert calls[0] == {"llm": "pegasus-llm", "method": "pegasus"}
     assert calls[1] == ["question", "answer", "retrieved_contexts"]
+    assert calls[2] == {"temperature": 0.0}                     # metric_library.yaml judge_temperature
+
+
+def test_pegasus_metric_without_temperature_still_runs_with_a_warning(capsys):
+    class OldMetric:                                            # evaluate() takes no temperature
+        def evaluate(self, frame):
+            return {"score": 0.5}
+
+    judges._NO_TEMPERATURE.discard("OldMetric")
+    assert judges._evaluate(OldMetric(), "frame", "OldMetric") == {"score": 0.5}
+    assert judges._evaluate(OldMetric(), "frame", "OldMetric") == {"score": 0.5}
+    assert capsys.readouterr().out.count("does not accept temperature") == 1   # warned once, not per case
+
+    class Broken:
+        def evaluate(self, frame, temperature=0.0):
+            raise TypeError("bad frame")                        # a real error is not swallowed
+    with pytest.raises(TypeError, match="bad frame"):
+        judges._evaluate(Broken(), "frame", "Broken")
+
+
+def test_judge_temperature_comes_from_metric_library(monkeypatch, tmp_path):
+    from src.core import paths
+    from src.metrics import library
+    monkeypatch.setattr(paths, "METRIC_LIBRARY", tmp_path / "lib.yaml")
+    try:
+        for value, expected in [("judge_temperature: 0.3\n", 0.3), ("", 0.0)]:
+            (tmp_path / "lib.yaml").write_text(value + "relevance: {needs: [question, answer], deepeval: X}\n")
+            _clear(library)
+            assert library.judge_temperature() == expected
+            assert list(library.library()) == ["relevance"]      # the setting is not a metric
+        (tmp_path / "lib.yaml").write_text("judge_temperature: hot\n")
+        _clear(library)
+        with pytest.raises(ConfigError, match="judge_temperature must be a number"):
+            library.judge_temperature()
+    finally:
+        monkeypatch.undo()                                     # back to the real metric_library.yaml
+        _clear(library)
+
 
 
 def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):
@@ -231,3 +272,8 @@ def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("CORTEX_AUTH", "devkit")
     assert judges.pick_engine(definition("relevance", {})) == "pegasus"
+
+
+def _clear(library):
+    for cached in (library._file, library.judge_temperature, library.library):
+        cached.cache_clear()

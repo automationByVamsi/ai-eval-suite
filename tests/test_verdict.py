@@ -84,3 +84,20 @@ def test_unstable_cases_are_listed():
         for i, status in enumerate([results.PASS, results.FAIL, results.PASS])])
     row = summarise([run])[0]
     assert row["rate"] == round(2 / 3, 4) and row["unstable"] == {"KA_1": "2/3"}
+
+
+def test_verdict_notes_a_changed_judge_temperature(outputs):
+    """Scores at different judge temperatures aren't comparable: the verdict says so on judge rows."""
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=PASSING)
+    assert run.judge_temperature is None                   # no judges ran
+    run.cases[0].results.append(results.Result("faithfulness", "judge", results.PASS, score=0.9, threshold=0.7,
+                                               engine="pegasus"))
+    run.judge_temperature = 0.7
+    save_baseline(run)
+    run.judge_temperature = 0.0
+    _, rows, baseline = compare(run)
+    assert baseline["judge_temperature"] == 0.7
+    judge_row = next(r for r in rows if "judge:faithfulness" in r["result"])
+    assert "judge temperature changed 0.7 -> 0.0" in judge_row["note"]
+    assert all(not r["note"] for r in rows if ":: check:" in r["result"])
+    assert load_run(run.run_id).judge_temperature is None  # the saved run (before the edit) loads fine

@@ -18,6 +18,11 @@
 #    question / answer / contexts / expected_answer: <field>
 #               read that standard field from another parser field (see summarization)
 #
+#  judge_temperature (top of the file, not a metric): the temperature every judge's LLM runs at,
+#  Pegasus and DeepEval alike. 0 = the same answer gets the same score every time (as far as the
+#  model allows). It is saved with each run; make verdict warns when the baseline used another one.
+#  Change it only on purpose: scores at different temperatures are not comparable.
+#
 #  Add a Pegasus metric:     add an entry with `pegasus:` + `needs:` (+ `deepeval:` if DeepEval
 #                            has an equivalent, so machines without Pegasus can still run it).
 #  Remove a metric:          delete its entry, and remove it from any agents/*/agent.yaml.
@@ -34,6 +39,8 @@
 #
 #  Read by: src/metrics/library.py (checked when an agent loads, so a typo fails straight away).
 # ============================================================================================
+
+judge_temperature: 0.0          # every judge (Pegasus and DeepEval); see the note above
 
 relevance:
   needs: [question, answer]

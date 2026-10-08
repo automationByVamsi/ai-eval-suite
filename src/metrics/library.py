@@ -50,10 +50,28 @@ AGENT_KEYS = {"type", "threshold", "rubric", "criteria", "needs", "engine", "met
 COLUMN_SOURCES = {*STANDARD_FIELDS, "background"}     # what a `columns:` entry can map from
 
 
+SETTINGS = ("judge_temperature",)                      # top-level settings in metric_library.yaml, not metrics
+
+
+@functools.cache
+def _file() -> dict[str, Any]:
+    return yaml.safe_load(paths.METRIC_LIBRARY.read_text()) or {}
+
+
+@functools.cache
+def judge_temperature() -> float:
+    """`judge_temperature:` in metric_library.yaml (default 0.0): the temperature every judge LLM runs at."""
+    value = _file().get("judge_temperature", 0.0)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+        raise ConfigError(f"{paths.METRIC_LIBRARY.name}: judge_temperature must be a number from 0 to 1 "
+                          f"(got {value!r})")
+    return float(value)
+
+
 @functools.cache
 def library() -> dict[str, dict[str, Any]]:
-    """metric_library.yaml, checked once per process."""
-    entries = yaml.safe_load(paths.METRIC_LIBRARY.read_text()) or {}
+    """metric_library.yaml's metrics, checked once per process."""
+    entries = {name: entry for name, entry in _file().items() if name not in SETTINGS}
     for name, entry in entries.items():
         where = f"{paths.METRIC_LIBRARY.name}: '{name}'"
         if set(entry) - LIBRARY_KEYS:

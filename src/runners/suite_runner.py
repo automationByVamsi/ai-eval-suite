@@ -33,7 +33,7 @@ from src.core.results import CaseResult, Result, Run, check
 from src.fields.checks import fields_read, run_checks
 from src.fields.extract import extract, is_empty
 from src.metrics.judges import run_judge
-from src.metrics.library import definition
+from src.metrics.library import definition, judge_temperature
 from src.runners.test_cases import load_cases
 
 
@@ -55,6 +55,7 @@ def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: 
         cases = [c for c in cases if c["test_case_id"] in case_ids]
 
     run = Run(agent=agent.name, suite=suite.name, build=build, reps=reps, offline=offline,
+              judge_temperature=judge_temperature() if judges and suite.metrics else None,
               metrics=list(suite.metrics) if judges else [], checks=suite.checks,
               targets=dict(suite.targets), consistency=dict(agent.consistency))
     for case in cases:

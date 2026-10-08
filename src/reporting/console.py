@@ -19,7 +19,8 @@ RULE = "-" * 72
 def print_run(run: Run) -> None:
     """Per case: PASS / FAIL / ERROR, then every judge (score + engine) and any failing check. Then totals."""
     icon = {PASS: "PASS ", FAIL: "FAIL ", ERROR: "ERROR"}
-    print(f"\n{run.agent} / {run.suite}" + (f"  build={run.build}" if run.build else ""))
+    temperature = f"  judge temperature={run.judge_temperature}" if run.judge_temperature is not None else ""
+    print(f"\n{run.agent} / {run.suite}" + (f"  build={run.build}" if run.build else "") + temperature)
     print(RULE)
     for case in run.cases:
         rep = f" (rep {case.rep + 1})" if run.reps > 1 else ""

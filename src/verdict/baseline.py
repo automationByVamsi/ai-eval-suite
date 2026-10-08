@@ -61,6 +61,7 @@ def save_baseline(run: Run) -> Path:
         "build": run.build,
         "reps": run.reps,
         "run_id": run.run_id,
+        "judge_temperature": run.judge_temperature,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
         "results": summarize(run),
     }, indent=2))

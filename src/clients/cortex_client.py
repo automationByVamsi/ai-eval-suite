@@ -100,7 +100,9 @@ class CortexLLM(DeepEvalBaseLLM):
         Send one prompt, return the text — or, when DeepEval passes a pydantic `schema`, an
         instance of it parsed from the JSON answer.
         """
-        body = {"model": self.model_id, "temperature": 0.0, "messages": [{"role": "user", "content": prompt}]}
+        from src.metrics.library import judge_temperature
+        body = {"model": self.model_id, "temperature": judge_temperature(),
+                "messages": [{"role": "user", "content": prompt}]}
         response = self._post_with_retries(body)
         text = strip_code_fence(response.json()["choices"][0]["message"]["content"])
         return text if schema is None else _to_schema(text, schema)
