@@ -45,40 +45,63 @@ def consistency(run: Run) -> list[dict[str, Any]]:
       consistent   True / False;  why: the reasons in plain words
     """
     spec = run.consistency or {}
+
+    # Gather the runs of each case together: case id -> [run 1, run 2, ...]
     reps_by_case: dict[str, list[CaseResult]] = defaultdict(list)
     for case in run.cases:
         reps_by_case[case.case_id].append(case)
-    rows = []
-    for case_id, reps in reps_by_case.items():
-        if len(reps) < 2:
-            continue
-        same = spec.get("same")
-        overlap = _overlap(reps, same) if same else None
-        also = {field: _overlap(reps, field) for field in spec.get("report") or []}
-        wanted = spec.get("all_pass") or sorted({r.name for c in reps for r in c.results if r.kind == "judge"})
-        passes, not_judged = {}, {}
-        for name in wanted:
-            results = [r for c in reps for r in c.results if r.name == name]
-            outcomes = [r.status for r in results if r.status in (PASS, FAIL)]
-            if outcomes:
-                passes[name] = (outcomes.count(PASS), len(outcomes))
-            elif results:
-                reason = next((r.reason for r in results if r.reason), "")
-                not_judged[name] = reason.removeprefix("skipped: ") or "skipped in every run"
-        errors = sum(c.status == ERROR for c in reps)
-        evidence_ok = overlap is None or overlap >= float(spec.get("min_overlap", 1.0))
-        answers_ok = all(p == n for p, n in passes.values())
-        reasons = []
-        if not evidence_ok:
-            reasons.append(f"{field_label(same)} changed between runs ({overlap:.0%} in common)")
-        reasons += [f"{name} passed {p} of {n} runs" for name, (p, n) in passes.items() if p != n]
-        if errors:
-            reasons.append(f"{errors} run(s) could not be evaluated")
-        rows.append({"case": case_id, "reps": len(reps), "same": same, "overlap": overlap, "also": also,
-                     "passes": {k: f"{p}/{n}" for k, (p, n) in passes.items()}, "not_judged": not_judged,
-                     "consistent": evidence_ok and answers_ok and not errors, "why": "; ".join(reasons)})
-    rows.sort(key=lambda r: r["consistent"])
+
+    # Only cases that ran more than once can be compared with themselves.
+    rows = [_consistency_row(case_id, reps, spec) for case_id, reps in reps_by_case.items() if len(reps) >= 2]
+    rows.sort(key=lambda r: r["consistent"])        # False (inconsistent) sorts before True
     return rows
+
+
+def _consistency_row(case_id: str, reps: list[CaseResult], spec: dict) -> dict[str, Any]:
+    """The consistency result of one case, from all of its runs (`reps`)."""
+    # 1. Did the runs use the same evidence (e.g. the same pages)?
+    same = spec.get("same")
+    overlap = _overlap(reps, same) if same else None
+    also = {field: _overlap(reps, field) for field in spec.get("report") or []}   # shown only, not gated
+    evidence_ok = overlap is None or overlap >= float(spec.get("min_overlap", 1.0))
+
+    # 2. Did the judges that matter pass in every run?
+    passes, not_judged = _judge_outcomes(reps, spec)
+    answers_ok = all(p == n for p, n in passes.values())
+
+    # 3. Did any run fail to be evaluated at all?
+    errors = sum(c.status == ERROR for c in reps)
+
+    # The reasons, in plain words, for a person to read.
+    reasons = []
+    if not evidence_ok:
+        reasons.append(f"{field_label(same)} changed between runs ({overlap:.0%} in common)")
+    reasons += [f"{name} passed {p} of {n} runs" for name, (p, n) in passes.items() if p != n]
+    if errors:
+        reasons.append(f"{errors} run(s) could not be evaluated")
+
+    return {"case": case_id, "reps": len(reps), "same": same, "overlap": overlap, "also": also,
+            "passes": {k: f"{p}/{n}" for k, (p, n) in passes.items()}, "not_judged": not_judged,
+            "consistent": evidence_ok and answers_ok and not errors, "why": "; ".join(reasons)}
+
+
+def _judge_outcomes(reps: list[CaseResult], spec: dict) -> tuple[dict, dict]:
+    """For each judge that matters: how often it passed, e.g. {"correctness": (4, 5)} = 4 of 5 runs.
+
+    Returns (passes, not_judged). A judge that was skipped in every run can't pass or fail, so it goes
+    into `not_judged` with the reason instead.
+    """
+    wanted = spec.get("all_pass") or sorted({r.name for c in reps for r in c.results if r.kind == "judge"})
+    passes, not_judged = {}, {}
+    for name in wanted:
+        results = [r for c in reps for r in c.results if r.name == name]
+        outcomes = [r.status for r in results if r.status in (PASS, FAIL)]
+        if outcomes:
+            passes[name] = (outcomes.count(PASS), len(outcomes))
+        elif results:
+            reason = next((r.reason for r in results if r.reason), "")
+            not_judged[name] = reason.removeprefix("skipped: ") or "skipped in every run"
+    return passes, not_judged
 
 
 def field_label(field: str | None) -> str:
@@ -96,36 +119,45 @@ def targets(run: Run) -> list[dict[str, Any]]:
     """One row per target: actual value, target, met (False when there is no data)."""
     if not run.targets:
         return []
-    rates = {row["name"]: row for row in summarise([run])}
-    cases = run.cases
+    rates = {row["name"]: row for row in summarise([run])}      # pass rate of each judge / check
     rows = []
     for name, target in run.targets.items():
-        actual, detail = None, ""
-        if name == "error_rate" and cases:
-            errors = sum(c.status == ERROR for c in cases)
-            actual, detail = errors / len(cases), f"{errors}/{len(cases)} case runs"
-        elif name == "case_pass_rate" and cases:
-            passed = sum(c.status == PASS for c in cases)
-            actual, detail = passed / len(cases), f"{passed}/{len(cases)} case runs"
-        elif name == "consistency":
-            rows_c = consistency(run)
-            if rows_c:
-                ok = sum(r["consistent"] for r in rows_c)
-                actual, detail = ok / len(rows_c), f"{ok}/{len(rows_c)} cases consistent"
-            else:
-                detail = "needs more than one run per case (REPS > 1)"
-        elif name in rates and rates[name]["rate"] is not None:
-            row = rates[name]
-            actual, detail = row["rate"], f"{row[PASS]}/{row[PASS] + row[FAIL]} passed"
-        else:
-            detail = "no result in this run (skipped in every case, or not run)"
+        actual, detail = _target_value(run, name, rates)
         if actual is None:
+            # No data. That counts as "not met" - except `consistency` when each case ran only once,
+            # because then it can't apply (met = None, and gate() ignores it).
             met = None if name == "consistency" and run.reps < 2 else False
+        elif name in MAX_TARGETS:
+            met = actual <= target          # a ceiling, e.g. error_rate: must stay at or below
         else:
-            met = actual <= target if name in MAX_TARGETS else actual >= target
+            met = actual >= target          # a floor, e.g. correctness: must reach at least this
         rows.append({"name": name, "actual": actual, "target": target, "met": met,
                      "ceiling": name in MAX_TARGETS, "detail": detail})
     return rows
+
+
+def _target_value(run: Run, name: str, rates: dict[str, dict]) -> tuple[float | None, str]:
+    """What this run actually scored for one target: (value, a few words about it).
+
+    The value is None when there is nothing to measure.
+    """
+    cases = run.cases
+    if name == "error_rate" and cases:
+        errors = sum(c.status == ERROR for c in cases)
+        return errors / len(cases), f"{errors}/{len(cases)} case runs"
+    if name == "case_pass_rate" and cases:
+        passed = sum(c.status == PASS for c in cases)
+        return passed / len(cases), f"{passed}/{len(cases)} case runs"
+    if name == "consistency":
+        rows = consistency(run)
+        if not rows:
+            return None, "needs more than one run per case (REPS > 1)"
+        ok = sum(r["consistent"] for r in rows)
+        return ok / len(rows), f"{ok}/{len(rows)} cases consistent"
+    if name in rates and rates[name]["rate"] is not None:       # a judge or a check
+        row = rates[name]
+        return row["rate"], f"{row[PASS]}/{row[PASS] + row[FAIL]} passed"
+    return None, "no result in this run (skipped in every case, or not run)"
 
 
 def gate(run: Run) -> tuple[bool, list[dict[str, Any]]]:
