@@ -36,7 +36,7 @@ from src.reporting.summary import print_summary, summarise
 from src.runners.suite_runner import run_suite
 from src.synthesizer import generator
 from src.verdict.baseline import save_baseline
-from src.verdict.compare import compare
+from src.verdict.compare import compare, save_verdict
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -178,13 +178,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         return 0 if run.passed else 1
     if args.command == "baseline":
-        print(f"Baseline saved: {save_baseline(run)}  (commit it so the team shares it)")
+        path = save_baseline(run)
+        print(f"Baseline saved: {path} (+ {path.with_suffix('.run.json').name}, every case in full) "
+              f"— commit both so the team shares them")
         return 0
     passed, rows, baseline = compare(run)
     print_verdict(run, passed, rows, baseline)
     targets_met, _ = gate(run)
     if not targets_met:
         print("VERDICT: FAIL — release targets missed (see Targets above)")
+    save_verdict(run, passed, rows, baseline, targets_met)
+    print(f"See it in the dashboard: make dashboard  (run {run.run_id}, marked VERDICT)\n")
     return 0 if passed and targets_met else 1
 
 

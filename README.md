@@ -274,7 +274,7 @@ Every run's results appear in four places:
    | Test cases | per case (problems first): question, answer, golden answer, evidence pages; judges and checks; errors with how to fix them; inside: pipeline fields, stage timings, the test case, the raw trace |
    | Consistency | `REPS>1` runs only: anchor / related / cited pages of every repetition side by side, and each run's answer |
    | Trends | recent runs of the same suite |
-   | Baseline | this run against the saved baseline |
+   | Baseline | this run against the saved baseline (a `make verdict` run opens its own release view — see [Baseline and verdict](#baseline-and-verdict)) |
 4. **Rates over many runs** — `make summary AGENT=knowledge_agent SUITE=golden LAST=10`.
 
 **When a case fails:** read the reason on the console line → `make fields AGENT=<agent> SUITE=<suite>
@@ -722,7 +722,9 @@ make verdict  AGENT=knowledge_agent SUITE=e2e BUILD=1.5.0 REPS=5    # on the new
 ```
 
 LLM agents and judges aren't deterministic, so run each case several times (`REPS`). For every
-case × check/judge the baseline stores the pass rate and mean score. The verdict **fails** when:
+case × check/judge the baseline stores the pass rate and mean score (`baselines/<agent>/<suite>.json`),
+and the whole baseline run — every case's answer, pages, scores and reasons — in
+`baselines/<agent>/<suite>.run.json`. Commit both. The verdict **fails** when:
 
 - a pass rate drops by 15 points or more (e.g. 100% → 80%), or
 - a mean judge score drops by 0.10 or more — even if it is still above the threshold, or
@@ -730,6 +732,21 @@ case × check/judge the baseline stores the pass rate and mean score. The verdic
 
 It also flags when a score came from a different engine, or a different `judge_temperature`, than the
 baseline (not comparable).
+
+**See it in the dashboard.** `make verdict` saves the verdict with its run, so `make dashboard` lists it
+in the Run picker as **⚖ VERDICT PASS/FAIL · 1.5.0 vs 1.4.0** (the run saved by `make baseline` shows as
+**★ BASELINE**). Picking a verdict opens the release view: a PASS / FAIL banner with the reason, the
+headline numbers against the baseline, and four tabs —
+
+| Tab | Shows |
+|---|---|
+| Summary | how the test cases moved (regressed / improved / unchanged), release targets for both builds, every LLM judge (mean score) and every check that moved (pass rate), baseline → this build, and what changed per case |
+| Comparison | one row per test case — baseline status, this build's status, what changed — filterable by change, by judge / check and by text; open a case to see both builds side by side: scores, failed checks, answers, pages |
+| This build | every case of the new build, in full (the usual test case view; sidebar filters apply) |
+| Baseline build | every case of the baseline build, in full |
+
+Each verdict keeps a copy of the baseline it was judged against, so an old verdict still shows the same
+comparison after a new baseline is saved.
 To reuse a run instead of running again: `uv run python -m src verdict AGENT SUITE --from-run latest`.
 A baseline is refused if its run had errors.
 

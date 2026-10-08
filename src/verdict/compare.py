@@ -14,10 +14,12 @@ To make the verdict stricter or looser, change the two tolerances below.
 from __future__ import annotations
 
 import json
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from src.core.results import ERROR, Run
-from src.verdict.baseline import baseline_path, summarize
+from src.verdict.baseline import baseline_path, baseline_run_file, summarize
 
 PASS_RATE_DROP = 0.15   # e.g. 100% -> 80% of reps passing is a regression
 SCORE_DROP = 0.10       # e.g. faithfulness mean 0.92 -> 0.80 is a regression, even if still above threshold
@@ -64,3 +66,29 @@ def compare(run: Run) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
     errors = any(c.status == ERROR for c in run.cases)
     passed = not errors and not any(r["status"] in ("regression", "missing") for r in rows)
     return passed, rows, baseline
+
+
+def save_verdict(run: Run, passed: bool, rows: list[dict[str, Any]], baseline: dict[str, Any],
+                 targets_met: bool) -> Path:
+    """
+    Keep the verdict with the run, for the dashboard: the run is marked kind=verdict, its folder gets
+    verdict.json (outcome + every compared row) and baseline_results.json (the baseline's full run as it
+    was at verdict time, so the verdict reads the same later even after a new baseline is saved).
+    """
+    run.kind = "verdict"
+    run.save()
+    source = baseline_run_file(run.agent, run.suite)
+    if source is not None:
+        (run.folder / "baseline_results.json").write_text(source.read_text())
+    path = run.folder / "verdict.json"
+    path.write_text(json.dumps({
+        "passed": passed and targets_met,           # the overall verdict, as `make verdict` exits
+        "no_regressions": passed,
+        "targets_met": targets_met,
+        "decided_at": datetime.now().isoformat(timespec="seconds"),
+        "tolerances": {"pass_rate_drop": PASS_RATE_DROP, "score_drop": SCORE_DROP},
+        "baseline": {k: baseline.get(k) for k in ("build", "run_id", "reps", "saved_at", "judge_temperature")},
+        "has_baseline_run": source is not None,
+        "rows": rows,
+    }, indent=2, default=str))
+    return path

@@ -100,4 +100,30 @@ def test_verdict_notes_a_changed_judge_temperature(outputs):
     judge_row = next(r for r in rows if "judge:faithfulness" in r["result"])
     assert "judge temperature changed 0.7 -> 0.0" in judge_row["note"]
     assert all(not r["note"] for r in rows if ":: check:" in r["result"])
-    assert load_run(run.run_id).judge_temperature is None  # the saved run (before the edit) loads fine
+    assert load_run(run.run_id).kind == "baseline"         # save_baseline marks (and re-saves) its run
+
+
+def test_baseline_keeps_the_full_run_and_the_verdict_keeps_both(outputs):
+    """The dashboard's verdict view needs both builds case by case, on any machine, later too."""
+    from src.verdict.baseline import baseline_run_path, load_baseline_run
+    from src.verdict.compare import save_verdict
+
+    stable = run_suite("knowledge_agent", "sanity", offline=True, judges=False, build="1.4.0", case_ids=PASSING)
+    save_baseline(stable)
+    assert baseline_run_path("knowledge_agent", "sanity").is_file()
+    copy = load_baseline_run("knowledge_agent", "sanity")
+    assert (copy.build, copy.kind, copy.cases[0].case_id) == ("1.4.0", "baseline", "TC_002")
+
+    new = run_suite("knowledge_agent", "sanity", offline=True, judges=False, build="1.5.0", case_ids=PASSING)
+    new.cases[0].results[0].status = results.FAIL            # a regression
+    passed, rows, baseline = compare(new)
+    path = save_verdict(new, passed, rows, baseline, targets_met=True)
+    saved = json.loads(path.read_text())
+    assert saved["passed"] is False and saved["baseline"]["build"] == "1.4.0" and saved["has_baseline_run"]
+    assert any(r["status"] == "regression" for r in saved["rows"])
+    assert load_run(new.run_id).kind == "verdict"
+    frozen = load_run(str(new.folder / "baseline_results.json"))
+    assert frozen.build == "1.4.0"                           # the baseline as it was at verdict time
+
+    baseline_run_path("knowledge_agent", "sanity").unlink()   # a baseline saved before .run.json existed:
+    assert load_baseline_run("knowledge_agent", "sanity").build == "1.4.0"   # found via outputs/runs

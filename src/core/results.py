@@ -76,6 +76,7 @@ class Run:
     agent: str
     suite: str
     build: str = ""              # label of the build under test, e.g. "1.5.0"
+    kind: str = "run"            # run | baseline (make baseline) | verdict (make verdict)
     reps: int = 1
     offline: bool = False        # True when saved traces were replayed instead of calling the agent
     judge_temperature: float | None = None   # temperature the judges ran at (None: no judges ran)
