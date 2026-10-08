@@ -22,7 +22,7 @@ from src.core.results import PASS, CaseResult, Run
 from src.reporting import dashboard_parts as ui
 from src.reporting import release
 from src.reporting import verdict_view as vv
-from src.reporting.dashboard_cases import PAGE_SIZE, render_case_list
+from src.reporting.dashboard_cases import PAGE_SIZE, show_case_list
 from src.reporting.dashboard_style import html
 from src.reporting.dashboard_verdict_parts import (
     CHANGE_STYLE,
@@ -39,7 +39,7 @@ from src.reporting.dashboard_verdict_parts import (
 )
 
 
-def render_verdict(v: "vv.Verdict", status_filter: list | None, search: str) -> None:
+def show_verdict_page(v: "vv.Verdict", status_filter: list | None, search: str) -> None:
     """Draw the whole release view for one verdict. status_filter and search come from the sidebar."""
     current, base = v.run, v.baseline_run
 
@@ -54,7 +54,7 @@ def render_verdict(v: "vv.Verdict", status_filter: list | None, search: str) -> 
     questions = {c.case_id: c.question for c in [*current.cases, *(base.cases if base else [])]}
 
     show_banner(v, reason)
-    show_kpis(changes, now_stats, was_stats)
+    show_verdict_kpis(changes, now_stats, was_stats)
 
     tab_summary, tab_compare, tab_now, tab_base = st.tabs([
         ":material/insights: Summary", f":material/compare_arrows: Comparison ({len(changes)})",
@@ -65,10 +65,10 @@ def render_verdict(v: "vv.Verdict", status_filter: list | None, search: str) -> 
     with tab_compare:
         show_comparison_tab(v, changes, questions)
     with tab_now:
-        render_case_list(current, "verdict_now", status_filter, search)
+        show_case_list(current, "verdict_now", status_filter, search)
     with tab_base:
         if base:
-            render_case_list(base, "verdict_base", status_filter, search)
+            show_case_list(base, "verdict_base", status_filter, search)
         else:
             st.info("The full baseline run isn't available for this verdict (the baseline was saved before full runs "
                     "were kept). Save a new baseline with `make baseline` to see it here.")
@@ -97,7 +97,7 @@ def show_banner(v: "vv.Verdict", reason: str) -> None:
          f'<div class="vbadge-note">{"ready to release" if good else "not ready to release"}</div></div></div>')
 
 
-def show_kpis(changes: dict, now_stats: dict, was_stats: dict | None) -> None:
+def show_verdict_kpis(changes: dict, now_stats: dict, was_stats: dict | None) -> None:
     """Five headline numbers. Each shows the baseline's value and how it changed (was_stats is None: no baseline)."""
     regressed = sum(c.change == "regressed" for c in changes.values())
     improved = sum(c.change == "improved" for c in changes.values())
@@ -220,9 +220,9 @@ def show_notes(outcome: dict) -> None:
 def show_comparison_tab(v: "vv.Verdict", changes: dict, questions: dict) -> None:
     """Filters, a table of every test case, then one expander per case with both builds side by side."""
     picked_keys, wanted_results, text = _comparison_filters(changes)
-    by_id_now, by_id_base = _by_case(v.run), _by_case(v.baseline_run)
+    by_id_now, by_id_base = _reps_by_case(v.run), _reps_by_case(v.baseline_run)
 
-    shown = sorted((c for c in changes.values() if _keep(c, picked_keys, wanted_results, text, questions)),
+    shown = sorted((c for c in changes.values() if _keep_case(c, picked_keys, wanted_results, text, questions)),
                    key=lambda c: (vv.CHANGES.index(c.change), c.case_id))
     st.caption(f"{len(shown)} of {len(changes)} test cases · worst first")
     if not shown:
@@ -241,7 +241,7 @@ def show_comparison_tab(v: "vv.Verdict", changes: dict, questions: dict) -> None
     pages = max(1, -(-len(shown) // PAGE_SIZE))
     page = st.number_input("Page", 1, pages, 1, key="v_page") if pages > 1 else 1
     for c in shown[(page - 1) * PAGE_SIZE: page * PAGE_SIZE]:
-        _show_changed_case(c, questions, by_id_base.get(c.case_id, []), by_id_now.get(c.case_id, []), v,
+        show_changed_case(c, questions, by_id_base.get(c.case_id, []), by_id_now.get(c.case_id, []), v,
                            expanded=len(shown) == 1)
 
 
@@ -259,7 +259,7 @@ def _comparison_filters(changes: dict) -> tuple[set, list, str]:
     return picked_keys, wanted_results, text
 
 
-def _keep(c, picked_keys: set, wanted_results: list, text: str, questions: dict) -> bool:
+def _keep_case(c, picked_keys: set, wanted_results: list, text: str, questions: dict) -> bool:
     """True when a test case passes all three filters."""
     if c.change not in picked_keys:
         return False
@@ -269,7 +269,7 @@ def _keep(c, picked_keys: set, wanted_results: list, text: str, questions: dict)
     return not text or text in c.case_id.casefold() or text in question.casefold()
 
 
-def _show_changed_case(c, questions: dict, base_reps: list, now_reps: list, v: "vv.Verdict", expanded: bool) -> None:
+def show_changed_case(c, questions: dict, base_reps: list, now_reps: list, v: "vv.Verdict", expanded: bool) -> None:
     """One expander: what changed, the question, then the baseline build and the new build side by side."""
     label_, _, _, colour, icon = CHANGE_STYLE[c.change]
     moved = " · ".join(vv.describe(i) for i in c.items if i["status"] != "ok")
@@ -283,11 +283,11 @@ def _show_changed_case(c, questions: dict, base_reps: list, now_reps: list, v: "
         html(f'<div class="question" style="margin:8px 0 12px">'
              f'{ui.esc(questions.get(c.case_id, ""))}</div>')
         left, right = st.columns(2, gap="medium")
-        render_side(base_reps[0] if base_reps else None, base_reps, left, f"Baseline · build {v.baseline_build}")
-        render_side(now_reps[0] if now_reps else None, now_reps, right, f"This build · {v.run.build or '?'}")
+        show_build_side(base_reps[0] if base_reps else None, base_reps, left, f"Baseline · build {v.baseline_build}")
+        show_build_side(now_reps[0] if now_reps else None, now_reps, right, f"This build · {v.run.build or '?'}")
 
 
-def render_side(case: CaseResult | None, reps: list, col, title: str) -> None:
+def show_build_side(case: CaseResult | None, reps: list, col, title: str) -> None:
     """One build's side of a comparison: its status and scores, the answer, and the pages used."""
     with col.container(border=True):
         html(f'<div class="card-label">{ui.esc(title)}</div>')
@@ -304,7 +304,7 @@ def render_side(case: CaseResult | None, reps: list, col, title: str) -> None:
             html("".join(ui.page_html(p) for p in pages))
 
 
-def _by_case(r: Run | None) -> dict[str, list[CaseResult]]:
+def _reps_by_case(r: Run | None) -> dict[str, list[CaseResult]]:
     """{case id: its repetitions in order}. Empty when there is no run."""
     out: dict[str, list[CaseResult]] = {}
     for c in (r.cases if r else []):

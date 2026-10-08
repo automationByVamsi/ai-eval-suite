@@ -8,14 +8,8 @@ This file is only the front door. It does three things:
   2. draws the sidebar (pick an agent, a suite and a run; filter the test cases),
   3. opens the right page for the chosen run.
 
-The pages themselves live in their own files:
-  dashboard_run.py          an ordinary run: Overview, Test cases, Consistency, Trends, Baseline tabs
-  dashboard_verdict.py      a run saved by `make verdict`: PASS / FAIL banner and the two builds side by side
-  dashboard_cases.py        the list of test cases (used by both pages)
-  dashboard_consistency.py  the Consistency tab (runs with REPS > 1)
-  dashboard_data.py         reading the saved runs
-  dashboard_style.py        colours and CSS
-  dashboard_parts.py        small helpers that build HTML (kept free of Streamlit so tests can use them)
+The pages themselves live in their own files — every file and its job is listed in
+src/reporting/__init__.py.
 """
 
 import sys
@@ -28,9 +22,9 @@ import streamlit as st  # noqa: E402 — must come after the sys.path line above
 
 from src.reporting import verdict_view as vv  # noqa: E402
 from src.reporting.dashboard_data import all_run_ids, load, run_label  # noqa: E402
-from src.reporting.dashboard_run import render_run_page  # noqa: E402
+from src.reporting.dashboard_run import show_run_page  # noqa: E402
 from src.reporting.dashboard_style import apply_theme, html  # noqa: E402
-from src.reporting.dashboard_verdict import render_verdict  # noqa: E402
+from src.reporting.dashboard_verdict import show_verdict_page  # noqa: E402
 
 st.set_page_config(page_title="Agent evals", page_icon=":material/fact_check:", layout="wide")
 apply_theme()                   # the colours and CSS (dashboard_style.py)
@@ -74,6 +68,6 @@ with st.sidebar:
 run = load(run_id)
 verdict = vv.load(run)          # None unless the run was saved by `make verdict`
 if verdict is not None:
-    render_verdict(verdict, status_filter, search)
+    show_verdict_page(verdict, status_filter, search)
 else:
-    render_run_page(run, by_pair[(agent, suite)], status_filter, search)
+    show_run_page(run, by_pair[(agent, suite)], status_filter, search)

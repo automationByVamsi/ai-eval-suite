@@ -20,4 +20,10 @@ The Streamlit dashboard (make dashboard). Start at dashboard.py, which is only t
   dashboard_data.py          reading the saved runs
   dashboard_style.py         colours and CSS
   dashboard_parts.py         helpers that build HTML text (no Streamlit, so tests can check them directly)
+
+Naming in the dashboard files:
+  show_...   draws something on the page (show_run_page, show_verdict_page, show_case_list are the
+             entry points the other files call)
+  ..._html   returns a piece of HTML as text, draws nothing (in the *_parts.py files)
+  _name      a helper used only inside its own file
 """

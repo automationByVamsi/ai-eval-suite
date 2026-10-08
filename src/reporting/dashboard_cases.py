@@ -2,7 +2,8 @@
 The test-case list of the dashboard: one expander per case, with what was asked and answered on the left
 and the LLM judges and deterministic checks on the right.
 
-Used by: dashboard.py (the "Test cases" tab) and dashboard_verdict.py (its "This build" / "Baseline build" tabs).
+Used by: dashboard_run.py (the "Test cases" tab) and dashboard_verdict.py (the "This build" and
+"Baseline build" tabs).
 """
 
 import altair as alt
@@ -16,7 +17,7 @@ from src.reporting.dashboard_style import html
 PAGE_SIZE = 25          # cases / rows shown per page
 
 
-def matches(case: CaseResult, status_filter: list | None, search: str) -> bool:
+def _matches(case: CaseResult, status_filter: list | None, search: str) -> bool:
     """True when the case passes the sidebar filters: its status is ticked and the search text is in it."""
     wanted = {s.lower() for s in (status_filter or [])}
     if case.status not in wanted:
@@ -25,7 +26,7 @@ def matches(case: CaseResult, status_filter: list | None, search: str) -> bool:
     return not text or any(text in (v or "").casefold() for v in (case.case_id, case.question, case.answer))
 
 
-def case_header(case: CaseResult, reps: int) -> tuple[str, str]:
+def _case_header(case: CaseResult, reps: int) -> tuple[str, str]:
     """The one-line title of a case's accordion, and its icon: status, id, question, judge / check tallies."""
     judges, groups = ui.split(case)
     checks = [r for g in groups.values() for r in g]
@@ -46,7 +47,7 @@ def case_header(case: CaseResult, reps: int) -> tuple[str, str]:
     return "  ·  ".join(bits) + ("  —  " + " · ".join(tail) if tail else ""), icon
 
 
-def render_left(case: CaseResult, col) -> None:
+def show_answer_column(case: CaseResult, col) -> None:
     """Left column of a case: the question, the agent's answer, the expected answer and the pages behind it."""
     d = case.details or {}
     with col.container(border=True):
@@ -94,7 +95,7 @@ def render_left(case: CaseResult, col) -> None:
             st.caption(roles)
 
 
-def render_right(case: CaseResult, col, suite_checks: list | None) -> None:
+def show_results_column(case: CaseResult, col, suite_checks: list | None) -> None:
     """Right column of a case: the LLM judges, then the deterministic checks (kept apart)."""
     judges, groups = ui.split(case)
     with col.container(border=True):
@@ -119,7 +120,7 @@ def render_right(case: CaseResult, col, suite_checks: list | None) -> None:
             html('<div class="note">No checks ran for this case.</div>')
 
 
-def render_debug(case: CaseResult) -> None:
+def show_debug_tabs(case: CaseResult) -> None:
     """The tabs under a case for people debugging it: fields, stage timings, the test case, the raw result."""
     fields_tab, timing_tab, case_tab, raw_tab = st.tabs([
         ":material/data_object: Pipeline fields", ":material/timer: Stage timings",
@@ -150,12 +151,12 @@ def render_debug(case: CaseResult) -> None:
                  "results": [r.__dict__ for r in case.results]}, expanded=False)
 
 
-def render_case_list(r: Run, key: str, status_filter: list | None, search: str) -> None:
+def show_case_list(r: Run, key: str, status_filter: list | None, search: str) -> None:
     """
     Every test case of a run (filtered by the sidebar), problems first, one expander each.
     key: makes the page number box unique when two lists are on one page (verdict view).
     """
-    shown = [c for c in r.cases if matches(c, status_filter, search)]
+    shown = [c for c in r.cases if _matches(c, status_filter, search)]
     shown.sort(key=lambda c: {ERROR: 0, FAIL: 1, PASS: 2}[c.status])
     top = st.columns([3, 1])
     top[0].caption(f"{len(shown)} of {len(r.cases)} cases · problems first · use the sidebar to filter. "
@@ -166,11 +167,11 @@ def render_case_list(r: Run, key: str, status_filter: list | None, search: str) 
     if not shown:
         st.info("No case matches the filters.")
     for case in shown[(page - 1) * PAGE_SIZE: page * PAGE_SIZE]:
-        title, icon = case_header(case, r.reps)
+        title, icon = _case_header(case, r.reps)
         with st.expander(title, icon=icon, expanded=len(shown) == 1):
             for problem in ui.problems(case):
                 html(ui.problem_html(problem))
             left, right = st.columns([1.15, 1], gap="medium")
-            render_left(case, left)
-            render_right(case, right, r.checks)
-            render_debug(case)
+            show_answer_column(case, left)
+            show_results_column(case, right, r.checks)
+            show_debug_tabs(case)

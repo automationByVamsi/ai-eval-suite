@@ -18,7 +18,7 @@ import streamlit as st
 from src.core.results import ERROR, FAIL, PASS, SKIP, Run
 from src.reporting import dashboard_parts as ui
 from src.reporting import release
-from src.reporting.dashboard_cases import render_case_list
+from src.reporting.dashboard_cases import show_case_list
 from src.reporting.dashboard_consistency import show_consistency_tab
 from src.reporting.dashboard_data import load
 from src.reporting.dashboard_style import html
@@ -30,7 +30,7 @@ from src.verdict.compare import compare
 COLORS = {PASS: "#16a34a", FAIL: "#dc2626", ERROR: "#d97706", SKIP: "#94a3b8"}
 
 
-def render_run_page(run: Run, same_suite_ids: list[str], status_filter: list[str], search: str) -> None:
+def show_run_page(run: Run, same_suite_ids: list[str], status_filter: list[str], search: str) -> None:
     """Draw the whole page for one run.
 
     same_suite_ids: the ids of every run of this agent and suite, newest first (used by the Trends tab).
@@ -55,7 +55,7 @@ def render_run_page(run: Run, same_suite_ids: list[str], status_filter: list[str
     with overview_tab:
         show_overview(run, stats, summary, consistency_rows)
     with cases_tab:
-        render_case_list(run, "run", status_filter, search)
+        show_case_list(run, "run", status_filter, search)
     if consistency_tab is not None:
         with consistency_tab:
             show_consistency_tab(run, consistency_rows)

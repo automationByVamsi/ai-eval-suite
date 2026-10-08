@@ -21,13 +21,13 @@ def show_consistency_tab(run: Run, consistency_rows: list[dict]) -> None:
     for c in run.cases:
         reps_by_case.setdefault(c.case_id, []).append(c)
 
-    st.caption(f"Each case was asked {run.reps} times. {consistency_rule(spec)}")
+    st.caption(f"Each case was asked {run.reps} times. {_consistency_rule(spec)}")
     for row in consistency_rows:
         reps = sorted(reps_by_case[row["case"]], key=lambda c: c.rep)
         show_case(row, reps, spec)
 
 
-def consistency_rule(spec: dict) -> str:
+def _consistency_rule(spec: dict) -> str:
     """The rule in words, from agent.yaml `consistency:`."""
     parts = []
     if spec.get("same"):
@@ -37,7 +37,7 @@ def consistency_rule(spec: dict) -> str:
     return "A case is consistent when " + " and ".join(parts) + ". The wording of the answer may differ."
 
 
-def friendly(reason: str) -> str:
+def _friendly(reason: str) -> str:
     """'case has no expected_answer' -> 'no reference answer' (other reasons as they are)."""
     return "no reference answer" if "expected_answer" in reason else reason
 
@@ -46,7 +46,7 @@ def show_case(row: dict, reps: list[CaseResult], spec: dict) -> None:
     """One case: an accordion that is open when the case was inconsistent."""
     ok = row["consistent"]
     title = (f":{'green' if ok else 'red'}[**{'CONSISTENT' if ok else 'INCONSISTENT'}**]  ·  "
-             f"**{row['case']}**  ·  {case_headline(row, ok)}")
+             f"**{row['case']}**  ·  {_case_headline(row, ok)}")
     with st.expander(title, icon=":material/check_circle:" if ok else ":material/cancel:", expanded=not ok):
         html(f'<div class="question">{ui.esc(reps[0].question or "-")}</div>')
         show_stats_line(row, spec)
@@ -54,7 +54,7 @@ def show_case(row: dict, reps: list[CaseResult], spec: dict) -> None:
         show_each_run(reps)
 
 
-def case_headline(row: dict, ok: bool) -> str:
+def _case_headline(row: dict, ok: bool) -> str:
     """The short sentence after the case name, e.g. 'same pages in every run'."""
     if ok:
         headline = (f"same {release.field_label(row['same'])} in every run" if row["same"]
@@ -62,7 +62,7 @@ def case_headline(row: dict, ok: bool) -> str:
     else:
         headline = row["why"]
     # judges that could not give a verdict are added to the end
-    headline += "".join(f" · {ui.label(n).lower()} not judged ({friendly(why)})"
+    headline += "".join(f" · {ui.label(n).lower()} not judged ({_friendly(why)})"
                         for n, why in row["not_judged"].items())
     return headline
 
@@ -79,7 +79,7 @@ def show_stats_line(row: dict, spec: dict) -> None:
         chips.append(ui.chip(f"{ui.label(name).lower()} passed {k} of {n}",
                              "good-soft" if k == n else "bad-soft"))
     for name, why in row["not_judged"].items():
-        chips.append(ui.chip(f"{ui.label(name).lower()}: not judged ({friendly(why)})", "ghost"))
+        chips.append(ui.chip(f"{ui.label(name).lower()}: not judged ({_friendly(why)})", "ghost"))
     for field, overlap in row["also"].items():
         chips.append(ui.chip(f"{release.field_label(field)}: {overlap:.0%} in common", "ghost"))
     html(f'<div class="stat-line">{"".join(chips)}</div>')
@@ -102,10 +102,10 @@ def show_each_run(reps: list[CaseResult]) -> None:
     html('<div class="card-label" style="margin-top:14px">The answer in each run</div>')
     for tab, case in zip(st.tabs([f"Run {c.rep + 1}" for c in reps]), reps, strict=True):
         with tab:
-            render_repetition(case)
+            show_repetition(case)
 
 
-def render_repetition(case: CaseResult) -> None:
+def show_repetition(case: CaseResult) -> None:
     """One run of a repeated case: its answer, confidence, latency and scores."""
     d = case.details or {}
     meta = [ui.chip(case.status.upper(), {PASS: "good-soft", FAIL: "bad-soft", ERROR: "warn-soft"}[case.status])]

@@ -1,9 +1,10 @@
 """
 The pieces of the results dashboard that aren't Streamlit calls: what an error means and how to fix
 it, how a case's results split into judges and checks, and the small HTML blocks (cards, meters,
-chips) the dashboard draws. Kept apart from dashboard.py so they can be tested without a browser.
+chips) the dashboard draws. No Streamlit here, so tests can check them without a browser.
 
-Used by: src/reporting/dashboard.py only.
+Used by: every dashboard view (dashboard_run, dashboard_cases, dashboard_consistency, dashboard_verdict,
+dashboard_verdict_parts) and tests/test_dashboard.py.
 """
 
 from __future__ import annotations
