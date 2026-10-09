@@ -67,7 +67,7 @@ def test_anchor_hit_rate_across_cases_reps_and_runs(outputs, monkeypatch, capsys
     hit = rows["anchor_hit"]
     assert (hit["pass"], hit["fail"], hit["rate"], hit["cases"]) == (3, 3, 0.5, 2)   # 2 cases x 3 reps
     assert hit["unstable"] == {}                                                       # same outcome every rep
-    assert rows["expansion_precision"]["rate"] is None                                 # never had expected data
+    assert rows["expansion_recall"]["rate"] is None                                 # never had expected data
     assert "summary" in json.loads((run.folder / "results.json").read_text())
 
     run_suite("knowledge_agent", "sanity", offline=True, judges=False)                 # a second run

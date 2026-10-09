@@ -152,8 +152,8 @@ def test_knowledge_agent_suites_load_with_targets_and_new_checks(outputs):
     run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"])
     names = {r.name: r.status for r in run.cases[0].results}
     assert names["within_60s"] == "pass" and names["page_link_for_every_source"] == "pass"
-    assert names["anchor_rationale_logged"] == "pass" and names["validation_reasons_logged"] == "pass"
-    assert names["warns_when_it_cannot_answer"] == "skip"                 # not a should-decline case
+    assert names["no_internal_markers"] == "pass" and names["citations_in_evidence_set"] == "pass"
+    assert names["caveat_when_not_high"] == "skip"                        # confidence is HIGH
     assert run.targets == {"case_pass_rate": 1.0, "error_rate": 0.05}
 
 

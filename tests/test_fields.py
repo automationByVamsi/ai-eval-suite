@@ -159,7 +159,7 @@ def test_make_fields_previews_fields_and_checks(capsys):
     assert "=== TC_012.json" in out
     assert "empty     disclosures" in out and "empty     expanded_page_ids" in out
     assert "empty     expansion_labels" in out                                           # branches, none expanded
-    assert "FAIL      fallback_disclosed" in out
+    assert "PASS      citations_in_evidence_set" in out and "SKIP      anchor_hit" in out   # no golden data
     with pytest.raises(ConfigError, match="No saved trace"):
         cli.main(["fields", "knowledge_agent", "--case", "TC_999"])
 

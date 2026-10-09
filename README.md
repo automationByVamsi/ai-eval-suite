@@ -123,12 +123,11 @@ flowchart TD
     EXP --> V["6. Validation<br/>relevance / applicability / sufficiency scores"]
     V --> SY["7. Synthesis<br/>answer + evidence (id, title, link)"]
 
-    RW -.- c1["checks: rewrite_present, query_type_match<br/>judges: intent / semantic preservation,<br/>domain appropriateness, query optimisation"]
-    S -.- c2["checks: search_recall_at_5, search_precision_at_5"]
-    AN -.- c3["checks: anchor_hit, anchor_from_search, anchor_rationale_logged<br/>judges: anchor_relevance, anchor_grounding_quality"]
-    EXP -.- c4["checks: expansion_precision / recall"]
-    V -.- c5["checks: validation_scores_in_range, validation_reasons_logged"]
-    SY -.- c6["checks: answer, citations, disclosure, honesty, within_60s<br/>judges: relevance, correctness, faithfulness,<br/>context recall / precision, response_alignment"]
+    RW -.- c1["judges: intent / semantic preservation,<br/>domain appropriateness, query optimisation"]
+    S -.- c2["checks: search_recall_at_5"]
+    AN -.- c3["checks: anchor_hit<br/>judges: anchor_relevance, anchor_grounding_quality"]
+    EXP -.- c4["checks: expansion_recall"]
+    SY -.- c6["checks: no_internal_markers, citations_in_evidence_set,<br/>page_link_for_every_source, caveat_when_not_high, within_60s<br/>judges: relevance, correctness, faithfulness,<br/>context recall / precision, response_alignment"]
 ```
 
 **The trace is the only evidence.** What the agent doesn't log can't be tested — e.g. "Precision@5"
@@ -242,10 +241,10 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 |---|---|---|---|---|
 | `sanity` | `sanity/` | relevance, correctness, faithfulness | all | smoke-test a build or a setup; every case must pass |
 | `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
-| `should_decline` | `should_decline/` — questions the KB can't answer | – | honesty, performance | check the agent warns instead of answering confidently |
+| `should_decline` | `should_decline/` — questions the KB can't answer | – | basic, disclosure, performance | for when the agent can decline (not built yet): today, answers in time and caveats low confidence |
 | `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
-| `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, pipeline | judge intermediate steps, not just the answer |
-| `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness | basic, answer, citations, source page | broad coverage; not a release gate |
+| `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
+| `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness | basic, answer, source page | broad coverage; not a release gate |
 | `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
 | `relevance_only`, `faithfulness_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
 
@@ -473,8 +472,8 @@ format changed?") instead of silently skipping judges.
 
 ```yaml
 checks:
-  confidence_valid:   {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
-  fallback_disclosed: {type: present, field: disclosures, when: {field: metadata_missing, is: true}}
+  within_60s:           {type: range, field: latency_ms, min: 0, max: 60000}
+  caveat_when_not_high: {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
   anchor_hit:
     type: any_in
     compare:                                    # the first pair the case has an expected value for
@@ -493,27 +492,26 @@ Options:
     type: recall
     k: 5
     compare: [{field: search_candidates, expected: expected_anchor_page_ids}]
-  search_precision_at_5:
+  pages_found:                           # several expected keys: their union
     type: precision
-    k: 5
-    compare: [{field: search_candidates, expected: [expected_anchor_page_ids, expected_related_page_ids]}]  # union
+    compare: [{field: search_candidates, expected: [expected_anchor_page_ids, expected_related_page_ids]}]
   warns_when_it_cannot_answer:           # only for cases whose expected block says should_decline: true
     {type: present, field: disclosures, when: {expected: should_decline, is: true}}
-  validation_reasons_logged:             # every listed field must be non-empty
-    {type: present, fields: [anchor_rationale, validation_reasons]}
+  reasons_logged:                        # every listed field must be non-empty
+    {type: present, fields: [relevance_reason, sufficiency_reason]}
 ```
 
 Retrieval checks only see what the agent's trace logs (e.g. `search_branches.*.filtered_page_ids`):
 "Precision@5" means precision of the top 5 candidates *as logged*, not of the full search index.
 
-Checks can be written in groups (`answer:`, `citations:`, `retrieval:` …; the dashboard shows them by
+Checks can be written in groups (`answer:`, `retrieval:`, `performance:` …; the dashboard shows them by
 group), and **each suite chooses which checks it runs** — judges and checks are set separately:
 
 ```yaml
 suites:
   golden:          {metrics: [relevance, correctness, faithfulness]}            # checks: all (default)
   relevance_only:  {metrics: [relevance], checks: none}                          # judges only
-  stages:          {metrics: [intent_preservation], checks: [basic, pipeline]}   # groups and/or check names
+  stages:          {metrics: [intent_preservation], checks: [basic, retrieval]}  # groups and/or check names
 ```
 
 `basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Lookups

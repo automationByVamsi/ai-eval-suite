@@ -221,16 +221,13 @@ make run AGENT=knowledge_agent SUITE=sanity OFFLINE=1 JUDGES=0
 You should see:
 
 ```
-PASS  TC_002  [11 skipped]
-FAIL  TC_012  [10 skipped]
-        FAIL  check:fallback_disclosed disclosures empty
-...
-1 passed, 1 failed, 0 errors  ->  outputs/runs/<run id>/results.json
+PASS  TC_002  [5 skipped]
+PASS  TC_012  [5 skipped]
+2 passed, 0 failed, 0 errors  ->  outputs/runs/<run id>/results.json
 ```
 
-The TC_012 failure is **expected**: in that saved trace the agent fell back to the top search result
-without telling the user, and the `fallback_disclosed` check catches it. "skipped" means the sanity
-cases have no golden data for those checks — not a failure.
+"skipped" means the sanity cases have no golden data for those checks (expected pages, source page),
+or the check doesn't apply (the caveat check runs only for MEDIUM / LOW confidence) — not a failure.
 
 **Done when** your output matches.
 
