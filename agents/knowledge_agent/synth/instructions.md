@@ -15,4 +15,6 @@ When writing questions:
 When writing expected answers:
 - Stay faithful to the page; quote figures, timescales and thresholds exactly.
 - Call out warnings, exceptions and conditions the page attaches to what is asked.
-- Use the answer shape the style asks for (steps, definitions, yes/no + why, or a short summary).
+- Use the answer shape the style asks for (steps, definitions, yes/no + why, or a summary).
+- Let the page and the question decide the length: complete, with nothing the question needs left out,
+  and nothing added to make it longer. The lengths in a style are typical, not limits.

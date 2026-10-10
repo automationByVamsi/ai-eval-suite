@@ -27,7 +27,9 @@ yes/no questions.
 
 ## expected_output_format
 
-Definitions in the form "<term>: <meaning>", one per line, using the page's own words (1-4 lines).
-For a fact, the term is the thing asked about ("Timescale: ..."). For eligibility, one line per
-criterion or exclusion ("Age requirement: ...", "Excluded: ..."). Quote figures, timescales and
-thresholds exactly as the page gives them. Nothing the page doesn't state.
+Definitions in the form "<term>: <meaning>", one per line, using the page's own words. One line for a
+single term or fact; one line per term when the question needs related terms (e.g. each level); for
+eligibility, one line per criterion or exclusion the page lists ("Age requirement: ...", "Excluded:
+...") — all of them, however many. A meaning may be more than one sentence when the page's definition
+is. For a fact, the term is the thing asked about ("Timescale: ..."). Quote figures, timescales and
+thresholds exactly. Nothing the page doesn't state.

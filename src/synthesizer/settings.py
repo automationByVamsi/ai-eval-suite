@@ -27,7 +27,7 @@ from src.core.exceptions import ConfigError
 
 STYLE_SECTIONS = ("scenario", "task", "additional_guidance", "input_format", "expected_output_format")
 SETTINGS_KEYS = {"source", "per_source", "include_expected_answer", "instructions", "styles",
-                 "evolutions", "quality_filter", "output"}
+                 "evolutions", "quality_filter", "output", "domain_codes"}
 OUTPUT_KEYS = {"folder", "id", "case"}
 # question_type: sent to the agent ({question_type}); max_cases: stop this style after N cases, taking pages
 # from every group in turn; output: this style's own folder / id / case fields (merged over `output:`).
@@ -66,6 +66,10 @@ def load_settings(agent: Agent) -> dict[str, Any]:
     if settings.get("instructions") and not (folder / settings["instructions"]).is_file():
         raise ConfigError(f"{path}: instructions file not found: {settings['instructions']}")
     check_evolutions(settings.get("evolutions") or {}, path)
+    codes = settings.get("domain_codes") or {}
+    if not isinstance(codes, dict) or not all(re.fullmatch(r"[A-Za-z0-9_]+", str(c)) for c in codes.values()):
+        raise ConfigError(f"{path}: domain_codes: must map domain names to codes of letters, digits and _ "
+                          f"(e.g. Customer Vulnerability Hub: CVH)")
     unknown_output = set(settings.get("output") or {}) - OUTPUT_KEYS
     if unknown_output:
         raise ConfigError(f"{path}: output: only has folder / id / case, not {sorted(unknown_output)}")

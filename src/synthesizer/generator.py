@@ -105,7 +105,8 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
                 try:
                     path, case = render_case(agent, style_output, run, style_name, document, golden,
                                              set(planned), set(chosen) if replace else False,
-                                             question_type=style.get("question_type", ""))
+                                             question_type=style.get("question_type", ""),
+                                             codes=settings.get("domain_codes"))
                 except MissingGenerated as exc:
                     skipped.append({"source": document["id"], "style": style_name, "reason": str(exc)})
                     continue

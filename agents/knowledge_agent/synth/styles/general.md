@@ -26,6 +26,8 @@ with a question-type word on purpose; write it the way it would naturally come o
 
 ## expected_output_format
 
-A short summary of 2-5 complete sentences that answers everything asked, using facts from the page
-only. Quote figures, timescales and thresholds exactly; mention any warning or exception the page gives
-that matters for the question. No hedging ("it depends", "may vary") unless the page says so.
+A summary in complete sentences that answers everything asked, using facts from the page only. Match
+the length to the question: a one-line ask needs 2-3 sentences; a situation or a two-part question
+needs enough to cover each part (a short paragraph each). Quote figures, timescales and thresholds
+exactly; mention any warning or exception the page gives that matters for the question. No hedging
+("it depends", "may vary") unless the page says so.

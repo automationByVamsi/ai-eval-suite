@@ -9,7 +9,8 @@ from default_output() — the standard evaluation test case. Strings can hold pl
   {generated.input.request}     a field of the generated input, when a style asks for JSON input
   {source.id} {source.title} {source.text} {source.metadata.revision}   the document
   {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
-  {domain} {domain_folder}      the group as a code and a folder: "Brand Change" -> BRAND_CHANGE, brand_change
+  {domain} {domain_folder}      the group's short code and its folder: synth.yaml domain_codes ("Customer
+                                Vulnerability Hub: CVH" -> CVH, cvh); a group not listed -> BRAND_CHANGE, brand_change
                                 (the same as the spreadsheet importer, so goldens and synthetic cases line up)
   {question_type}               the style's question_type in synth.yaml ("" for a generic style)
   {run.id} {run.date} {run.generated_at} {run.model}                  this generation run
@@ -60,9 +61,18 @@ def default_output(agent: Agent) -> dict[str, Any]:
     }
 
 
+def domain_code(group: str, codes: dict[str, str] | None = None) -> str:
+    """A group's short code from synth.yaml domain_codes (names compared ignoring case, spaces and _),
+    else the group as UPPER_SNAKE: 'Customer Vulnerability Hub' -> 'CVH' (listed) or 'CUSTOMER_VULNERABILITY_HUB'."""
+    def plain(text: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", str(text).lower())
+    found = {plain(name): code for name, code in (codes or {}).items()}.get(plain(group))
+    return str(found).upper() if found else slug(group).upper()
+
+
 def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style: str,
                 document: dict[str, Any], golden: Any, taken: set[Path], replace: Any,
-                question_type: str = "") -> tuple[Path, dict[str, Any]]:
+                question_type: str = "", codes: dict[str, str] | None = None) -> tuple[Path, dict[str, Any]]:
     """
     (file path, case JSON) for one generated golden.
 
@@ -74,7 +84,7 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
     context = {
         "generated": {"input": golden.input, "expected_output": golden.expected_output or ""},
         "source": document, "style": style, "group": document["group"], "group_slug": slug(document["group"]),
-        "domain": slug(document["group"]).upper(), "domain_folder": slug(document["group"]),
+        "domain": domain_code(document["group"], codes), "domain_folder": domain_code(document["group"], codes).lower(),
         "question_type": question_type or "",
         "run": run, "agent": {"name": agent.name, "input_field": agent.input_field},
     }

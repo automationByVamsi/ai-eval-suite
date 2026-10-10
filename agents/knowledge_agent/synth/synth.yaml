@@ -12,6 +12,37 @@ source:
   type: athena_mcp
   ids_file: page_ids.json            # page ids grouped by domain; GROUP= picks domains, IDS= picks pages
 
+# Short codes for the domains (the groups in page_ids.json), used in test case ids and folders:
+# testdata/synthetic/cvh/KA_SYN_CVH_001.json. Names match ignoring case, spaces and "_", so
+# "Customer Vulnerability Hub" and customer_vulnerability_hub are the same. A domain not listed still
+# works, as its full name in UPPER_SNAKE. Same codes as importers/cjm_golden.yaml where both have one.
+domain_codes:
+  Customer Vulnerability Hub: CVH
+  Customer Vulnerability Hub 2: CVH2
+  Brand Change: BRAND_CHANGE
+  Blackhorse: BLACK_HORSE
+  Business Banking: BB
+  Codes: CODES
+  Commercial Banking Online: CBO
+  Community Bank: CB
+  Complaint Managers: CM
+  Contact Lists: CL
+  Customer Financial Assistance CFA: CFA
+  Customer Self Service Online and App: CSS
+  D2C Investment Operations: D2C
+  Fraud: FRAUD
+  General Insurance: GI
+  Homes Servicing: HS
+  Knowledge Manager Guidance: KMG
+  Lex Autolease: LEX
+  MOT Operations: MOT
+  Personal Banking: PB
+  Recoveries Commercial Bank: RCB
+  Reference: REF
+  Secured Underwriting: SU
+  UK Private Banking: UKPB
+  Unsecured Underwriting: UU
+
 # 2. GENERATOR
 include_expected_answer: true        # also generate the reference answer (used by the correctness judge)
 per_source: 1                        # cases per page per style (a style can override it)
@@ -61,7 +92,7 @@ quality_filter:                      # regenerate questions the critic scores be
 #   {run.generated_at} {run.date} {run.model} {agent.name} {agent.input_field} {id} {n:03}
 # folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
 # Domain-wise, like the golden importer: testdata/synthetic/cvh/KA_SYN_CVH_001.json
-# (the domain is the group in page_ids.json — name groups like the sheet's Workstream codes).
+# ({domain} is the group's code from domain_codes above, {domain_folder} the same in lower case).
 output:
   folder: testdata/synthetic/{domain_folder}
   id: "KA_SYN_{domain}_{n:03}"

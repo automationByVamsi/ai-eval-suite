@@ -21,6 +21,7 @@ One question in plain UK English, advisor tone, starting with "Why". Maximum 25 
 
 ## expected_output_format
 
-2-4 complete sentences: the rule or step, then the reason(s) the page gives for it, in the page's
-terms. Include a condition or exception only if the page attaches it to the reason. No reasons that
-are not on the page.
+The rule or step, then every reason the page gives for it, in the page's terms, as complete sentences:
+usually 2-4 sentences, more when the page gives several reasons or a reason with a condition attached.
+Include a condition or exception only if the page attaches it to the reason. No reasons that are not
+on the page.

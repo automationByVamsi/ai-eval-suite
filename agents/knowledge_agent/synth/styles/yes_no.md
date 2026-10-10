@@ -25,5 +25,5 @@ One closed question in plain UK English, advisor tone, answerable with yes or no
 
 ## expected_output_format
 
-Start with "Yes." or "No.", then 1-3 sentences explaining why, taken from the page, including any
-condition, threshold or exception the page attaches.
+Start with "Yes." or "No.", then the explanation from the page: usually 1-3 sentences, longer when the
+page attaches several conditions, thresholds or exceptions that change the answer (give each of them).

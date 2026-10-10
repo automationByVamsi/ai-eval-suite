@@ -30,6 +30,8 @@ the process". Maximum 35 words. No yes/no questions, no "why".
 ## expected_output_format
 
 Numbered steps in the order the page gives them, one action per step, each a short sentence ("1. ...",
-"2. ..."). 2-8 steps. Where the question has a condition, include the steps and any exception that
-apply under it. Keep any warning or prerequisite the page attaches to a step in that step. Only steps
-that are on the page; no introduction or closing sentence.
+"2. ..."). As many steps as the page has for this procedure: a simple task may be 2-3 steps, a full
+process 10 or more; don't merge steps to make the list shorter or split one to make it longer. Where the
+question has a condition, include the steps and any exception that apply under it. Keep any warning or
+prerequisite the page attaches to a step in that step. Only steps that are on the page; no introduction
+or closing sentence.

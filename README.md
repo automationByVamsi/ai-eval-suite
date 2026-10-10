@@ -678,8 +678,11 @@ Leave `output:` out to get the standard evaluation case (`input.<input_field>`, 
 read its fields: `{generated.input.request}` (cases where the JSON is missing that field are skipped).
 
 - Knowledge Agent cases are written **domain-wise**, like the golden importer:
-  `testdata/synthetic/<domain>/KA_SYN_<DOMAIN>_<n>.json` (the style is in `metadata.style`). The domain is
-  the group in `page_ids.json`, so name groups like the sheet's Workstreams (`CVH` -> `KA_SYN_CVH_001`).
+  `testdata/synthetic/<code>/KA_SYN_<CODE>_<n>.json` (the style is in `metadata.style`). The code comes from
+  `domain_codes:` in synth.yaml (`Customer Vulnerability Hub: CVH` -> `testdata/synthetic/cvh/KA_SYN_CVH_001.json`);
+  names match ignoring case, spaces and `_`. A domain not listed uses its full name in UPPER_SNAKE.
+- **Answer length** follows the page and the question (a short fact: a line or two; a full procedure: every
+  step). The lengths in the style files are typical, not limits.
 - **Styles = the agent's five answer types.** `how` (steps; simple and complex/conditional procedures),
   `what` (definitions; terms, direct facts, eligibility), `why` (the page's stated reasons), `yes_no`
   (yes/no + why; permissions, conditions, eligibility) set `question_type:` in synth.yaml: it is sent to
