@@ -310,7 +310,7 @@ def _load_agent_module(agent: Agent, filename: str) -> ModuleType | None:
     path = agent.folder / filename
     if not path.is_file():
         return None
-    spec = importlib.util.spec_from_file_location(f"{agent.name}_{path.stem}", path)
+    spec = importlib.util.spec_from_file_location(f"{agent.name.replace('/', '.')}_{path.stem}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

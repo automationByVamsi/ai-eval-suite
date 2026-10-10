@@ -1,4 +1,4 @@
-"""agents/ka_ingestion: the pipeline's Markdown checked against the Athena page (no real Athena or GCS)."""
+"""agents/knowledge_agent/ingestion: the pipeline's Markdown checked against the Athena page (no real Athena or GCS)."""
 
 import importlib.util
 import json
@@ -21,7 +21,8 @@ LOSSY_MD = "## Add a support need\n\nOpen Customer Support Needs.\n\n1. Choose t
 
 
 def _agent_module(name):
-    spec = importlib.util.spec_from_file_location(name, paths.AGENTS_DIR / "ka_ingestion" / f"{name}.py")
+    folder = paths.AGENTS_DIR / "knowledge_agent" / "ingestion"
+    spec = importlib.util.spec_from_file_location(name, folder / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -68,10 +69,10 @@ def test_client_reads_athena_and_the_buckets(monkeypatch):
     (GOOD_MD, "6", ["same_revision"]),                       # made from an older version of the page
 ])
 def test_markdown_suite_checks_on_a_saved_trace(outputs, markdown, stored, failed):
-    saved = outputs / "outputs" / "traces" / "ka_ingestion" / "markdown"
+    saved = outputs / "outputs" / "traces" / "knowledge_agent" / "ingestion" / "markdown"
     saved.mkdir(parents=True)
     (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(markdown, stored_revision=stored)))
-    run = run_suite("ka_ingestion", "markdown", offline=True, judges=False, case_ids=["KA_MD_40345"])
+    run = run_suite("knowledge_agent/ingestion", "markdown", offline=True, judges=False, case_ids=["KA_MD_40345"])
     case = run.cases[0]
     assert [r.name for r in case.results if r.status == FAIL] == failed
     assert (case.status == PASS) == (not failed)
@@ -95,5 +96,18 @@ def test_gcs_read_text(monkeypatch):
 
 
 def test_not_signed_in_is_a_clear_case_error(outputs):
-    run = run_suite("ka_ingestion", "markdown", offline=False, judges=False, case_ids=["KA_MD_40345"])
+    run = run_suite("knowledge_agent/ingestion", "markdown", offline=False, judges=False, case_ids=["KA_MD_40345"])
     assert run.cases[0].error == "agent: not signed in to Google Cloud — run: make gcloud-auth"
+
+
+def test_a_sub_agent_is_listed_run_and_found_again(outputs):
+    from src.core.agent_config import list_agents
+    from src.core.results import load_run, recent_runs
+    assert "knowledge_agent/ingestion" in list_agents()
+    saved = outputs / "outputs" / "traces" / "knowledge_agent" / "ingestion" / "markdown"
+    saved.mkdir(parents=True)
+    (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(GOOD_MD)))
+    run = run_suite("knowledge_agent/ingestion", "markdown", offline=True, judges=False, case_ids=["KA_MD_40345"])
+    assert run.run_id.endswith("_knowledge_agent.ingestion_markdown")          # one folder under outputs/runs/
+    assert load_run("latest", "knowledge_agent/ingestion", "markdown").run_id == run.run_id
+    assert [r.run_id for r in recent_runs("knowledge_agent/ingestion", "markdown", 5)] == [run.run_id]

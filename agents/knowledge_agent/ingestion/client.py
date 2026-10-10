@@ -26,7 +26,7 @@ def call_agent(settings, page_id):
     markdown = gcs_client.read_text(*md_file)
     if markdown is None:
         raise FileNotFoundError(f"no Markdown for page {page_id} at gs://{md_file[0]}/{md_file[1]} — "
-                                f"check md_path in agents/ka_ingestion/agent.yaml (GCS_MD_PATH)")
+                                f"check md_path in agents/knowledge_agent/ingestion/agent.yaml (GCS_MD_PATH)")
     metadata_file = (settings["metadata_bucket"], settings["metadata_path"].replace("<page_id>", page_id))
     metadata = gcs_client.read_text(*metadata_file)       # optional: only used for the revision check
     with athena_http(60) as http:

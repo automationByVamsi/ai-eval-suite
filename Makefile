@@ -70,7 +70,7 @@ cortex-login:
 	$(UV_RUN) cx auth login
 
 # Google Cloud sign-in (browser SSO): "application default credentials", the same as the agent repos.
-# Needed only to read the preprocessing pipeline's buckets (AGENT=ka_ingestion).
+# Needed only to read the preprocessing pipeline's buckets (AGENT=knowledge_agent/ingestion).
 gcloud-auth:
 	gcloud auth application-default login
 	@echo "✓ Google ADC configured"

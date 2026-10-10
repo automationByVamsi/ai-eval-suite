@@ -4,7 +4,7 @@
 # and the Markdown the preprocessing pipeline stored in GCS (the output), and the framework judges the
 # Markdown against the page like any agent's answer. Sign in to Google Cloud first:
 #     make gcloud-auth
-#     make run AGENT=ka_ingestion SUITE=markdown
+#     make run AGENT=knowledge_agent/ingestion SUITE=markdown
 
 connection:                   # where the pipeline's files are (passed to client.py)
   md_bucket: ${GCS_MD_BUCKET:-ew2-wrk-int-wrk01-svp-dfadf4-sbk-md-store}

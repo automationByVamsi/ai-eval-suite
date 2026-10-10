@@ -96,10 +96,10 @@ class Run:
             # Milliseconds too: quick runs in a row (e.g. OFFLINE=1 in a loop) must not overwrite each other.
             now = datetime.now()
             stamp = f"{now:%Y%m%d_%H%M%S}_{now.microsecond // 1000:03d}"
-            self.run_id = f"{stamp}_{self.agent}_{self.suite}"
+            self.run_id = f"{stamp}_{flat(self.agent)}_{self.suite}"
             while (paths.OUTPUTS_DIR / "runs" / self.run_id).exists():   # same millisecond: next free id
                 now = datetime.fromtimestamp(now.timestamp() + 0.001)
-                self.run_id = f"{now:%Y%m%d_%H%M%S}_{now.microsecond // 1000:03d}_{self.agent}_{self.suite}"
+                self.run_id = f"{now:%Y%m%d_%H%M%S}_{now.microsecond // 1000:03d}_{flat(self.agent)}_{self.suite}"
 
     @property
     def folder(self) -> Path:
@@ -131,7 +131,7 @@ def load_run(ref: str, agent: str | None = None, suite: str | None = None) -> Ru
     """
     if ref == "latest":
         runs = sorted((paths.OUTPUTS_DIR / "runs").glob("*/results.json"), reverse=True)
-        suffix = f"_{agent}_{suite}" if agent and suite else ""
+        suffix = f"_{flat(agent)}_{suite}" if agent and suite else ""
         runs = [p for p in runs if p.parent.name.endswith(suffix)]
         if not runs:
             raise FileNotFoundError(f"No saved runs{' for ' + agent + '/' + suite if suffix else ''}")
@@ -152,9 +152,14 @@ def load_run(ref: str, agent: str | None = None, suite: str | None = None) -> Ru
     return Run(**data, cases=cases)
 
 
+def flat(agent: str) -> str:
+    """An agent name as one folder / file name part: 'knowledge_agent/ingestion' -> 'knowledge_agent.ingestion'."""
+    return agent.replace("/", ".")
+
+
 def recent_runs(agent: str, suite: str, count: int) -> list[Run]:
     """The `count` most recent saved runs of one agent + suite, oldest first."""
-    found = sorted((paths.OUTPUTS_DIR / "runs").glob(f"*_{agent}_{suite}/results.json"))[-max(count, 1):]
+    found = sorted((paths.OUTPUTS_DIR / "runs").glob(f"*_{flat(agent)}_{suite}/results.json"))[-max(count, 1):]
     if not found:
         raise FileNotFoundError(f"No saved runs for {agent}/{suite} in {paths.OUTPUTS_DIR / 'runs'}")
     return [load_run(str(p)) for p in found]

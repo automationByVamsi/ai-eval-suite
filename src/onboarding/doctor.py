@@ -129,14 +129,14 @@ def run_doctor(ping: bool = True) -> int:
             else:
                 line(FAIL, "Pegasus metric", f"relevance: {result.reason[:300]}")
 
-    # 7. Google Cloud sign-in — only agents that read GCS need it (ka_ingestion), so a WARN, never a FAIL.
+    # 7. Google Cloud sign-in — only agents that read GCS need it (knowledge_agent/ingestion), so a WARN, never a FAIL.
     if ping:
         from src.clients import gcs_client
         try:
             gcs_client.access_token()
             line(OK, "Google Cloud", "signed in (make gcloud-auth)")
         except RuntimeError as exc:
-            line(WARN, "Google Cloud", f"{exc} (only needed for AGENT=ka_ingestion)")
+            line(WARN, "Google Cloud", f"{exc} (only needed for AGENT=knowledge_agent/ingestion)")
 
     print("-" * 72)
     print("All good.\n" if not problems else f"{problems} problem(s) above.\n")
