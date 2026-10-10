@@ -85,7 +85,7 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
         path = folder / f"{safe_filename(case_id)}.json"
         if path not in taken and path.stem not in taken_ids and _free(path, replace):
             case = render(output["case"], {**context, "n": n, "id": case_id})
-            for part in ("input", "metadata"):             # e.g. no question_type for a generic style
+            for part in ("input", "expected", "metadata"):  # e.g. no question_type for a generic style
                 if isinstance(case.get(part), dict):
                     case[part] = {k: v for k, v in case[part].items() if v not in ("", None, [])}
             return path, case

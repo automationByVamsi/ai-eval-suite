@@ -82,8 +82,12 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
             ),
         )
         per_source = int(style.get("per_source", settings.get("per_source", 1)))
+        style_output = merged(output, style.get("output") or {})
+        cap = style.get("max_cases")
         made = 0
-        for document in documents:
+        for document in (spread(documents) if cap else documents):
+            if cap and made >= cap:
+                break
             try:
                 goldens = synthesizer.generate_goldens_from_contexts(
                     contexts=[[document["text"]]], source_files=[document["id"]],
@@ -99,7 +103,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
                     skipped.append({"source": document["id"], "style": style_name, "reason": problem})
                     continue
                 try:
-                    path, case = render_case(agent, output, run, style_name, document, golden,
+                    path, case = render_case(agent, style_output, run, style_name, document, golden,
                                              set(planned), set(chosen) if replace else False,
                                              question_type=style.get("question_type", ""))
                 except MissingGenerated as exc:
@@ -123,6 +127,24 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
     if planned:
         print("Review the cases (metadata.approval_status), then run them as a suite, e.g. SUITE=golden")
     return list(planned)
+
+
+def merged(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """`base` with `override` laid over it; nested mappings (e.g. case.expected) are merged key by key."""
+    result = dict(base)
+    for key, value in override.items():
+        result[key] = merged(result[key], value) if isinstance(value, dict) and isinstance(result.get(key), dict) \
+            else value
+    return result
+
+
+def spread(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The documents with their groups taken in turn (A1, B1, C1, A2, B2, ...), so a capped style varies."""
+    by_group: dict[str, list[dict[str, Any]]] = {}
+    for document in documents:
+        by_group.setdefault(document["group"], []).append(document)
+    rounds = max((len(group) for group in by_group.values()), default=0)
+    return [group[i] for i in range(rounds) for group in by_group.values() if i < len(group)]
 
 
 def _write_cases(planned: dict[Path, dict], replace: bool, styles: set[str]) -> None:

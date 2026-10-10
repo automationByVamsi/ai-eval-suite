@@ -646,7 +646,7 @@ agents/knowledge_agent/synth/
 make sources AGENT=knowledge_agent                                  # fetch every page in page_ids.json
 make goldens AGENT=knowledge_agent GROUP="Recoveries Commercial Bank"  # generate for one domain
 make goldens AGENT=knowledge_agent IDS="36626"                      # …or for specific pages
-make goldens AGENT=knowledge_agent IDS="36626" STYLES="type_how type_why"   # …only some styles
+make goldens AGENT=knowledge_agent IDS="36626" STYLES="how why"    # …only some styles
 make run     AGENT=knowledge_agent SUITE=synthetic                  # evaluate the agent on them
 ```
 
@@ -680,10 +680,16 @@ read its fields: `{generated.input.request}` (cases where the JSON is missing th
 - Knowledge Agent cases are written **domain-wise**, like the golden importer:
   `testdata/synthetic/<domain>/KA_SYN_<DOMAIN>_<n>.json` (the style is in `metadata.style`). The domain is
   the group in `page_ids.json`, so name groups like the sheet's Workstreams (`CVH` -> `KA_SYN_CVH_001`).
-- **Question types.** The generic styles (direct, procedural, conditional, eligibility, simple, complex)
-  send plain questions. The typed styles `type_how`, `type_what`, `type_why`, `type_yes_no` set
-  `question_type:` in synth.yaml: it is sent to the agent, and the reference answer is written in the
-  shape the agent gives for that type (steps, definitions, reasons, yes/no + explanation).
+- **Styles = the agent's five answer types.** `how` (steps; simple and complex/conditional procedures),
+  `what` (definitions; terms, direct facts, eligibility), `why` (the page's stated reasons), `yes_no`
+  (yes/no + why; permissions, conditions, eligibility) set `question_type:` in synth.yaml: it is sent to
+  the agent, and the reference answer has the shape the agent gives for that type. `general` sends a plain
+  question (no type), answered with a summary.
+- **Special sets.** `privacy` (made-up customer details in the question; at most 15 cases →
+  `testdata/privacy/`, suite `privacy`) and `should_decline` (on-topic questions the page doesn't answer; at
+  most 15 → `testdata/should_decline/`, suite `should_decline`). A style can set `max_cases:` (it then takes
+  pages from each domain in turn, so the set is varied) and its own `output:` (folder / id / case fields,
+  merged over the main `output:`).
 - New cases are **added** next to existing ones (numbering continues). `REPLACE=1` replaces the earlier
   cases of the styles being generated (other styles in the same folder stay) — only after generation succeeded.
 - Generated cases start as `approval_status: UNREVIEWED`. They all run by default; a suite can keep only

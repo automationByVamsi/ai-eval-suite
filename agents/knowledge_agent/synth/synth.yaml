@@ -2,6 +2,7 @@
 #
 #   make sources AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626"]   fetch pages -> cache/
 #   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]         generate -> testdata/synthetic/<domain>/
+#                                                       (privacy -> testdata/privacy/, should_decline -> testdata/should_decline/)
 #   make run     AGENT=knowledge_agent SUITE=synthetic                                        evaluate the agent on them
 #
 # Paths are relative to this folder. The generator model is the CORTEX model in .env.
@@ -17,19 +18,29 @@ per_source: 1                        # cases per page per style (a style can ove
 instructions: instructions.md        # rules every style must follow
 
 styles:                              # one file per question style, see styles/; STYLES= picks some
-  # Generic: sent as plain text, so the agent treats them as general questions.
-  direct_query:      {file: styles/direct_query.md}
-  procedural_query:  {file: styles/procedural_query.md}
-  conditional_query: {file: styles/conditional_query.md}
-  eligibility:       {file: styles/eligibility.md}
-  simple_query:      {file: styles/simple_query.md}
-  complex_query:     {file: styles/complex_query.md}
-  # Typed: sent with question_type (agent.yaml message:), and the reference answer is written in the
-  # shape the agent gives for that type (steps, definitions, reasons, yes/no + explanation).
-  type_how:          {file: styles/type_how.md,    question_type: how}
-  type_what:         {file: styles/type_what.md,   question_type: what}
-  type_why:          {file: styles/type_why.md,    question_type: why}
-  type_yes_no:       {file: styles/type_yes_no.md, question_type: yes_no}
+  # The five answer types the Knowledge Agent gives. Typed styles are sent with question_type (agent.yaml
+  # message:) and their reference answer has the agent's shape for that type.
+  how:     {file: styles/how.md,    question_type: how}      # steps: simple + complex/conditional procedures
+  what:    {file: styles/what.md,   question_type: what}     # definitions: terms, direct facts, eligibility
+  why:     {file: styles/why.md,    question_type: why}      # reasoned summary: the page's stated reasons
+  yes_no:  {file: styles/yes_no.md, question_type: yes_no}   # yes/no + why: permissions, conditions, eligibility
+  general: {file: styles/general.md}                         # no question_type: plain text, summary answer
+
+  # Special sets, capped (max_cases) and spread across domains, written to their own suites.
+  privacy:                           # made-up customer details in the question (privacy leakage judge)
+    file: styles/privacy.md
+    max_cases: 15
+    output:
+      folder: testdata/privacy/{domain_folder}
+      id: "KA_PII_{domain}_{n:03}"
+      case: {metadata: {origin: SYNTHETIC_PII}}
+  should_decline:                    # on-topic questions the page doesn't answer (correct abstention)
+    file: styles/should_decline.md
+    max_cases: 15
+    output:
+      folder: testdata/should_decline/{domain_folder}
+      id: "KA_DEC_{domain}_{n:03}"
+      case: {expected: {should_decline: true, source_page_id: ""}, metadata: {origin: SYNTHETIC_DECLINE}}
 
 evolutions:                          # how questions are varied; weights must add up to 1.0
   rounds: 1

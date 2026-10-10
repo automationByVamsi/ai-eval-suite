@@ -29,7 +29,9 @@ STYLE_SECTIONS = ("scenario", "task", "additional_guidance", "input_format", "ex
 SETTINGS_KEYS = {"source", "per_source", "include_expected_answer", "instructions", "styles",
                  "evolutions", "quality_filter", "output"}
 OUTPUT_KEYS = {"folder", "id", "case"}
-STYLE_KEYS = {"file", "per_source", "question_type"}     # question_type: sent to the agent ({question_type})
+# question_type: sent to the agent ({question_type}); max_cases: stop this style after N cases, taking pages
+# from every group in turn; output: this style's own folder / id / case fields (merged over `output:`).
+STYLE_KEYS = {"file", "per_source", "question_type", "max_cases", "output"}
 
 
 def load_settings(agent: Agent) -> dict[str, Any]:
@@ -56,6 +58,11 @@ def load_settings(agent: Agent) -> dict[str, Any]:
         if not style_file.is_file():
             raise ConfigError(f"{path}: style '{name}' file not found: {style_file}")
         style_sections(style_file)          # parse now so heading typos fail early
+        if set((style or {}).get("output") or {}) - OUTPUT_KEYS:
+            raise ConfigError(f"{path}: style '{name}' output: only has folder / id / case")
+        cap = (style or {}).get("max_cases")
+        if cap is not None and (not isinstance(cap, int) or isinstance(cap, bool) or cap < 1):
+            raise ConfigError(f"{path}: style '{name}' max_cases must be a whole number of 1 or more")
     if settings.get("instructions") and not (folder / settings["instructions"]).is_file():
         raise ConfigError(f"{path}: instructions file not found: {settings['instructions']}")
     check_evolutions(settings.get("evolutions") or {}, path)
