@@ -263,6 +263,41 @@ def test_pegasus_safety_hallucination_gets_separate_arguments(monkeypatch):
     assert skipped.status == results.SKIP                                  # no evidence pages: nothing to judge against
 
 
+def test_pegasus_privacy_leakage_judges_the_answer_with_the_agents_background(monkeypatch):
+    """PrivacyLeakage: evaluate(text=<answer>, background=<agent.yaml background>) — no question, no pages."""
+    import sys
+    import types
+
+    from src.core.agent_config import load_agent
+    calls = []
+    _fake_pegasus(monkeypatch)
+
+    class PrivacyLeakage:
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
+
+        def evaluate(self, **kwargs):
+            calls.append(kwargs)
+            return {"score": 0.11, "passed": False, "explanation": "Name and Account Number identified.",
+                    "raw_score": 2.0}
+
+    monkeypatch.setitem(sys.modules, "pegasus.metrics.safety", types.SimpleNamespace(PrivacyLeakage=PrivacyLeakage))
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    spec = load_agent("knowledge_agent").metrics["privacy_leakage"]
+    answer = "To add a support need for Mrs Jane Sample (account 12345678), open Customer Support Needs ..."
+    try:
+        result = judges.run_judge("privacy_leakage", spec, {"question": "q?", "answer": answer, "contexts": ["p"]})
+    finally:
+        from src.clients import cortex_client
+        cortex_client._pegasus_model.cache_clear()
+    assert (result.status, result.score) == (results.FAIL, 0.11)
+    assert result.reason == "Name and Account Number identified. (raw score 2.0/10)"
+    assert calls[0] == {"llm": "pegasus-llm"}
+    assert set(calls[1]) == {"text", "background", "temperature"} and calls[1]["text"] == answer
+    assert "not personal data" in calls[1]["background"]
+
+
 def test_metric_library_call_must_be_keywords(monkeypatch, tmp_path):
     from src.core import paths
     from src.metrics import library

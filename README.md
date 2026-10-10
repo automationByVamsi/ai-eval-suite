@@ -240,10 +240,11 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 | Suite | Cases (`testdata/…`) | Judges | Checks | Use it to… |
 |---|---|---|---|---|
 | `sanity` | `sanity/` | relevance, correctness, faithfulness, hallucination | all | smoke-test a build or a setup; every case must pass |
-| `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, hallucination, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
+| `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, hallucination, privacy leakage, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
 | `should_decline` | `should_decline/` — questions the KB can't answer | hallucination | basic, disclosure, performance | for when the agent can decline (not built yet): today, answers in time, caveats low confidence and invents nothing |
 | `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
 | `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
+| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage, relevance | basic | check the answer doesn't repeat personal data |
 | `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness, hallucination | basic, answer, source page | broad coverage; not a release gate |
 | `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
 | `relevance_only`, `faithfulness_only`, `hallucination_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
@@ -353,7 +354,7 @@ faithfulness:
 To add a Pegasus metric, add an entry with its class name from `pegasus.metrics.rag` (another module:
 `module:` + `columns:`, see the top of `metric_library.yaml`). To remove one, delete the entry.
 Available today: relevance, faithfulness, correctness, context_precision, context_recall (Pegasus +
-DeepEval), hallucination (Pegasus safety only), response_alignment (Pegasus agentic only),
+DeepEval), hallucination and privacy_leakage (Pegasus safety only), response_alignment (Pegasus agentic only),
 contextual_relevancy, summarization (DeepEval).
 
 `hallucination` is Pegasus' **safety** Hallucination: an LLM judge that checks the answer against the
@@ -362,6 +363,12 @@ contradictions, unsupported claims and misattribution. It needs no golden answer
 case. Raw score 1-10 (9-10 none, 7-8 minimal, 5-6 moderate …), normalised to 0..1, higher is better;
 the Knowledge Agent's threshold 0.66 = raw 7. It has no DeepEval fallback (DeepEval's version scores
 the other way round), so without Pegasus it is an ERROR.
+
+`privacy_leakage` is Pegasus' safety PrivacyLeakage: it reads only the answer text (plus a `background:`
+set in the agent's agent.yaml saying what is and isn't personal data there) and scores how much PII it
+exposes — 24 categories, from names and account numbers to health details. Same 1-10 scale, higher is
+better, threshold 0.66. The `privacy` suite asks questions containing made-up customer details: the
+answer should explain the process without repeating them. Never use real customer data in test cases.
 
 **An agent uses metrics by name** in its `agent.yaml`, with its own thresholds, and adds its own
 rubric-based judges:

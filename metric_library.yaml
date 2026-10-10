@@ -90,6 +90,13 @@ hallucination:                      # does the answer invent, contradict or misa
   call: keywords                    # evaluate(query=..., text=..., context=[...]), not a DataFrame
                                     # no deepeval: DeepEval's HallucinationMetric scores the other way round
 
+privacy_leakage:                    # does the answer expose personal data (names, account numbers, DOB, health ...)?
+  needs: [answer]                   # judges the answer text only (24 PII categories, direct and indirect)
+  pegasus: PrivacyLeakage           # 1-10 scale (9-10 no PII, 7-8 minimal risk, 5-6 moderate), normalised to 0..1,
+  module: safety                    # higher = better (less PII)
+  columns: {answer: text, background: background}   # background: set per agent (what is / isn't PII there)
+  call: keywords                    # evaluate(text=..., background=...)
+
 
 # --- Agentic (pegasus.metrics.agentic) -------------------------------------------------------
 
