@@ -555,10 +555,11 @@ ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
 ## Ingestion: the pipeline's Markdown (`knowledge_agent/ingestion`)
 
 Before the Knowledge Agent can answer, a preprocessing pipeline copies every knowledge-base page from
-Athena into GCS buckets as HTML, Markdown and a metadata JSON. `agents/knowledge_agent/ingestion/` checks that the
-Markdown is a faithful copy of the page. It is not a chat agent: its `client.py` fetches, for each test
-case's `page_id`, the page from Athena (the source) and the Markdown from GCS (the output), and the
-framework judges the Markdown against the page like any agent's answer.
+Athena into GCS buckets: `page.md` (the Markdown) and `metadata.json` (whose `content.html` is the exact
+HTML it converted). `agents/knowledge_agent/ingestion/` checks that the Markdown is a faithful copy of that
+HTML. It is not a chat agent: its `client.py` reads, for each test case's `page_id`, both files from GCS
+and the page's current revision from Athena, and the framework judges the Markdown against the HTML like
+any agent's answer. (Without a `metadata.json` the live Athena page is the source; the trace says which.)
 
 It sits inside the Knowledge Agent's folder because it tests part of the same system, but runs on its
 own: any sub-folder of an agent with its own `agent.yaml` is run as `AGENT=<agent>/<folder>`, with its own
@@ -578,17 +579,27 @@ and writes `testdata/markdown/<domain>/KA_MD_<page_id>.json` with each page's ex
 
 | What | How | Where |
 |---|---|---|
-| Same headings, list items, table rows, links | counted in the Athena HTML and in the Markdown | `checks.yaml` structure (counts from `parser.py`) |
-| The page's text is all there | share of the page's lines found in the Markdown ≥ 98%; `missing_lines` lists the rest | `checks.yaml` content |
-| Made from the current page | Athena revision = the revision in the metadata JSON (skipped if none stored) | `checks.yaml` version |
-| Nothing added or changed | Pegasus safety Hallucination, the Athena page as the context | `markdown_hallucination` |
+| Same headings, list items, table rows, links, callouts | counted in the source HTML and in the Markdown | `checks.yaml` structure (counts from `parser.py`) |
+| The page's text is all there | share of the page's lines found in the Markdown ≥ 98% | `checks.yaml` content |
+| The two stored copies agree | `page.md` = `content.markdown` in `metadata.json` | `checks.yaml` storage |
+| Made from the current page | the revision in `metadata.json` = the revision in Athena now (else out of date) | `checks.yaml` version |
+| Nothing added or changed | Pegasus safety Hallucination, the source page's text as the context | `markdown_hallucination` |
 | Nothing lost | rubric judge (`rubrics/markdown_completeness.md`) | `markdown_completeness` |
+
+`parser.py` first cleans the HTML with the pipeline's own rules (`html_to_markdown.py`), so what the
+pipeline drops on purpose is not counted as lost: HTML escaped several times is unescaped, hidden blocks
+(`data-llm-no-index="true"`, recent changes, scripts, styles, the table of contents) and images are
+removed, lists inside table cells are not counted (they become text in the cell), and links count by their
+text (the pipeline writes `[Customer Support Needs]`, without the URL). Each case also gets
+`differences` (every count side by side, the lines missing and the lines added) and a one-line `summary`.
+
+In the dashboard, an ingestion case shows a **page comparison**: the source page and the Markdown
+(rendered or raw) side by side, the differences, the page's metadata, then the checks and judges.
 
 The buckets are in `connection:` of `agents/knowledge_agent/ingestion/agent.yaml` (override with
 `GCS_MD_BUCKET` and `GCS_JSON_BUCKET` in `env/.env`). Reading GCS
 needs no Google Python package: `src/clients/gcs_client.py` uses the token of your `make gcloud-auth`
-sign-in. Some content may be dropped on purpose by the pipeline (e.g. images): agree that list with the
-pipeline team before treating a structure FAIL as a bug.
+sign-in. Start with a sample (`make ingestion-cases PER_DOMAIN=5`): a full run reads every page.
 
 ## Import test cases from a spreadsheet
 

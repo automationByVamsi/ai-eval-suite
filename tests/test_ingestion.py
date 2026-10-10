@@ -11,13 +11,13 @@ from src.core import paths
 from src.core.results import FAIL, PASS
 from src.runners.suite_runner import run_suite
 
-HTML = ("<h2>Add a support need</h2><p>Open <a href='/p/1'>Customer Support Needs</a>.</p>"
-        "<ol><li>Choose the support required.</li><li>Set a review date.</li></ol>"
-        "<table><tr><th>Need</th><th>Review</th></tr><tr><td>Large print</td><td>12 months</td></tr></table>")
-GOOD_MD = ("## Add a support need\n\nOpen [Customer Support Needs](/p/1).\n\n"
-           "1. Choose the support required.\n2. Set a review date.\n\n"
-           "| Need | Review |\n|---|---|\n| Large print | 12 months |\n")
-LOSSY_MD = "## Add a support need\n\nOpen Customer Support Needs.\n\n1. Choose the support required.\n"
+FIXTURES = paths.ROOT / "tests" / "fixtures"
+# A made-up page with every case the pipeline handles on purpose: a callout box, a nested list, a list
+# inside a table cell, a link without text, an image, and hidden blocks (editor note, recent changes, script).
+HTML = (FIXTURES / "ingestion_page.html").read_text()
+GOOD_MD = (FIXTURES / "ingestion_page.md").read_text()      # what the pipeline's rules make of it
+LOSSY_MD = GOOD_MD.replace("2. Order the card.\n", "").replace("> **WARNING** Never ask for the PIN.\n>\n", "")
+ADDED_MD = GOOD_MD + "\nCards are free for everyone.\n"
 
 
 def _agent_module(name):
@@ -37,53 +37,77 @@ def one_case(monkeypatch):
     monkeypatch.setattr("src.runners.suite_runner.load_cases", lambda agent, suite: [CASE])
 
 
-def _trace(markdown, revision="7", stored_revision="7"):
-    return {"agentOutput": markdown, "context": ["Add a support need ..."], "task": "Represent ... as Markdown",
-            "athena": {"page_id": "40345", "title": "Add a support need", "revision": revision, "html": HTML},
-            "metadata": {"revision": stored_revision}, "files": {"markdown": "gs://md/40345.md"}, "latency_ms": 5}
+def _trace(markdown, revision="7", stored_revision="7", copies_match=True):
+    return {"markdown": markdown, "source_html": HTML, "source": "metadata.json content.html",
+            "metadata": {"page_metadata": {"id": "40345", "revision": stored_revision}},
+            "stored_copies_match": copies_match,
+            "athena": {"page_id": "40345", "title": "Ordering a replacement card", "revision": revision},
+            "task": "Represent ... as Markdown", "files": {"markdown": "gs://md/40345.md"}, "latency_ms": 5}
 
 
-def test_parser_counts_structure_and_text_coverage():
+def test_parser_follows_the_pipeline_rules():
+    good = _agent_module("parser").parse(_trace(GOOD_MD), {})
+    counts = {k: good[f"source_{k}"] for k in ("headings", "list_items", "table_rows", "links", "callouts")}
+    assert counts == {"headings": 2, "list_items": 3, "table_rows": 2, "links": 1, "callouts": 2}
+    assert all(good[f"md_{k}"] == v for k, v in counts.items())
+    assert good["text_coverage"] == 1.0 and good["summary"] == "no differences"
+    assert good["answer"] == GOOD_MD
+    assert "editor note" not in good["contexts"][0].lower() and "var x" not in good["contexts"][0]   # hidden blocks
+    assert good["contexts"][0].startswith("Ordering a replacement card\n\nOrdering a replacement card")
+
+
+def test_parser_shows_what_was_lost_or_added():
     parse = _agent_module("parser").parse
-    good = parse(_trace(GOOD_MD), {})
-    assert (good["source_headings"], good["source_list_items"], good["source_table_rows"], good["source_links"]) \
-        == (1, 2, 2, 1)
-    assert (good["md_headings"], good["md_list_items"], good["md_table_rows"], good["md_links"]) == (1, 2, 2, 1)
-    assert good["text_coverage"] == 1.0 and good["missing_lines"] == []
     lossy = parse(_trace(LOSSY_MD), {})
-    assert lossy["md_list_items"] == 1 and lossy["md_table_rows"] == 0 and lossy["md_links"] == 0
-    assert lossy["text_coverage"] < 0.98 and "set a review date." in lossy["missing_lines"]
+    assert lossy["differences"]["counts"]["list items"] == "3 → 2"
+    assert lossy["differences"]["missing_lines"] == ["order the card.", "never ask for the pin."]
+    assert lossy["summary"] == "list items 3 → 2 · callouts 2 → 1 · 2 lines missing"
+    added = parse(_trace(ADDED_MD), {})
+    assert added["differences"]["added_lines"] == ["cards are free for everyone."]
+    assert added["text_coverage"] == 1.0 and added["summary"] == "1 line added"
 
 
-def test_client_reads_athena_and_the_buckets(monkeypatch):
+def test_parser_unescapes_html_like_the_pipeline():
+    escaped = HTML.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    parsed = _agent_module("parser").parse({**_trace(GOOD_MD), "source_html": escaped}, {})
+    assert parsed["summary"] == "no differences"
+
+
+def test_client_takes_the_source_from_metadata_json(monkeypatch):
     client = _agent_module("client")
-    monkeypatch.setattr(client, "get_page_content", lambda http, page_id: {"@title": "Add a support need",
-                                                                            "@revision": "7", "body": [HTML]})
+    monkeypatch.setattr(client, "get_page_content", lambda http, page_id: {"@title": "Ordering a replacement card",
+                                                                            "@revision": "8", "body": ["<p>live</p>"]})
     monkeypatch.setattr(client, "athena_http", lambda timeout: httpx.Client())
-    files = {("md", "kb/40345.md"): GOOD_MD, ("meta", "kb/40345.json"): '{"revision": "7"}'}
+    metadata = {"page_metadata": {"id": "40345", "revision": "7"}, "content": {"html": HTML, "markdown": GOOD_MD}}
+    files = {("md", "kb/40345.md"): GOOD_MD, ("meta", "kb/40345.json"): json.dumps(metadata)}
     monkeypatch.setattr(client.gcs_client, "read_text", lambda bucket, path: files.get((bucket, path)))
     settings = {"md_bucket": "md", "md_path": "kb/<page_id>.md", "metadata_bucket": "meta",
                 "metadata_path": "kb/<page_id>.json"}
     trace = client.call_agent(settings, "40345")
-    assert trace["agentOutput"] == GOOD_MD and trace["athena"]["revision"] == "7"
-    assert trace["context"][0].startswith("Add a support need\n\nAdd a support need")
-    assert trace["metadata"] == {"revision": "7"} and trace["files"]["markdown"] == "gs://md/kb/40345.md"
+    assert trace["markdown"] == GOOD_MD and trace["source_html"] == HTML
+    assert trace["source"] == "metadata.json content.html" and trace["stored_copies_match"] is True
+    assert trace["metadata"] == {"page_metadata": {"id": "40345", "revision": "7"}}       # content not saved twice
+    assert trace["athena"]["revision"] == "8" and trace["files"]["markdown"] == "gs://md/kb/40345.md"
     with pytest.raises(FileNotFoundError, match="no Markdown for page 40999 at gs://md/kb/40999.md"):
         client.call_agent(settings, "40999")
     files[("md", "cv/40345.md")] = GOOD_MD                    # a case from make ingestion-cases: exact paths
-    trace = client.call_agent(settings, json.dumps({"page_id": "40345", "md_path": "cv/40345.md"}))
+    trace = client.call_agent(settings, json.dumps({"page_id": "40345", "md_path": "cv/40345.md",
+                                                    "metadata_path": "none.json"}))
     assert trace["files"]["markdown"] == "gs://md/cv/40345.md"
+    assert trace["source"] == "Athena (live page)" and trace["source_html"] == "<p>live</p>"  # no metadata.json
+    assert trace["stored_copies_match"] is None and trace["metadata"] is None
 
 
-@pytest.mark.parametrize("markdown, stored, failed", [
-    (GOOD_MD, "7", []),
-    (LOSSY_MD, "7", ["list_items_kept", "table_rows_kept", "links_kept", "text_coverage"]),
-    (GOOD_MD, "6", ["same_revision"]),                       # made from an older version of the page
+@pytest.mark.parametrize("markdown, trace_args, failed", [
+    (GOOD_MD, {}, []),
+    (LOSSY_MD, {}, ["list_items_kept", "callouts_kept", "text_coverage"]),
+    (GOOD_MD, {"stored_revision": "6"}, ["same_revision"]),            # made from an older version of the page
+    (GOOD_MD, {"copies_match": False}, ["stored_copies_match"]),       # page.md != metadata.json markdown
 ])
-def test_markdown_suite_checks_on_a_saved_trace(outputs, one_case, markdown, stored, failed):
+def test_markdown_suite_checks_on_a_saved_trace(outputs, one_case, markdown, trace_args, failed):
     saved = outputs / "outputs" / "traces" / "knowledge_agent" / "ingestion" / "markdown"
     saved.mkdir(parents=True)
-    (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(markdown, stored_revision=stored)))
+    (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(markdown, **trace_args)))
     run = run_suite("knowledge_agent/ingestion", "markdown", offline=True, judges=False, case_ids=["KA_MD_40345"])
     case = run.cases[0]
     assert [r.name for r in case.results if r.status == FAIL] == failed
@@ -150,3 +174,17 @@ def test_make_ingestion_cases_from_the_buckets(monkeypatch, tmp_path, capsys):
     assert written == ["complaints/KA_MD_50001.json", "customer-vulnerability/KA_MD_40017.json"]   # 1 per domain
     case = json.loads((tmp_path / "complaints" / "KA_MD_50001.json").read_text())
     assert case["input"] == {"page_id": "50001", "md_path": "complaints/50001.md", "metadata_path": ""}
+
+
+def test_dashboard_shows_the_page_comparison(outputs, one_case):
+    from streamlit.testing.v1 import AppTest
+    saved = outputs / "outputs" / "traces" / "knowledge_agent" / "ingestion" / "markdown"
+    saved.mkdir(parents=True)
+    (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(LOSSY_MD)))
+    run_suite("knowledge_agent/ingestion", "markdown", offline=True, judges=False, case_ids=["KA_MD_40345"])
+    app = AppTest.from_file(str(paths.ROOT / "src" / "reporting" / "dashboard.py"), default_timeout=60)
+    app.run()
+    assert not app.exception, [e.value for e in app.exception]
+    text = " ".join(str(m.value) for m in app.markdown)
+    assert "Source page (HTML)" in text and "Pipeline Markdown" in text and "list items 3 → 2" in text
+    assert any("never ask for the pin." in str(c.value) for c in app.code)       # a missing line

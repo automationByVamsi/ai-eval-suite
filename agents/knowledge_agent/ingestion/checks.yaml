@@ -1,14 +1,21 @@
-# Knowledge Agent ingestion — does the Markdown keep the Athena page's structure and text?
-# The numbers come from parser.py (Athena HTML counted vs Markdown counted).
+# Knowledge Agent ingestion — does the Markdown keep the page's structure and text?
+# The numbers come from parser.py: the HTML the pipeline converted (cleaned by the pipeline's own rules)
+# counted vs the Markdown counted. `differences` and `summary` on the case show what is off.
 checks:
   structure:                  # the same building blocks as the page
-    headings_kept:   {type: equals, field: md_headings,     other: source_headings}
-    list_items_kept: {type: equals, field: md_list_items,   other: source_list_items}
-    table_rows_kept: {type: equals, field: md_table_rows,   other: source_table_rows}
-    links_kept:      {type: equals, field: md_links,        other: source_links}
+    headings_kept:   {type: equals, field: md_headings,   other: source_headings}
+    list_items_kept: {type: equals, field: md_list_items, other: source_list_items}
+    table_rows_kept: {type: equals, field: md_table_rows, other: source_table_rows}
+    links_kept:      {type: equals, field: md_links,      other: source_links}
+    callouts_kept:   {type: equals, field: md_callouts,   other: source_callouts}
 
-  content:                    # the page's text is all there (missing_lines shows what isn't)
+  content:                    # the page's text is all there (differences.missing_lines shows what isn't)
     text_coverage:   {type: range, field: text_coverage, min: 0.98, max: 1}
 
-  version:                    # the Markdown was made from the page as it is now (skipped if no revision stored)
-    same_revision:   {type: equals, field: md_revision, other: athena_revision, when: {field: md_revision, present: true}}
+  storage:                    # the pipeline's two copies of the Markdown are the same (skipped without metadata)
+    stored_copies_match: {type: equals, field: stored_copies_match, value: true,
+                          when: {field: stored_copies_match, present: true}}
+
+  version:                    # the Markdown was made from the page as it is in Athena now (else: out of date)
+    same_revision:   {type: equals, field: stored_revision, other: athena_revision,
+                      when: {field: stored_revision, present: true}}

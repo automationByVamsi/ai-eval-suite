@@ -93,6 +93,8 @@ quality_filter:                      # regenerate questions the critic scores be
 # folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
 # Domain-wise, like the golden importer: testdata/synthetic/cvh/KA_SYN_CVH_001.json
 # ({domain} is the group's code from domain_codes above, {domain_folder} the same in lower case).
+# {domain} is ONLY for ids and folders. Anything sent to the agent uses {group}, the full business area
+# name ("Customer Vulnerability Hub", not "CVH") — the agent knows the names, not our codes.
 output:
   folder: testdata/synthetic/{domain_folder}
   id: "KA_SYN_{domain}_{n:03}"
@@ -102,6 +104,7 @@ output:
     input:
       question: "{generated.input}"
       question_type: "{question_type}"      # typed styles only; left out for generic ones
+      business_area: "{group}"              # the full name, never the {domain} code
     expected:
       expected_answer: "{generated.expected_output}"
       source_page_id: "{source.id}"

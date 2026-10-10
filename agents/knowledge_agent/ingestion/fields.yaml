@@ -1,14 +1,14 @@
 # Knowledge Agent ingestion — fields read from the trace client.py builds for one page:
-#   trace.agentOutput   the pipeline's Markdown            trace.athena    page_id, title, revision, html
-#   trace.context       [the Athena page as plain text]    trace.metadata  the pipeline's metadata JSON (or null)
-#   trace.files         the gs:// paths that were read
-# Structure counts and text coverage come from parser.py.
+#   trace.markdown      page.md (the pipeline's Markdown)    trace.source_html   the HTML it was made from
+#   trace.metadata      metadata.json without content         trace.athena        the page in Athena now
+#   trace.stored_copies_match   page.md == metadata.json content.markdown
+# Counts, text coverage and differences come from parser.py.
 
 fields:
-  page_title:       trace.athena.title
-  conversion_task:  trace.task                      # the "question" the hallucination judge is given
-  athena_revision:  trace.athena.revision
-  # The revision the pipeline stored. TODO: confirm the key in the metadata JSON; the first one found wins.
-  md_revision:      {path: [trace.metadata.revision, 'trace.metadata."@revision"', trace.metadata.athena_revision,
-                            trace.metadata.page_revision]}
-  markdown_file:    trace.files.markdown
+  page_title:          trace.athena.title
+  conversion_task:     trace.task                         # the "question" the hallucination judge is given
+  html_source:         trace.source                       # metadata.json content.html, or the live Athena page
+  stored_revision:     trace.metadata.page_metadata.revision    # the revision the pipeline converted
+  athena_revision:     trace.athena.revision                    # the revision in Athena now
+  stored_copies_match: trace.stored_copies_match
+  markdown_file:       trace.files.markdown

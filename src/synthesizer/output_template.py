@@ -9,7 +9,8 @@ from default_output() — the standard evaluation test case. Strings can hold pl
   {generated.input.request}     a field of the generated input, when a style asks for JSON input
   {source.id} {source.title} {source.text} {source.metadata.revision}   the document
   {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
-  {domain} {domain_folder}      the group's short code and its folder: synth.yaml domain_codes ("Customer
+  {domain} {domain_folder}      the group's short code and its folder (for ids and folders only — send {group},
+                                the full name, to the agent): synth.yaml domain_codes ("Customer
                                 Vulnerability Hub: CVH" -> CVH, cvh); a group not listed -> BRAND_CHANGE, brand_change
                                 (the same as the spreadsheet importer, so goldens and synthetic cases line up)
   {question_type}               the style's question_type in synth.yaml ("" for a generic style)
