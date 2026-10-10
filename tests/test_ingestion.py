@@ -28,6 +28,15 @@ def _agent_module(name):
     return module
 
 
+CASE = {"test_case_id": "KA_MD_40345", "input": {"page_id": "40345", "md_path": "cv/40345.md"}, "expected": {}}
+
+
+@pytest.fixture
+def one_case(monkeypatch):
+    """The markdown suite with one case (the real cases are written by make ingestion-cases)."""
+    monkeypatch.setattr("src.runners.suite_runner.load_cases", lambda agent, suite: [CASE])
+
+
 def _trace(markdown, revision="7", stored_revision="7"):
     return {"agentOutput": markdown, "context": ["Add a support need ..."], "task": "Represent ... as Markdown",
             "athena": {"page_id": "40345", "title": "Add a support need", "revision": revision, "html": HTML},
@@ -61,6 +70,9 @@ def test_client_reads_athena_and_the_buckets(monkeypatch):
     assert trace["metadata"] == {"revision": "7"} and trace["files"]["markdown"] == "gs://md/kb/40345.md"
     with pytest.raises(FileNotFoundError, match="no Markdown for page 40999 at gs://md/kb/40999.md"):
         client.call_agent(settings, "40999")
+    files[("md", "cv/40345.md")] = GOOD_MD                    # a case from make ingestion-cases: exact paths
+    trace = client.call_agent(settings, json.dumps({"page_id": "40345", "md_path": "cv/40345.md"}))
+    assert trace["files"]["markdown"] == "gs://md/cv/40345.md"
 
 
 @pytest.mark.parametrize("markdown, stored, failed", [
@@ -68,7 +80,7 @@ def test_client_reads_athena_and_the_buckets(monkeypatch):
     (LOSSY_MD, "7", ["list_items_kept", "table_rows_kept", "links_kept", "text_coverage"]),
     (GOOD_MD, "6", ["same_revision"]),                       # made from an older version of the page
 ])
-def test_markdown_suite_checks_on_a_saved_trace(outputs, markdown, stored, failed):
+def test_markdown_suite_checks_on_a_saved_trace(outputs, one_case, markdown, stored, failed):
     saved = outputs / "outputs" / "traces" / "knowledge_agent" / "ingestion" / "markdown"
     saved.mkdir(parents=True)
     (saved / "KA_MD_40345.json").write_text(json.dumps(_trace(markdown, stored_revision=stored)))
@@ -95,12 +107,12 @@ def test_gcs_read_text(monkeypatch):
         gcs_client.read_text("bucket", "secret.md")
 
 
-def test_not_signed_in_is_a_clear_case_error(outputs):
+def test_not_signed_in_is_a_clear_case_error(outputs, one_case):
     run = run_suite("knowledge_agent/ingestion", "markdown", offline=False, judges=False, case_ids=["KA_MD_40345"])
     assert run.cases[0].error == "agent: not signed in to Google Cloud — run: make gcloud-auth"
 
 
-def test_a_sub_agent_is_listed_run_and_found_again(outputs):
+def test_a_sub_agent_is_listed_run_and_found_again(outputs, one_case):
     from src.core.agent_config import list_agents
     from src.core.results import load_run, recent_runs
     assert "knowledge_agent/ingestion" in list_agents()
@@ -111,3 +123,30 @@ def test_a_sub_agent_is_listed_run_and_found_again(outputs):
     assert run.run_id.endswith("_knowledge_agent.ingestion_markdown")          # one folder under outputs/runs/
     assert load_run("latest", "knowledge_agent/ingestion", "markdown").run_id == run.run_id
     assert [r.run_id for r in recent_runs("knowledge_agent/ingestion", "markdown", 5)] == [run.run_id]
+
+
+def test_make_ingestion_cases_from_the_buckets(monkeypatch, tmp_path, capsys):
+    import importlib
+
+    from src.core.agent_config import load_agent
+    make_cases = importlib.import_module("agents.knowledge_agent.ingestion.make_cases")
+    listing = {"md": ["customer-vulnerability/40345.md", "customer-vulnerability/40017.md", "complaints/50001.md",
+                      "complaints/readme.md", "customer-vulnerability/40345.html"],
+               "meta": ["customer-vulnerability/40345.json"]}
+
+    def agent_writing_to_tmp(name):
+        agent = load_agent(name)
+        agent.connection.update(md_bucket="md", metadata_bucket="meta")
+        agent.suite("markdown").testdata = tmp_path
+        return agent
+    monkeypatch.setattr(make_cases, "load_agent", agent_writing_to_tmp)
+    monkeypatch.setattr(make_cases.gcs_client, "list_names", lambda bucket: listing[bucket])
+
+    assert make_cases.main(["--per-domain", "1"]) == 0
+    out = capsys.readouterr().out
+    assert "3 pages with Markdown (1 with metadata" in out and "without a page id" in out
+    assert "complaints" in out and "customer-vulnerability" in out
+    written = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*.json"))
+    assert written == ["complaints/KA_MD_50001.json", "customer-vulnerability/KA_MD_40017.json"]   # 1 per domain
+    case = json.loads((tmp_path / "complaints" / "KA_MD_50001.json").read_text())
+    assert case["input"] == {"page_id": "50001", "md_path": "complaints/50001.md", "metadata_path": ""}

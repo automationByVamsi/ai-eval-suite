@@ -37,12 +37,13 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login gcloud-auth gcloud-auth-check doctor list new-agent run baseline verdict sources goldens import-cases fields summary review-sheet calibrate dashboard test
+.PHONY: help setup cortex-login gcloud-auth gcloud-auth-check ingestion-cases doctor list new-agent run baseline verdict sources goldens import-cases fields summary review-sheet calibrate dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
 	@echo "make cortex-login                           CorteX DevKit only: sign in with SSO (once; CORTEX_AUTH=devkit)"
 	@echo "make gcloud-auth                            Google Cloud sign-in (SSO), to read the pipeline's GCS buckets"
+	@echo "make ingestion-cases [PER_DOMAIN=n] [DOMAIN=..]  pages per domain in the buckets + one test case per page"
 	@echo "make doctor                                 check Python env, Pegasus, env files, certificates, CORTEX"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
@@ -79,6 +80,11 @@ gcloud-auth-check:
 	@gcloud auth application-default print-access-token >/dev/null 2>&1 \
 		&& echo "✓ Google ADC credentials available" \
 		|| (echo "✗ Not signed in to Google Cloud. Run: make gcloud-auth" && exit 1)
+
+# One test case per page the preprocessing pipeline stored (agents/knowledge_agent/ingestion/make_cases.py).
+ingestion-cases:
+	$(UV_RUN) python -m agents.knowledge_agent.ingestion.make_cases \
+		$(if $(PER_DOMAIN),--per-domain $(PER_DOMAIN)) $(if $(DOMAIN),--domain $(DOMAIN))
 
 doctor:
 	$(EVAL) doctor

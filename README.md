@@ -567,8 +567,14 @@ Knowledge Agent's pass rate or verdict.
 
 ```bash
 make gcloud-auth                              # Google Cloud sign-in (browser SSO), once
-make run AGENT=knowledge_agent/ingestion SUITE=markdown
+make ingestion-cases                          # pages per domain in the bucket + one test case per page
+make run AGENT=knowledge_agent/ingestion SUITE=markdown JUDGES=0     # checks only: fast, every page
+make run AGENT=knowledge_agent/ingestion SUITE=markdown              # + the two judges (LLM calls per page)
 ```
+
+`make ingestion-cases` lists the Markdown bucket, prints how many pages each domain (first folder) has,
+and writes `testdata/markdown/<domain>/KA_MD_<page_id>.json` with each page's exact file paths
+(`PER_DOMAIN=5` for a sample, `DOMAIN=<folder>` for one domain; existing cases are kept).
 
 | What | How | Where |
 |---|---|---|
@@ -578,9 +584,8 @@ make run AGENT=knowledge_agent/ingestion SUITE=markdown
 | Nothing added or changed | Pegasus safety Hallucination, the Athena page as the context | `markdown_hallucination` |
 | Nothing lost | rubric judge (`rubrics/markdown_completeness.md`) | `markdown_completeness` |
 
-Where the files are is in `connection:` of `agents/knowledge_agent/ingestion/agent.yaml` (override with
-`GCS_MD_BUCKET`, `GCS_MD_PATH`, `GCS_JSON_BUCKET`, `GCS_METADATA_PATH` in `env/.env`); `<page_id>` in a path
-is replaced by the case's page id. A page id per test case lives in `testdata/markdown/`. Reading GCS
+The buckets are in `connection:` of `agents/knowledge_agent/ingestion/agent.yaml` (override with
+`GCS_MD_BUCKET` and `GCS_JSON_BUCKET` in `env/.env`). Reading GCS
 needs no Google Python package: `src/clients/gcs_client.py` uses the token of your `make gcloud-auth`
 sign-in. Some content may be dropped on purpose by the pipeline (e.g. images): agree that list with the
 pipeline team before treating a structure FAIL as a bug.

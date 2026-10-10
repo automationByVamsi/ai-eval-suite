@@ -1,6 +1,0 @@
-{
-  "test_case_id": "KA_MD_40015",
-  "description": "Athena page 40015 -> the pipeline's Markdown keeps its structure, text and meaning",
-  "input": {"page_id": "40015"},
-  "expected": {}
-}

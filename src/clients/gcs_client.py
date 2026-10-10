@@ -6,6 +6,7 @@ same as the agent repos use). This file asks gcloud for an access token and down
 HTTPS, so no Google Python package is needed:
 
     read_text("my-bucket", "folder/40345.md")   -> the file's text, or None when it doesn't exist
+    list_names("my-bucket", "folder/")          -> every file name in the bucket (under that prefix)
 
 Certificate checks follow VERIFY_TLS / CA_BUNDLE (src/core/tls.py), like every other client.
 """
@@ -36,6 +37,22 @@ def access_token() -> str:
     return done.stdout.strip()
 
 
+def list_names(bucket: str, prefix: str = "") -> list[str]:
+    """Every file name in gs://<bucket>/ (starting with `prefix`), in pages of 1000."""
+    names, page = [], None
+    while True:
+        params = {"prefix": prefix, "fields": "items(name),nextPageToken", **({"pageToken": page} if page else {})}
+        response = httpx.get(f"https://storage.googleapis.com/storage/v1/b/{bucket}/o", params=params,
+                             headers={"Authorization": f"Bearer {access_token()}"},
+                             verify=tls.httpx_verify(), timeout=60)
+        _raise_for_access(response, f"gs://{bucket}/{prefix}")
+        body = response.json()
+        names += [item["name"] for item in body.get("items") or []]
+        page = body.get("nextPageToken")
+        if not page:
+            return names
+
+
 def read_text(bucket: str, path: str) -> str | None:
     """The text of gs://<bucket>/<path>, or None when there is no such file."""
     url = f"https://storage.googleapis.com/storage/v1/b/{bucket}/o/{quote(path, safe='')}?alt=media"
@@ -43,8 +60,12 @@ def read_text(bucket: str, path: str) -> str | None:
                          verify=tls.httpx_verify(), timeout=60)
     if response.status_code == 404:
         return None
+    _raise_for_access(response, f"gs://{bucket}/{path}")
+    return response.text
+
+
+def _raise_for_access(response: httpx.Response, where: str) -> None:
     if response.status_code in (401, 403):
-        raise RuntimeError(f"no access to gs://{bucket}/{path} (HTTP {response.status_code}) — "
+        raise RuntimeError(f"no access to {where} (HTTP {response.status_code}) — "
                            f"run make gcloud-auth, or ask for read access to the bucket")
     response.raise_for_status()
-    return response.text
