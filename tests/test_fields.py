@@ -226,7 +226,7 @@ def test_a_failed_lookup_is_an_error_not_a_low_score(outputs, monkeypatch):
     error = next(r for r in case.results if r.name == "lookup")
     assert error.status == "error" and "get_page_content_from_athena(40017)" in error.reason
     assert "Athena unreachable" in error.reason and "lookups.py" in error.reason
-    assert "faithfulness could not run" in error.reason                 # says which judge wanted it
+    assert "faithfulness and hallucination could not run" in error.reason                 # says which judge wanted it
     assert case.status == "error"
 
 

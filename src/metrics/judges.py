@@ -183,6 +183,8 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
     RAG metrics (pegasus.metrics.rag) get the columns question / answer / retrieved_contexts /
     reference_answer. A metric from another module names its own columns in metric_library.yaml
     (`columns:`), e.g. ResponseAlignment: query / agent_response / background.
+    A metric with `call: keywords` (the safety metrics, e.g. Hallucination) gets the same values as
+    separate arguments instead of a DataFrame: evaluate(query=..., text=..., context=[...]).
     """
     import importlib
 
@@ -191,7 +193,7 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
     module_name = metric.get("module", "rag")
     if metric.get("columns"):
         given = {**values, "background": metric.get("background")}
-        row = {column: _as_text(given.get(field)) for field, column in metric["columns"].items()
+        row = {column: _as_input(field, given.get(field)) for field, column in metric["columns"].items()
                if not is_empty(given.get(field))}
     else:
         row = {
@@ -201,13 +203,13 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
         }
         if values.get("expected_answer"):
             row["reference_answer"] = values["expected_answer"]   # correctness / context metrics use it
-    frame = pd.DataFrame([row])
+    data = row if metric.get("call") == "keywords" else pd.DataFrame([row])
 
     kwargs: dict[str, Any] = {"llm": cortex_client.pegasus_llm(), **(metric.get("options") or {})}
     if module_name == "rag" or "method" in metric:   # only the RAG metrics take method= (pegasus|ragas|deepeval)
         kwargs["method"] = metric.get("method", "pegasus")
     judge_class = getattr(importlib.import_module(f"pegasus.metrics.{module_name}"), metric["pegasus"])
-    out = _evaluate(judge_class(**kwargs), frame, metric["pegasus"])
+    out = _evaluate(judge_class(**kwargs), data, metric["pegasus"])
     score = first(out["score"])
     if score is None or pd.isna(score):
         raise RuntimeError(f"Pegasus returned no numeric score: {out}")
@@ -217,21 +219,25 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
 _NO_TEMPERATURE: set[str] = set()      # Pegasus metrics whose evaluate() doesn't take temperature (warned once)
 
 
-def _evaluate(judge: Any, frame: Any, name: str) -> Any:
+def _evaluate(judge: Any, data: Any, name: str) -> Any:
     """
-    judge.evaluate(frame, temperature=...) — Pegasus passes temperature to the LLM (metric_library.yaml
-    judge_temperature). A metric whose evaluate() doesn't accept it runs at the model's default, with a warning.
+    judge.evaluate(frame, temperature=...) — or evaluate(**data, temperature=...) when data is a dict
+    (`call: keywords`). Pegasus passes temperature to the LLM (metric_library.yaml judge_temperature).
+    A metric whose evaluate() doesn't accept it runs at the model's default, with a warning.
     """
+    def evaluate(**extra: Any) -> Any:
+        return judge.evaluate(**data, **extra) if isinstance(data, dict) else judge.evaluate(data, **extra)
+
     if name not in _NO_TEMPERATURE:
         try:
-            return judge.evaluate(frame, temperature=judge_temperature())
+            return evaluate(temperature=judge_temperature())
         except TypeError as exc:
             if "temperature" not in str(exc):      # a real error inside evaluate(), not the keyword
                 raise
             _NO_TEMPERATURE.add(name)
             print(f"  WARNING: Pegasus {name}.evaluate() does not accept temperature — it runs at the "
                   f"model's default, so its scores can vary between runs")
-    return judge.evaluate(frame)
+    return evaluate()
 
 
 REASON_KEYS = ("reasoning", "reasons", "reason", "explanation", "score_details", "details")
@@ -243,6 +249,8 @@ def _pegasus_reason(out: Any) -> str:
     metrics per sample, in out["individual_results"][0]["explanation"], next to the raw 1-10 score.
     """
     reason = next((first(out[k]) for k in REASON_KEYS if _has(out, k) and first(out[k])), "")
+    if reason and _has(out, "raw_score") and first(out["raw_score"]) is not None:   # safety metrics: 1-10
+        reason = f"{reason} (raw score {first(out['raw_score'])}/10)"
     if not reason and _has(out, "individual_results"):
         sample = first(out["individual_results"])
         if isinstance(sample, dict):
@@ -250,6 +258,11 @@ def _pegasus_reason(out: Any) -> str:
             if reason and sample.get("raw_score") is not None:
                 reason = f"{reason} (raw score {sample['raw_score']}/10)"
     return str(reason or "")
+
+
+def _as_input(field: str, value: Any) -> Any:
+    """One Pegasus input: the page texts stay a list of strings (`contexts`), everything else is text."""
+    return [str(c) for c in value] if field == "contexts" else _as_text(value)
 
 
 def _as_text(value: Any) -> str:

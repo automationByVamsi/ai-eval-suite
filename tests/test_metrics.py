@@ -229,6 +229,54 @@ def test_pegasus_metric_is_called_like_the_knowledge_agent_guardrails(monkeypatc
     assert calls[2] == {"temperature": 0.0}                     # metric_library.yaml judge_temperature
 
 
+def test_pegasus_safety_hallucination_gets_separate_arguments(monkeypatch):
+    """Safety metrics: evaluate(query=, text=, context=[...]) — no DataFrame, no method=; the page texts stay a list."""
+    import sys
+    import types
+    calls = []
+    _fake_pegasus(monkeypatch)
+
+    class Hallucination:
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
+
+        def evaluate(self, **kwargs):
+            calls.append(kwargs)
+            return {"score": 0.89, "passed": True, "explanation": "Fully supported by the context.", "raw_score": 9.0}
+
+    monkeypatch.setitem(sys.modules, "pegasus.metrics.safety", types.SimpleNamespace(Hallucination=Hallucination))
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    pages = ["Page 40345: open Customer Support Needs ...", "Page 40017: ..."]
+    try:
+        result = judges.run_judge("hallucination", {"threshold": 0.66},
+                                  {"question": "How do I add a support need?", "answer": "Open ...", "contexts": pages})
+        skipped = judges.run_judge("hallucination", {}, {"question": "q?", "answer": "a.", "contexts": []})
+    finally:
+        from src.clients import cortex_client
+        cortex_client._pegasus_model.cache_clear()
+    assert (result.status, result.score, result.engine) == (results.PASS, 0.89, "pegasus")
+    assert result.reason == "Fully supported by the context. (raw score 9.0/10)"
+    assert calls[0] == {"llm": "pegasus-llm"}                               # no method=: not a RAG metric
+    assert calls[1] == {"query": "How do I add a support need?", "text": "Open ...", "context": pages,
+                        "temperature": 0.0}
+    assert skipped.status == results.SKIP                                  # no evidence pages: nothing to judge against
+
+
+def test_metric_library_call_must_be_keywords(monkeypatch, tmp_path):
+    from src.core import paths
+    from src.metrics import library
+    monkeypatch.setattr(paths, "METRIC_LIBRARY", tmp_path / "lib.yaml")
+    try:
+        (tmp_path / "lib.yaml").write_text("h: {needs: [question, answer], pegasus: H, call: frame}\n")
+        _clear(library)
+        with pytest.raises(ConfigError, match="call: can only be `keywords`"):
+            library.library()
+    finally:
+        monkeypatch.undo()
+        _clear(library)
+
+
 def test_pegasus_metric_without_temperature_still_runs_with_a_warning(capsys):
     class OldMetric:                                            # evaluate() takes no temperature
         def evaluate(self, frame):

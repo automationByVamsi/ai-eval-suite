@@ -13,6 +13,8 @@
 #    module     the Pegasus module when it isn't rag, e.g. agentic
 #    columns    for a non-rag Pegasus metric: our field -> Pegasus' column name, e.g.
 #               {question: query, answer: agent_response, background: background}
+#    call       keywords: evaluate() takes the columns as separate arguments, not a one-row
+#               DataFrame (the Pegasus safety metrics, e.g. Hallucination)
 #    deepeval   class name in deepeval.metrics (the fallback, or the only engine)
 #    criteria   DeepEval GEval with this text as the rubric (instead of a deepeval class)
 #    question / answer / contexts / expected_answer: <field>
@@ -77,6 +79,17 @@ summarization:                      # is `answer` a good summary of the source t
   needs: [question, answer]
   question: source_document         # the agent's parser.py must provide the source text as source_document
   deepeval: SummarizationMetric
+
+# --- Safety (pegasus.metrics.safety) ----------------------------------------------------------
+
+hallucination:                      # does the answer invent, contradict or misattribute anything in the pages it used?
+  needs: [question, answer, contexts]
+  pegasus: Hallucination            # the Safety one (Pegasus-native, higher = better), not ethics.Hallucination
+  module: safety                    # 1-10 scale (9-10 none, 7-8 minimal, 5-6 moderate), normalised to 0..1
+  columns: {question: query, answer: text, contexts: context}
+  call: keywords                    # evaluate(query=..., text=..., context=[...]), not a DataFrame
+                                    # no deepeval: DeepEval's HallucinationMetric scores the other way round
+
 
 # --- Agentic (pegasus.metrics.agentic) -------------------------------------------------------
 

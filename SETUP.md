@@ -34,7 +34,7 @@ Ask for these first — they take the longest. They go **only** into `env/.env` 
 | **SAR token** (token name + pass code — the one the Pegasus guide puts in `pip.conf`) | installing Pegasus and the CorteX DevKit | judges run on DeepEval instead of Pegasus; DevKit sign-in not possible |
 | **CORTEX**: an API key (host, client id, key) **or** DevKit SSO access | the LLM judges | only `JUDGES=0` runs work |
 | **Knowledge Agent** URL and ADK app name | calling the agent | only `OFFLINE=1` runs work |
-| **Hive Athena MCP** client id + secret | page text for judges (faithfulness, context recall/precision); the synthesizer | those judges ERROR |
+| **Hive Athena MCP** client id + secret | page text for judges (faithfulness, hallucination, context recall/precision); the synthesizer | those judges ERROR |
 
 ---
 

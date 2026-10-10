@@ -127,7 +127,7 @@ flowchart TD
     S -.- c2["checks: search_recall_at_5"]
     AN -.- c3["checks: anchor_hit<br/>judges: anchor_relevance, anchor_grounding_quality"]
     EXP -.- c4["checks: expansion_recall"]
-    SY -.- c6["checks: no_internal_markers, citations_in_evidence_set,<br/>page_link_for_every_source, caveat_when_not_high, within_60s<br/>judges: relevance, correctness, faithfulness,<br/>context recall / precision, response_alignment"]
+    SY -.- c6["checks: no_internal_markers, citations_in_evidence_set,<br/>page_link_for_every_source, caveat_when_not_high, within_60s<br/>judges: relevance, correctness, faithfulness, hallucination,<br/>context recall / precision, response_alignment"]
 ```
 
 **The trace is the only evidence.** What the agent doesn't log can't be tested — e.g. "Precision@5"
@@ -239,14 +239,14 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 
 | Suite | Cases (`testdata/…`) | Judges | Checks | Use it to… |
 |---|---|---|---|---|
-| `sanity` | `sanity/` | relevance, correctness, faithfulness | all | smoke-test a build or a setup; every case must pass |
-| `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
-| `should_decline` | `should_decline/` — questions the KB can't answer | – | basic, disclosure, performance | for when the agent can decline (not built yet): today, answers in time and caveats low confidence |
+| `sanity` | `sanity/` | relevance, correctness, faithfulness, hallucination | all | smoke-test a build or a setup; every case must pass |
+| `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, hallucination, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
+| `should_decline` | `should_decline/` — questions the KB can't answer | hallucination | basic, disclosure, performance | for when the agent can decline (not built yet): today, answers in time, caveats low confidence and invents nothing |
 | `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
 | `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
-| `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness | basic, answer, source page | broad coverage; not a release gate |
+| `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness, hallucination | basic, answer, source page | broad coverage; not a release gate |
 | `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
-| `relevance_only`, `faithfulness_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
+| `relevance_only`, `faithfulness_only`, `hallucination_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
 
 Flags for any `make run` / `baseline` / `verdict`: `CASE="ID1 ID2"` (only these cases),
 `OFFLINE=1`, `JUDGES=0`, `REPS=5`, `BUILD=1.5.0` (label the run with the agent build).
@@ -350,9 +350,18 @@ faithfulness:
   deepeval: FaithfulnessMetric       # used otherwise
 ```
 
-To add a Pegasus metric, add an entry with its class name from `pegasus.metrics.rag`.
-To remove one, delete the entry. Available today: relevance, faithfulness, correctness,
-context_precision, context_recall (Pegasus + DeepEval), contextual_relevancy, summarization (DeepEval).
+To add a Pegasus metric, add an entry with its class name from `pegasus.metrics.rag` (another module:
+`module:` + `columns:`, see the top of `metric_library.yaml`). To remove one, delete the entry.
+Available today: relevance, faithfulness, correctness, context_precision, context_recall (Pegasus +
+DeepEval), hallucination (Pegasus safety only), response_alignment (Pegasus agentic only),
+contextual_relevancy, summarization (DeepEval).
+
+`hallucination` is Pegasus' **safety** Hallucination: an LLM judge that checks the answer against the
+text of the pages the agent used (`contexts`, fetched from Athena) for fabricated details,
+contradictions, unsupported claims and misattribution. It needs no golden answer, so it runs on every
+case. Raw score 1-10 (9-10 none, 7-8 minimal, 5-6 moderate …), normalised to 0..1, higher is better;
+the Knowledge Agent's threshold 0.66 = raw 7. It has no DeepEval fallback (DeepEval's version scores
+the other way round), so without Pegasus it is an ERROR.
 
 **An agent uses metrics by name** in its `agent.yaml`, with its own thresholds, and adds its own
 rubric-based judges:

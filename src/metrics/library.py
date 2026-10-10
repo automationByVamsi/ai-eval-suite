@@ -26,6 +26,14 @@ and what Pegasus calls each input:
       module: agentic                                   # pegasus.metrics.agentic (default: rag)
       columns: {question: query, answer: agent_response, background: background}
 
+Pegasus safety metrics (e.g. Hallucination) take separate arguments instead of a one-row DataFrame:
+
+    hallucination:
+      pegasus: Hallucination
+      module: safety
+      columns: {question: query, answer: text, contexts: context}
+      call: keywords                                    # evaluate(query=..., text=..., context=[...])
+
 An agent's metric can also set `background:` (fixed text for Pegasus' background column) and
 `options:` (extra arguments for the Pegasus class, e.g. {use_ground_truth: true, json_path: ...}).
 """
@@ -44,7 +52,7 @@ from src.core.exceptions import ConfigError
 STANDARD_FIELDS = ("question", "answer", "contexts", "expected_answer")
 
 # Keys allowed in metric_library.yaml entries, and in an agent's `metrics:` entries.
-LIBRARY_KEYS = {"needs", "pegasus", "deepeval", "criteria", "module", "columns", *STANDARD_FIELDS}
+LIBRARY_KEYS = {"needs", "pegasus", "deepeval", "criteria", "module", "columns", "call", *STANDARD_FIELDS}
 AGENT_KEYS = {"type", "threshold", "rubric", "criteria", "needs", "engine", "method", "background", "options",
               *STANDARD_FIELDS}
 COLUMN_SOURCES = {*STANDARD_FIELDS, "background"}     # what a `columns:` entry can map from
@@ -82,6 +90,8 @@ def library() -> dict[str, dict[str, Any]]:
             raise ConfigError(f"{where} needs at least one of pegasus / deepeval / criteria")
         if set(entry.get("columns") or {}) - COLUMN_SOURCES:
             raise ConfigError(f"{where} columns: keys must be from {sorted(COLUMN_SOURCES)}")
+        if entry.get("call", "keywords") != "keywords":
+            raise ConfigError(f"{where} call: can only be `keywords` (leave it out for a one-row DataFrame)")
     return entries
 
 
