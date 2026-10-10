@@ -49,6 +49,16 @@ def use_lookup(monkeypatch, fake):
 
 
 @pytest.fixture(autouse=True)
+def no_real_gcloud(monkeypatch):
+    """Every test: no real Google Cloud sign-in is used (tests that read GCS fake it)."""
+    from src.clients import gcs_client
+
+    def not_signed_in():
+        raise RuntimeError(gcs_client.NOT_SIGNED_IN)
+    monkeypatch.setattr(gcs_client, "access_token", not_signed_in)
+
+
+@pytest.fixture(autouse=True)
 def no_real_athena(monkeypatch):
     """Every test: lookups come from FAKE_PAGES, and nothing is remembered between tests."""
     from src.fields import lookup

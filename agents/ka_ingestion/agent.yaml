@@ -1,0 +1,29 @@
+# Knowledge Agent ingestion — is the pipeline's Markdown a faithful copy of the Athena page?
+#
+# Not a chat agent: client.py fetches, for each test case's page_id, the page from Athena (the source)
+# and the Markdown the preprocessing pipeline stored in GCS (the output), and the framework judges the
+# Markdown against the page like any agent's answer. Sign in to Google Cloud first:
+#     make gcloud-auth
+#     make run AGENT=ka_ingestion SUITE=markdown
+
+connection:                   # where the pipeline's files are (passed to client.py)
+  md_bucket: ${GCS_MD_BUCKET:-ew2-wrk-int-wrk01-svp-dfadf4-sbk-md-store}
+  md_path: ${GCS_MD_PATH:-<page_id>.md}                 # file name inside the bucket; <page_id> is filled in
+  metadata_bucket: ${GCS_JSON_BUCKET:-ew2-wrk-int-wrk01-svp-dfadf4-sbk-json-store}
+  metadata_path: ${GCS_METADATA_PATH:-<page_id>.json}   # optional: only used for the revision check
+
+input_field: page_id          # each test case's input.page_id is the page to check
+
+metrics:
+  # Nothing added or changed: Pegasus safety Hallucination with the Athena page as the context
+  # (raw 1-10 normalised; 0.66 = raw 7, "minimal" passes).
+  markdown_hallucination: {type: hallucination, threshold: 0.66, question: conversion_task}
+  # Nothing lost: a rubric judge (DeepEval GEval) — Pegasus has no completeness metric for this yet.
+  markdown_completeness:
+    rubric: rubrics/markdown_completeness.md
+    needs: [answer, contexts]
+    threshold: 0.7
+
+suites:
+  markdown:                   # Athena page -> pipeline Markdown: structure checks + two judges
+    metrics: [markdown_hallucination, markdown_completeness]

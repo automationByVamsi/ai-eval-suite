@@ -37,11 +37,12 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases fields summary review-sheet calibrate dashboard test
+.PHONY: help setup cortex-login gcloud-auth gcloud-auth-check doctor list new-agent run baseline verdict sources goldens import-cases fields summary review-sheet calibrate dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
 	@echo "make cortex-login                           CorteX DevKit only: sign in with SSO (once; CORTEX_AUTH=devkit)"
+	@echo "make gcloud-auth                            Google Cloud sign-in (SSO), to read the pipeline's GCS buckets"
 	@echo "make doctor                                 check Python env, Pegasus, env files, certificates, CORTEX"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
@@ -67,6 +68,17 @@ setup:
 # token in your OS keyring. Every command after this reaches CORTEX without an API key.
 cortex-login:
 	$(UV_RUN) cx auth login
+
+# Google Cloud sign-in (browser SSO): "application default credentials", the same as the agent repos.
+# Needed only to read the preprocessing pipeline's buckets (AGENT=ka_ingestion).
+gcloud-auth:
+	gcloud auth application-default login
+	@echo "✓ Google ADC configured"
+
+gcloud-auth-check:
+	@gcloud auth application-default print-access-token >/dev/null 2>&1 \
+		&& echo "✓ Google ADC credentials available" \
+		|| (echo "✗ Not signed in to Google Cloud. Run: make gcloud-auth" && exit 1)
 
 doctor:
 	$(EVAL) doctor

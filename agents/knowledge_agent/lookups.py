@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.clients.athena_client import athena_http, get_page_content
+from src.clients.athena_client import athena_http, get_page_content, page_html
 from src.utils.html_text import html_to_text
 
 
@@ -29,9 +29,7 @@ def get_page_content_from_athena(page_id: str) -> dict[str, Any]:
     """
     with athena_http(60) as http:
         page = get_page_content(http, page_id)
-    body = page.get("body") or []
-    html = "\n".join([body] if isinstance(body, str) else [part for part in body if isinstance(part, str)])
-    text = html_to_text(html)
+    text = html_to_text(page_html(page))
     if not text:
         raise ValueError(f"Athena returned page {page_id} without any text")
     return {"title": str(page.get("@title") or "").strip(), "text": text,

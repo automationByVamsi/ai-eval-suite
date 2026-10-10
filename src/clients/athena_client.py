@@ -14,7 +14,7 @@ Settings (env/.env):
 
 Certificate checks follow VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
 
-Used by: synthesizer/sources/athena_mcp.py.
+Used by: synthesizer/sources/athena_mcp.py, agents/knowledge_agent/lookups.py, agents/ka_ingestion/client.py.
 """
 
 from __future__ import annotations
@@ -67,6 +67,12 @@ def get_page_content(http: httpx.Client, page_id: str) -> dict[str, Any]:
     if not isinstance(value, dict) or "errors" in value:
         raise RuntimeError(f"Athena page {page_id}: {value.get('errors') if isinstance(value, dict) else value}")
     return value
+
+
+def page_html(page: dict[str, Any]) -> str:
+    """The page's content as one HTML string: the HTML parts of its body (table-of-contents objects left out)."""
+    body = page.get("body") or []
+    return "\n".join([body] if isinstance(body, str) else [part for part in body if isinstance(part, str)])
 
 
 def _json_body(text: str) -> dict[str, Any]:

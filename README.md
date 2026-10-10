@@ -18,6 +18,7 @@ first run. This README explains how the framework works and how to use it.
 - [Import test cases from a spreadsheet](#import-test-cases-from-a-spreadsheet) · [Synthesizer](#synthesizer-generate-test-cases)
 - [SME review sheet and judge calibration](#sme-review-sheet-and-judge-calibration)
 - [Release targets and consistency](#release-targets-and-consistency) · [Baseline and verdict](#baseline-and-verdict)
+- [Ingestion: the pipeline's Markdown](#ingestion-the-pipelines-markdown-ka_ingestion)
 - [Pass, fail, skip, error](#pass-fail-skip-error) · [Troubleshooting](#troubleshooting)
 
 ## How it works
@@ -550,6 +551,34 @@ This creates `agents/claims_agent/` from the template and prints the next steps:
 Add `fields.yaml` entries when you want stage fields, and `checks.yaml` for
 agent-specific checks — `agents/knowledge_agent/` is a full example. For an agent that is not Google
 ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
+
+## Ingestion: the pipeline's Markdown (`ka_ingestion`)
+
+Before the Knowledge Agent can answer, a preprocessing pipeline copies every knowledge-base page from
+Athena into GCS buckets as HTML, Markdown and a metadata JSON. `agents/ka_ingestion/` checks that the
+Markdown is a faithful copy of the page. It is not a chat agent: its `client.py` fetches, for each test
+case's `page_id`, the page from Athena (the source) and the Markdown from GCS (the output), and the
+framework judges the Markdown against the page like any agent's answer.
+
+```bash
+make gcloud-auth                              # Google Cloud sign-in (browser SSO), once
+make run AGENT=ka_ingestion SUITE=markdown
+```
+
+| What | How | Where |
+|---|---|---|
+| Same headings, list items, table rows, links | counted in the Athena HTML and in the Markdown | `checks.yaml` structure (counts from `parser.py`) |
+| The page's text is all there | share of the page's lines found in the Markdown ≥ 98%; `missing_lines` lists the rest | `checks.yaml` content |
+| Made from the current page | Athena revision = the revision in the metadata JSON (skipped if none stored) | `checks.yaml` version |
+| Nothing added or changed | Pegasus safety Hallucination, the Athena page as the context | `markdown_hallucination` |
+| Nothing lost | rubric judge (`rubrics/markdown_completeness.md`) | `markdown_completeness` |
+
+Where the files are is in `connection:` of `agents/ka_ingestion/agent.yaml` (override with
+`GCS_MD_BUCKET`, `GCS_MD_PATH`, `GCS_JSON_BUCKET`, `GCS_METADATA_PATH` in `env/.env`); `<page_id>` in a path
+is replaced by the case's page id. A page id per test case lives in `testdata/markdown/`. Reading GCS
+needs no Google Python package: `src/clients/gcs_client.py` uses the token of your `make gcloud-auth`
+sign-in. Some content may be dropped on purpose by the pipeline (e.g. images): agree that list with the
+pipeline team before treating a structure FAIL as a bug.
 
 ## Import test cases from a spreadsheet
 

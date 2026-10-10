@@ -9,6 +9,7 @@ It checks, in order:
   5. the CORTEX settings for the chosen CORTEX_AUTH (api_key or devkit), then one tiny call to
      CORTEX to prove the judge model is reachable
   6. one real Pegasus metric (answer relevancy on a two-line example), when Pegasus is installed
+  7. the Google Cloud sign-in (make gcloud-auth), needed only to read the pipeline's GCS buckets
 
 Secrets are never printed — only whether they are set.
 """
@@ -127,6 +128,15 @@ def run_doctor(ping: bool = True) -> int:
                 line(OK, "Pegasus metric", f"relevance score={result.score:.2f} [pegasus]")
             else:
                 line(FAIL, "Pegasus metric", f"relevance: {result.reason[:300]}")
+
+    # 7. Google Cloud sign-in — only agents that read GCS need it (ka_ingestion), so a WARN, never a FAIL.
+    if ping:
+        from src.clients import gcs_client
+        try:
+            gcs_client.access_token()
+            line(OK, "Google Cloud", "signed in (make gcloud-auth)")
+        except RuntimeError as exc:
+            line(WARN, "Google Cloud", f"{exc} (only needed for AGENT=ka_ingestion)")
 
     print("-" * 72)
     print("All good.\n" if not problems else f"{problems} problem(s) above.\n")

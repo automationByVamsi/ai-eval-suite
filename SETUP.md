@@ -35,6 +35,7 @@ Ask for these first — they take the longest. They go **only** into `env/.env` 
 | **CORTEX**: an API key (host, client id, key) **or** DevKit SSO access | the LLM judges | only `JUDGES=0` runs work |
 | **Knowledge Agent** URL and ADK app name | calling the agent | only `OFFLINE=1` runs work |
 | **Hive Athena MCP** client id + secret | page text for judges (faithfulness, hallucination, context recall/precision); the synthesizer | those judges ERROR |
+| **Google Cloud** read access to the preprocessing buckets, and the `gcloud` CLI | `AGENT=ka_ingestion` only (sign in with `make gcloud-auth`) | that agent's cases ERROR; nothing else is affected |
 
 ---
 
