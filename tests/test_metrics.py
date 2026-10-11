@@ -360,3 +360,37 @@ def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):
 def _clear(library):
     for cached in (library._file, library.judge_temperature, library.library):
         cached.cache_clear()
+
+
+def test_query_privacy_leakage_judges_the_search_queries_not_the_answer(monkeypatch):
+    """The input side: the same Pegasus PrivacyLeakage, given the rewritten queries (answer: rewritten_query)."""
+    import sys
+    import types
+
+    from src.core.agent_config import load_agent
+    calls = []
+    _fake_pegasus(monkeypatch)
+
+    class PrivacyLeakage:
+        def __init__(self, **kwargs):
+            pass
+
+        def evaluate(self, **kwargs):
+            calls.append(kwargs)
+            return {"score": 0.22, "passed": False, "explanation": "Health detail tied to a person.",
+                    "raw_score": 3.0}
+
+    monkeypatch.setitem(sys.modules, "pegasus.metrics.safety", types.SimpleNamespace(PrivacyLeakage=PrivacyLeakage))
+    monkeypatch.setenv("CORTEX_AUTH", "devkit")
+    monkeypatch.setattr(judges, "pegasus_installed", lambda: True)
+    spec = load_agent("knowledge_agent").metrics["query_privacy_leakage"]
+    fields = {"question": "q?", "answer": "Open Customer Support Needs ...",
+              "rewritten_query": "add support need hearing impairment jane sample\nlarge print letters"}
+    try:
+        result = judges.run_judge("query_privacy_leakage", spec, fields)
+    finally:
+        from src.clients import cortex_client
+        cortex_client._pegasus_model.cache_clear()
+    assert (result.status, result.score) == (results.FAIL, 0.22)
+    assert calls[0]["text"] == fields["rewritten_query"]                 # the queries, not the answer
+    assert "search queries" in calls[0]["background"]

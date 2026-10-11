@@ -251,7 +251,7 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 | `errors` | `errors/` — bad input / nothing to find (the design's error table) | none | expected errors, performance | the right error type for an empty query, an unknown question type, a nonsense query, an unknown business area |
 | `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
 | `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
-| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage, relevance | basic, PII not sent to search | the answer doesn't repeat personal data, and the PII guardrail keeps it out of the search queries |
+| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic, PII not sent to search (diagnostic) | the answer doesn't repeat personal data, and the PII guardrail keeps it out of the search queries |
 | `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness, hallucination | basic, answer, source page | broad coverage; not a release gate |
 | `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
 | `relevance_only`, `faithfulness_only`, `hallucination_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
