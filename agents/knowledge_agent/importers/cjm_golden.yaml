@@ -7,10 +7,10 @@
 # The importer (src/importers/cases.py) is the same for every agent; this file says what this
 # spreadsheet's columns mean and what a Knowledge Agent test case looks like.
 #
-# Naming convention (golden cases from CJMs):
-#   test case id   KA_GLD_<DOMAIN>_<test id, 3 digits>      e.g. KA_GLD_CVH_030 = Excel Test ID 30, workstream CVH
-#   file           testdata/golden/<domain, lower case>/<test case id>.json
-#   domain codes   UPPER_SNAKE, set under domain.codes below
+# Naming convention (the same for golden and synthetic cases; the business areas are in ../domains.yaml):
+#   test case id   KA_GLD_<BUSINESS_AREA>_<test id, 3 digits>   e.g. KA_GLD_COMPLAINT_MANAGERS_001 = Test ID 1
+#   file           testdata/golden/<business_area>/<test case id>.json   e.g. golden/complaint_managers/
+#   sent as        business_area: /Complaint_Managers/   (the agent's format)
 # The Excel Test ID stays in the id, so any case can be found in the sheet again (and its row is
 # in metadata.source). Keep Test IDs unique across the sheet: duplicates stop the import.
 
@@ -55,12 +55,8 @@ strip:                        # titles in the sheet end with their page id, e.g.
   related_pages: '\s*\(\s*\d+\s*\)\s*$'
 
 domain:
-  column: workstream          # the domain is the Workstream column ...
-  codes:                      # ... shortened to these codes (used in ids and folders)
-    CVH: CVH
-    Brand Change: BRAND_CHANGE
-    Black horse: BLACK_HORSE
-  # A workstream not listed here still imports, as its text in UPPER_SNAKE, with a warning.
+  column: workstream          # the business area is the Workstream column, matched to ../domains.yaml
+  # (its official name or an alias, e.g. "CVH"). One not listed still imports, with a warning.
 
 warn_if_empty:                # reported after the import, so gaps in the sheet are visible
   expected_answer: correctness judge will be skipped
@@ -75,6 +71,7 @@ output:
     input:
       question: "{row.question}"
       question_type: "{row.question_type}"     # sent to the agent (agent.yaml message:); empty -> left out
+      business_area: "{domain_path}"           # the agent's format, e.g. /Complaint_Managers/
     expected:
       expected_answer: "{row.expected_answer}"
       expected_anchor_page_titles: "{row.anchor_pages}"
@@ -84,6 +81,7 @@ output:
       expected_query_type: "{row.query_type}"       # simple | complex (kept for reference; no check reads it)
     metadata:
       domain: "{domain}"
+      business_area_name: "{domain_name}"
       workstream: "{row.workstream}"
       question_type_in_sheet: "{row.question_type_in_sheet}"   # as the sheet had it, even if not sent
       origin: CJM_GOLDEN

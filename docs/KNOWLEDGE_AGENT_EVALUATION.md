@@ -28,7 +28,20 @@ Everything here is in the repo; the README has the full reference for every comm
 ## 2. The Knowledge Agent in brief
 
 Input (from the upstream Resolution Agent): **query** (required), **business_area** (recommended, one of
-the 25 in scope), **question_type** (how / what / why / yes_no; default general).
+the 25 in scope, in the agent's format `/Customer_Vulnerability_Hub_2/`), **question_type** (how / what /
+why / yes_no; default general).
+
+**Business-area naming — one standard for every test case** (golden and synthetic), from
+`agents/knowledge_agent/domains.yaml` (the 25 official names, plus aliases such as `CVH` seen in sheets):
+
+| Used for | Format | Example |
+|---|---|---|
+| Sent to the agent (`input.business_area`) | `/Name_With_Underscores/` | `/Complaint_Managers/` |
+| Test case id | `KA_<GLD/SYN/PII/DEC>_<FULL_NAME>_<n>` | `KA_GLD_COMPLAINT_MANAGERS_001` |
+| Folder | full name, lower snake | `testdata/golden/complaint_managers/` |
+| Readable name (`metadata.business_area_name`) | official name | `Complaint Managers` |
+
+No short codes (CB, BB, CVH) in ids or folders.
 
 | Stage (KA design) | What it does | What we test there |
 |---|---|---|
@@ -194,7 +207,7 @@ make run AGENT=knowledge_agent SUITE=safety                      # personal data
 make run AGENT=knowledge_agent SUITE=coverage                    # breadth across business areas / question types
 
 # 2. Run — on demand, when retrieval drops (re-judges saved golden traces, no agent call)
-make run AGENT=knowledge_agent SUITE=diagnose OFFLINE=1 CASE="KA_GLD_CVH_003 KA_GLD_BB_010"
+make run AGENT=knowledge_agent SUITE=diagnose OFFLINE=1 CASE="KA_GLD_CUSTOMER_VULNERABILITY_HUB_003 KA_GLD_BUSINESS_BANKING_010"
 
 # 3. Look at results
 make dashboard
@@ -290,7 +303,8 @@ real pages. Tests 1, 3 and 4 are proposed for the pre-processing pipeline team.
 | Rubric judges | `agents/knowledge_agent/rubrics/*.md` |
 | Test cases | `agents/knowledge_agent/testdata/<suite>/` |
 | CJM sheet column mapping | `agents/knowledge_agent/importers/cjm_golden.yaml` |
-| Synthesizer (styles, business areas, codes) | `agents/knowledge_agent/synth/` |
+| Business areas (names, aliases, agent paths) | `agents/knowledge_agent/domains.yaml` |
+| Synthesizer (styles, output template) | `agents/knowledge_agent/synth/` |
 | Pegasus metric definitions | `metric_library.yaml` |
 | Framework code | `src/` (runner, judges, checks, reporting, importers / exporters) |
 | Results | `outputs/runs/<run id>/` (not committed); latest traces in `outputs/traces/` |
@@ -298,7 +312,7 @@ real pages. Tests 1, 3 and 4 are proposed for the pre-processing pipeline team.
 
 **Common changes:** a threshold → `agent.yaml` `metrics:`; a release target → `agent.yaml` `targets:`;
 a new check → `checks.yaml` (no code); a new trace field → `fields.yaml`; a new business area →
-`checks.yaml` (`business_area_in_scope`) and `synth/synth.yaml` (`domain_codes`).
+`domains.yaml` and `checks.yaml` (`business_area_in_scope`, its path); a test checks the two match.
 
 ---
 
@@ -311,4 +325,4 @@ a new check → `checks.yaml` (no code); a new trace field → `fields.yaml`; a 
 | Judges ERROR | CORTEX sign-in / Pegasus install: `make doctor` |
 | Agent call fails | `KNOWLEDGE_ADK_*` in `env/.env`; VPN; `make doctor` |
 | `make import-cases` header not found | Wrong tab (`SHEET="<tab>"`) or a renamed column (update `cjm_golden.yaml`) |
-| Business area check fails on synthetic cases | The page_ids.json group name differs from the official name: add it to `domain_codes` in `synth.yaml` |
+| Business area check fails, or an import warns "not in domains.yaml" | The sheet / page_ids.json spells the area differently: add that spelling as an alias in `domains.yaml` (or set its `path:` if the agent's value differs) |

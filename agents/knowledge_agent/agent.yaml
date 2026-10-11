@@ -163,7 +163,7 @@ suites:
 
   diagnose:                  # on demand, to explain a retrieval drop: re-judge saved golden traces with the
     testdata: testdata/golden    # query-rewrite and anchor-page judges, e.g.
-    traces: golden               #   make run SUITE=diagnose OFFLINE=1 CASE="KA_GLD_CVH_003 KA_GLD_BB_010"
+    traces: golden               #   make run SUITE=diagnose OFFLINE=1 CASE="KA_GLD_COMPLAINT_MANAGERS_003"
     metrics: [intent_preservation, semantic_preservation, domain_appropriateness, query_optimization,
               anchor_relevance, anchor_grounding_quality]
     checks: [retrieval]

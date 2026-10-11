@@ -23,6 +23,7 @@ from typing import Any
 
 from src.clients import cortex_client
 from src.core.agent_config import load_agent
+from src.core.domains import load_domains
 from src.core.exceptions import ConfigError
 from src.synthesizer.documents import documents_for_generation, fetch, save_to_cache, select
 from src.synthesizer.output_template import MissingGenerated, default_output, render_case
@@ -48,6 +49,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
 
     agent = load_agent(agent_name)
     settings = load_settings(agent)
+    domains = load_domains(agent.folder)
     documents = documents_for_generation(settings, groups, ids)
     output = {**default_output(agent), **(settings.get("output") or {})}
     llm = cortex_client.deepeval_llm()
@@ -106,7 +108,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
                     path, case = render_case(agent, style_output, run, style_name, document, golden,
                                              set(planned), set(chosen) if replace else False,
                                              question_type=style.get("question_type", ""),
-                                             codes=settings.get("domain_codes"))
+                                             domains=domains)
                 except MissingGenerated as exc:
                     skipped.append({"source": document["id"], "style": style_name, "reason": str(exc)})
                     continue

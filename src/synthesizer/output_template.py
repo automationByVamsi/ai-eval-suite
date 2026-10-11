@@ -9,12 +9,11 @@ from default_output() — the standard evaluation test case. Strings can hold pl
   {generated.input.request}     a field of the generated input, when a style asks for JSON input
   {source.id} {source.title} {source.text} {source.metadata.revision}   the document
   {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
-  {domain} {domain_folder}      the group's short code and its folder (for ids and folders only — send {group},
-                                the full name, to the agent): synth.yaml domain_codes ("Customer
-                                Vulnerability Hub: CVH" -> CVH, cvh); a group not listed -> BRAND_CHANGE, brand_change
-                                (the same as the spreadsheet importer, so goldens and synthetic cases line up)
-  {business_area}               the group's official name: its key in domain_codes (matched ignoring case,
-                                spaces and punctuation), else the group as it is — what is sent to the agent
+  {domain_name} {domain_path} {domain} {domain_folder}
+                                the group's business area from agents/<agent>/domains.yaml, e.g.
+                                Customer Vulnerability Hub, /Customer_Vulnerability_Hub/ (what the agent receives),
+                                CUSTOMER_VULNERABILITY_HUB (ids), customer_vulnerability_hub (folders) — the same
+                                as the spreadsheet importer, so goldens and synthetic cases line up
   {question_type}               the style's question_type in synth.yaml ("" for a generic style)
   {run.id} {run.date} {run.generated_at} {run.model}                  this generation run
   {agent.name} {agent.input_field}
@@ -34,13 +33,13 @@ from pathlib import Path
 from typing import Any
 
 from src.core.agent_config import Agent
+from src.core.domains import domain_values
 from src.core.exceptions import ConfigError
 from src.utils.text import safe_filename, slug, strip_code_fence
 
 _PLACEHOLDER = re.compile(r"\{([A-Za-z_][\w.]*)(?::([^{}]*))?\}")
-_ROOTS = ("generated", "source", "style", "group", "group_slug", "business_area", "domain", "domain_folder",
-          "question_type",
-          "run", "agent", "id", "n")
+_ROOTS = ("generated", "source", "style", "group", "group_slug", "domain", "domain_folder", "domain_name",
+          "domain_path", "question_type", "run", "agent", "id", "n")
 _MAX_NUMBER = 9999
 
 
@@ -65,29 +64,9 @@ def default_output(agent: Agent) -> dict[str, Any]:
     }
 
 
-def domain_code(group: str, codes: dict[str, str] | None = None) -> str:
-    """A group's short code from synth.yaml domain_codes (names compared ignoring case, spaces and _),
-    else the group as UPPER_SNAKE: 'Customer Vulnerability Hub' -> 'CVH' (listed) or 'CUSTOMER_VULNERABILITY_HUB'."""
-    found = _listed(group, codes)
-    return str(codes[found]).upper() if found else slug(group).upper()
-
-
-def business_area(group: str, codes: dict[str, str] | None = None) -> str:
-    """The group's official name, as written in domain_codes: 'Customer Self Service Online and App' ->
-    'Customer Self-Service Online and App'. A group not listed is returned as it is."""
-    return _listed(group, codes) or group
-
-
-def _listed(group: str, codes: dict[str, str] | None) -> str | None:
-    """The domain_codes key that is the same name as `group` (ignoring case, spaces and punctuation)."""
-    def plain(text: str) -> str:
-        return re.sub(r"[^a-z0-9]", "", str(text).lower())
-    return next((name for name in codes or {} if plain(name) == plain(group)), None)
-
-
 def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style: str,
                 document: dict[str, Any], golden: Any, taken: set[Path], replace: Any,
-                question_type: str = "", codes: dict[str, str] | None = None) -> tuple[Path, dict[str, Any]]:
+                question_type: str = "", domains: dict[str, Any] | None = None) -> tuple[Path, dict[str, Any]]:
     """
     (file path, case JSON) for one generated golden.
 
@@ -99,8 +78,7 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
     context = {
         "generated": {"input": golden.input, "expected_output": golden.expected_output or ""},
         "source": document, "style": style, "group": document["group"], "group_slug": slug(document["group"]),
-        "business_area": business_area(document["group"], codes),
-        "domain": domain_code(document["group"], codes), "domain_folder": domain_code(document["group"], codes).lower(),
+        **domain_values(document["group"], domains or {}),
         "question_type": question_type or "",
         "run": run, "agent": {"name": agent.name, "input_field": agent.input_field},
     }

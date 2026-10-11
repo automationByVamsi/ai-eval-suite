@@ -23,12 +23,15 @@ test case JSON looks like is set per agent, in a mapping file:
       lists                 cells that hold several values: lines (one per line) | items (lines or ;) |
                             any (lines, , ; or spaces)
       strip                 a regex removed from each value (or each list item), e.g. a trailing "(27429)"
-      domain                which column holds the domain, and its short code for ids and folders
+      domain                which column holds the domain (matched to agents/<agent>/domains.yaml)
       warn_if_empty         columns worth a warning when empty (e.g. no expected answer -> judge skipped)
       output                folder, id and the case template (placeholders, see below)
 
 Placeholders in `output`:
-  {row.<name>}       a column, by our name              {domain} {domain_folder}   CVH, cvh
+  {row.<name>}       a column, by our name
+  {domain} {domain_folder} {domain_name} {domain_path}  the row's domain, e.g. CUSTOMER_VULNERABILITY_HUB,
+                     customer_vulnerability_hub, Customer Vulnerability Hub, /Customer_Vulnerability_Hub/
+                     (src/core/domains.py; "CVH" in the sheet matches if domains.yaml lists it as an alias)
   {source.file} {source.sheet} {source.row}             where the row came from
   {agent.name}       {id}                               the case id (from output.id)
   Format numbers like {row.test_id:03} -> 028. A placeholder that is the whole string keeps its type
@@ -51,12 +54,13 @@ import yaml
 
 from src.core import paths
 from src.core.agent_config import load_agent
+from src.core.domains import domain_values, load_domains, official_name
 from src.core.exceptions import ConfigError
 from src.importers.spreadsheet import read_rows
 from src.synthesizer.output_template import render
 from src.utils.text import safe_filename, slug
 
-_ROOTS = ("row", "domain", "domain_folder", "source", "agent", "id")
+_ROOTS = ("row", "domain", "domain_folder", "domain_name", "domain_path", "source", "agent", "id")
 _KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "labelled", "normalise", "allowed", "lists",
          "strip", "domain", "warn_if_empty", "output"}
 
@@ -72,6 +76,7 @@ def import_cases(agent_name: str, file: str, *, mapping: str | None = None, shee
     headers = _match_columns(config["columns"], rows, file)
 
     source = {"file": Path(file).expanduser().name, "sheet": sheet or "(first sheet)"}
+    domains = load_domains(agent.folder)
     planned: list[tuple[Path, dict[str, Any]]] = []
     skipped: list[str] = []
     warnings: Counter[str] = Counter()
@@ -82,8 +87,7 @@ def import_cases(agent_name: str, file: str, *, mapping: str | None = None, shee
         if missing:
             skipped.append(f"row {raw['_row']}: no {', '.join(missing)}")
             continue
-        domain = _domain(values, config.get("domain") or {}, warnings)
-        context = {"row": values, "domain": domain, "domain_folder": domain.lower(),
+        context = {"row": values, **_domain(values, config.get("domain") or {}, domains, warnings),
                    "source": {**source, "row": raw["_row"]}, "agent": {"name": agent.name}}
         output = config["output"]
         case_id = _render_id(output["id"], context, raw["_row"])
@@ -261,20 +265,18 @@ def _split(value: Any, how: str, empty: set[str]) -> list[str]:
     return [p.strip() for p in parts if p.strip() and p.strip().lower() not in empty]
 
 
-def _domain(values: dict[str, Any], config: dict[str, Any], warnings: Counter[str]) -> str:
-    """The row's short domain code, e.g. 'CVH' — from the mapping's codes, else made from the text."""
+def _domain(values: dict[str, Any], config: dict[str, Any], domains: dict[str, Any],
+            warnings: Counter[str]) -> dict[str, str]:
+    """The row's domain values ({domain}, {domain_folder}, {domain_name}, {domain_path}) from its column."""
     if not config:
-        return "ALL"
+        return domain_values("ALL", {})
     text = str(values.get(config.get("column", ""), "") or "").strip()
-    codes = {k.strip().lower(): v for k, v in (config.get("codes") or {}).items()}
     if not text:
         warnings["rows with no domain -> UNASSIGNED"] += 1
-        return "UNASSIGNED"
-    if text.lower() in codes:
-        return str(codes[text.lower()])
-    code = slug(text).upper()
-    warnings[f"domain '{text}' not in domain.codes -> {code} (add it to the mapping to choose the code)"] += 1
-    return code
+        return domain_values("UNASSIGNED", {})
+    if domains and not official_name(text, domains):
+        warnings[f"domain '{text}' is not in domains.yaml (add it, or as an alias of its official name)"] += 1
+    return domain_values(text, domains)
 
 
 def _render_id(template: str, context: dict[str, Any], row: int) -> str:

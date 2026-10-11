@@ -52,16 +52,17 @@ checks:
       expected: source_page_id
 
   input:                      # what reaches search is in scope and free of personal details
-    business_area_in_scope:     # the business area the case sends is one of the 25 in scope (KA I/O design):
-      type: one_of              # catches typos in golden / synthetic test data
+    business_area_in_scope:     # the business area the case sends is one of the 25 in scope (KA I/O design),
+      type: one_of              # in the agent's format. Catches typos in test data. Same list as domains.yaml
+                                # (a test checks they match)
       field: input_business_area
-      values: [Knowledge Manager Guidance, Blackhorse, Brand Change, Business Banking, Codes,
-               Commercial Banking Online, Community Bank, Complaint Managers, Contact Lists,
-               Customer Financial Assistance (CFA), Customer Self-Service Online and App,
-               Customer Vulnerability Hub, Customer Vulnerability Hub 2, D2C Investment Operations, Fraud,
-               General Insurance, Homes Servicing, Lex Autolease, MOT Operations, Personal Banking,
-               Recoveries Commercial Bank, Reference, Secured Underwriting, UK Private Banking,
-               Unsecured Underwriting]
+      values: [/Knowledge_Manager_Guidance/, /Blackhorse/, /Brand_Change/, /Business_Banking/, /Codes/,
+               /Commercial_Banking_Online/, /Community_Bank/, /Complaint_Managers/, /Contact_Lists/,
+               /Customer_Financial_Assistance_(CFA)/, /Customer_Self-Service_Online_and_App/,
+               /Customer_Vulnerability_Hub/, /Customer_Vulnerability_Hub_2/, /D2C_Investment_Operations/, /Fraud/,
+               /General_Insurance/, /Homes_Servicing/, /Lex_Autolease/, /MOT_Operations/, /Personal_Banking/,
+               /Recoveries_Commercial_Bank/, /Reference/, /Secured_Underwriting/, /UK_Private_Banking/,
+               /Unsecured_Underwriting/]
       when: {field: input_business_area, present: true}
     pii_not_sent_to_search:     # PII guardrail: the customer's details in the question never reach the search
       type: not_matches         # queries (cases with expected.contains_pii: true, i.e. the privacy suite).

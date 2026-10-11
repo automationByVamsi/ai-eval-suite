@@ -90,16 +90,19 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     assert summary["written"] == {"new": 4, "updated": 0, "unchanged": 0}
     assert summary["skipped"] == ["row 6: no question"]
 
-    case = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_044.json").read_text())
-    assert case["test_case_id"] == "KA_GLD_CVH_044"
-    assert case["input"] == {"question": ROWS[3][3], "question_type": "how"}       # question_type is sent
+    folder = ka_copy / "testdata/golden/customer_vulnerability_hub"                 # "CVH" in the sheet
+    case = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044.json").read_text())
+    assert case["test_case_id"] == "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044"
+    assert case["input"] == {"question": ROWS[3][3], "question_type": "how",       # question_type is sent
+                             "business_area": "/Customer_Vulnerability_Hub/"}     # "CVH" in the sheet
     assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
                                                                "How to Add a support need in MCP"]
     assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text
-    assert case["metadata"]["domain"] == "CVH" and case["expected"]["expected_query_type"] == "complex"
+    assert case["metadata"]["domain"] == "CUSTOMER_VULNERABILITY_HUB"
+    assert case["expected"]["expected_query_type"] == "complex"
     assert case["metadata"]["source"] == {"file": "KA golden.xlsx", "sheet": "Sheet1", "row": 5, "test_id": 44}
 
-    consent = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_030.json").read_text())["expected"]
+    consent = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_030.json").read_text())["expected"]
     assert consent["expected_anchor_page_ids"] == ["27429"]                         # no "Anchor:" word
     assert consent["expected_related_page_ids"] == ["3012", "3026", "3032"]          # relational ids kept apart
     assert consent["expected_anchor_page_titles"] == ["Consent Needed for Adding Support Needs"]   # "(27429)" gone
@@ -109,10 +112,11 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     brand = json.loads((ka_copy / "testdata/golden/brand_change/KA_GLD_BRAND_CHANGE_028.json").read_text())
     assert "expected_related_page_titles" not in brand["expected"]                  # NA -> left out
     assert brand["expected"]["expected_anchor_page_ids"] == ["43428"]
-    texas = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_036.json").read_text())
+    texas = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_036.json").read_text())
     assert "expected_answer" not in texas["expected"]                               # correctness will SKIP
     assert texas["input"]["question_type"] == "yes_no"
-    assert summary["empty"] == {"no expected_answer: correctness judge will be skipped": ["KA_GLD_CVH_036"]}
+    assert summary["empty"] == {"no expected_answer: correctness judge will be skipped":
+                                ["KA_GLD_CUSTOMER_VULNERABILITY_HUB_036"]}
 
     agent = load_agent("knowledge_agent")                                           # the runner can load them
     assert len(load_cases(agent, agent.suite("golden"))) == 4
@@ -131,10 +135,11 @@ def test_labelled_cell_parts():
 
 def test_reimport_is_idempotent_and_reports_stale_files(ka_copy, golden_xlsx):
     import_cases("knowledge_agent", str(golden_xlsx))
-    (ka_copy / "testdata/golden/cvh/KA_GLD_CVH_999.json").write_text("{}")
+    stale = "testdata/golden/customer_vulnerability_hub/KA_GLD_CUSTOMER_VULNERABILITY_HUB_999.json"
+    (ka_copy / stale).write_text("{}")
     summary = import_cases("knowledge_agent", str(golden_xlsx))
     assert summary["written"] == {"new": 0, "updated": 0, "unchanged": 4}
-    assert summary["stale"] == ["testdata/golden/cvh/KA_GLD_CVH_999.json"]           # listed, not deleted
+    assert summary["stale"] == [stale]                                               # listed, not deleted
 
 
 def test_dry_run_writes_nothing(ka_copy, golden_xlsx):
@@ -159,7 +164,7 @@ def test_csv_and_unknown_domains(ka_copy, tmp_path):
     csv_file.write_text(",".join(HEADERS) + "\n7,PCA,Simple,What is PCA?,What,An answer.,Some Page,,\n")
     summary = import_cases("knowledge_agent", str(csv_file))
     assert (ka_copy / "testdata/golden/pca/KA_GLD_PCA_007.json").is_file()
-    assert any("domain 'PCA' not in domain.codes" in w for w in summary["warnings"])
+    assert any("domain 'PCA' is not in domains.yaml" in w for w in summary["warnings"])
 
 
 def test_question_types_the_agent_does_not_accept_are_left_out(ka_copy, tmp_path):
@@ -169,10 +174,12 @@ def test_question_types_the_agent_does_not_accept_are_left_out(ka_copy, tmp_path
                         "2,CVH,Simple,How do I add a support need?,Procedural,An answer.,Some Page,,\n"
                         "3,CVH,Simple,Can a third party add one?,Yes/No,An answer.,Some Page,,\n")
     summary = import_cases("knowledge_agent", str(csv_file))
-    explanation = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_001.json").read_text())
-    assert explanation["input"] == {"question": "Why do we record support needs?"}       # sent as plain text
+    folder = ka_copy / "testdata/golden/customer_vulnerability_hub"
+    explanation = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_001.json").read_text())
+    assert explanation["input"] == {"question": "Why do we record support needs?",       # sent as plain text
+                                    "business_area": "/Customer_Vulnerability_Hub/"}
     assert explanation["metadata"]["question_type_in_sheet"] == "explanation"             # still traceable
-    yes_no = json.loads((ka_copy / "testdata/golden/cvh/KA_GLD_CVH_003.json").read_text())
+    yes_no = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_003.json").read_text())
     assert yes_no["input"]["question_type"] == "yes_no"                                   # accepted: sent
     assert summary["warnings"] == {
         "question_type 'explanation' is not one of how, what, why, yes_no: left out": 1,

@@ -20,20 +20,21 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     assert "colleague" in fake_generator["styles"][0].scenario        # instructions.md folded in
     assert "advisor would use" in fake_generator["styles"][0].task    # additional_guidance folded in
 
-    folder = ka_copy / "testdata/synthetic/rcb"   # domain-wise, by code (synth.yaml domain_codes)
-    assert {p.parent for p in written} == {folder, ka_copy / "testdata/privacy/rcb",
-                                           ka_copy / "testdata/negative/decline/rcb"}
+    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"   # domain-wise, full name (domains.yaml)
+    assert {p.parent for p in written} == {folder, ka_copy / "testdata/privacy/recoveries_commercial_bank",
+                                           ka_copy / "testdata/negative/decline/recoveries_commercial_bank"}
     cases = {}
     for path in sorted(written):                                       # the first case of each style
         case = json.loads(path.read_text())
         cases.setdefault(case["metadata"]["style"], case)
     generic = cases["general"]
-    assert cases["how"]["test_case_id"] == "KA_SYN_RCB_001"   # numbered per folder
+    assert cases["how"]["test_case_id"] == "KA_SYN_RECOVERIES_COMMERCIAL_BANK_001"   # numbered per folder
     assert generic["input"] == {"question": "Question 9 about 36626?",              # no question_type sent
-                                "business_area": "Recoveries Commercial Bank"}       # the full name, not RCB
+                                "business_area": "/Recoveries_Commercial_Bank/"}     # the agent's format
     assert "question_type" not in generic["metadata"]
     assert generic["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626"}
-    assert generic["metadata"]["domain"] == "RCB"
+    assert generic["metadata"]["domain"] == "RECOVERIES_COMMERCIAL_BANK"
+    assert generic["metadata"]["business_area_name"] == "Recoveries Commercial Bank"
     assert generic["metadata"]["group"] == "Recoveries Commercial Bank"
     assert generic["metadata"]["source_revision"] == "7"
     assert generic["metadata"]["approval_status"] == "UNREVIEWED"
@@ -42,10 +43,10 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
         assert cases[style]["metadata"]["question_type"] == qtype
 
     pii = cases["privacy"]                                              # own suite, folder and id
-    assert pii["test_case_id"] == "KA_PII_RCB_001"
+    assert pii["test_case_id"] == "KA_PII_RECOVERIES_COMMERCIAL_BANK_001"
     assert pii["metadata"]["origin"] == "SYNTHETIC_PII" and pii["expected"]["contains_pii"] is True
     decline = cases["should_decline"]
-    assert decline["test_case_id"] == "KA_DEC_RCB_001"
+    assert decline["test_case_id"] == "KA_DEC_RECOVERIES_COMMERCIAL_BANK_001"
     assert decline["expected"] == {"expected_answer": "Answer from the page.", "should_decline": True,
                                    "expected_error": ["InsufficientContextError", "GuardrailError"]}
 
@@ -70,7 +71,7 @@ def test_a_capped_style_stops_at_max_cases_and_takes_groups_in_turn(ka_copy, fak
 
 def test_styles_pick_some_and_replace_keeps_the_others(ka_copy, fake_generator):
     generate_goldens("knowledge_agent", ids=["36626"], styles=["general", "why"])
-    folder = ka_copy / "testdata/synthetic/rcb"
+    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"
     styles = sorted(json.loads(p.read_text())["metadata"]["style"] for p in folder.glob("*.json"))
     assert styles == ["general", "why"]
     fake_generator["contexts"].clear()
@@ -85,9 +86,9 @@ def test_goldens_add_to_existing_cases_unless_replace(ka_copy, fake_generator):
     generate_goldens("knowledge_agent", ids=["36626"])
     fake_generator["contexts"].clear()                     # run again: new cases are numbered after the old ones
     generate_goldens("knowledge_agent", ids=["36626"])
-    folder = ka_copy / "testdata/synthetic/rcb"
+    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"
     assert len(list(folder.glob("*.json"))) == 10                    # 5 answer types, twice: numbered on
-    assert (folder / "KA_SYN_RCB_010.json").is_file()
+    assert (folder / "KA_SYN_RECOVERIES_COMMERCIAL_BANK_010.json").is_file()
     generate_goldens("knowledge_agent", ids=["36626"], replace=True)
     assert len(list(folder.glob("*.json"))) == 5
 
@@ -190,26 +191,3 @@ def test_unknown_source_type_lists_the_available_ones(ka_copy):
         fetch_sources("knowledge_agent")
 
 
-def test_domain_codes_shorten_ids_and_folders():
-    from src.synthesizer.output_template import domain_code
-    codes = {"Customer Vulnerability Hub": "CVH", "Blackhorse": "BLACK_HORSE"}
-    assert domain_code("Customer Vulnerability Hub", codes) == "CVH"
-    assert domain_code("customer_vulnerability_hub", codes) == "CVH"          # bucket folder spelling
-    assert domain_code("Black horse", codes) == "BLACK_HORSE"                   # spaces / case ignored
-    assert domain_code("Brand Change", codes) == "BRAND_CHANGE"                 # not listed: full name
-    assert domain_code("Brand Change") == "BRAND_CHANGE"
-
-
-def test_the_official_business_area_name_is_sent_to_the_agent():
-    from src.synthesizer.output_template import business_area
-    codes = {"Customer Self-Service Online and App": "CSS", "Customer Financial Assistance (CFA)": "CFA"}
-    assert business_area("Customer Self Service Online and App", codes) == "Customer Self-Service Online and App"
-    assert business_area("customer_financial_assistance_cfa", codes) == "Customer Financial Assistance (CFA)"
-    assert business_area("Brand Change", codes) == "Brand Change"                # not listed: as it is
-
-
-def test_domain_codes_must_be_simple_codes(ka_copy):
-    settings = ka_copy / "synth/synth.yaml"
-    settings.write_text(settings.read_text().replace("Fraud: FRAUD", "Fraud: FR-AUD"))
-    with pytest.raises(ConfigError, match="domain_codes"):
-        load_settings(load_agent("knowledge_agent"))

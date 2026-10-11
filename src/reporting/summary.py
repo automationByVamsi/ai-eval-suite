@@ -8,7 +8,7 @@ Rates across a whole run (or several runs): how often each check and judge passe
            could not run) are left out of the rate and counted separately, so they never pull the
            rate up or down.
   mean     the average score, for judges and scored checks (precision, recall).
-  per case with repetitions (REPS=n, or several runs together), e.g. anchor_hit KA_GLD_CVH_044
+  per case with repetitions (REPS=n, or several runs together), e.g. anchor_hit KA_GLD_COMPLAINT_MANAGERS_044
            hit 3/5 — shown for cases whose outcome changed between repetitions (the unstable ones).
 
 Used by: the console report after every run (print_run), results.json ("summary"), and

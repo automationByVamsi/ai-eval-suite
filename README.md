@@ -601,9 +601,11 @@ for a new agent or a new sheet layout, and change `columns:` and `output:`. Pick
 - **Stops before writing** when a column header isn't found (it prints the headers it did find) or
   two rows give the same test case id.
 
-Knowledge Agent naming (CJM goldens): id `KA_GLD_<DOMAIN>_<Test ID, 3 digits>`, e.g. `KA_GLD_CVH_030`,
-in `testdata/golden/<domain>/`. The domain comes from the Workstream column (`domain.codes` in the
-mapping). Synthesized cases go to `testdata/synthetic/` (suite `synthetic`), so the two never mix.
+Knowledge Agent naming (CJM goldens): id `KA_GLD_<BUSINESS_AREA>_<Test ID, 3 digits>`, e.g.
+`KA_GLD_COMPLAINT_MANAGERS_030`, in `testdata/golden/complaint_managers/`, sent to the agent as
+`business_area: /Complaint_Managers/`. The business area is the Workstream column, matched to
+`agents/knowledge_agent/domains.yaml` (official names + aliases such as `CVH`; see `src/core/domains.py`).
+Synthesized cases follow the same standard under `testdata/synthetic/`, so the two never mix.
 
 ### Export test cases to Excel (the reverse)
 
@@ -679,10 +681,11 @@ Leave `output:` out to get the standard evaluation case (`input.<input_field>`, 
 `metadata.approval_status: UNREVIEWED`). If a style asks for JSON in its `input_format`, the template can
 read its fields: `{generated.input.request}` (cases where the JSON is missing that field are skipped).
 
-- Knowledge Agent cases are written **domain-wise**, like the golden importer:
-  `testdata/synthetic/<code>/KA_SYN_<CODE>_<n>.json` (the style is in `metadata.style`). The code comes from
-  `domain_codes:` in synth.yaml (`Customer Vulnerability Hub: CVH` -> `testdata/synthetic/cvh/KA_SYN_CVH_001.json`);
-  names match ignoring case, spaces and `_`. A domain not listed uses its full name in UPPER_SNAKE.
+- Knowledge Agent cases are written **domain-wise**, like the golden importer, from the same
+  `domains.yaml`: group `Customer Vulnerability Hub` ->
+  `testdata/synthetic/customer_vulnerability_hub/KA_SYN_CUSTOMER_VULNERABILITY_HUB_001.json`, sent as
+  `business_area: /Customer_Vulnerability_Hub/` (the style is in `metadata.style`). Names match ignoring case,
+  spaces and punctuation; a group not listed keeps its own name.
 - **Answer length** follows the page and the question (a short fact: a line or two; a full procedure: every
   step). The lengths in the style files are typical, not limits.
 - **Styles = the agent's five answer types.** `how` (steps; simple and complex/conditional procedures),
