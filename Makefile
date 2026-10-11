@@ -9,6 +9,7 @@
 #   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]   (synthesizer)
 #   make fields   AGENT=knowledge_agent [SUITE=..] [CASE=..] [TRACE=file]   (what fields.yaml reads from traces)
 #   make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [SHEET=..] [MAPPING=..] [DRY_RUN=1]
+#   make export-cases AGENT=knowledge_agent [SUITE=golden] [FILE=~/Desktop/cases.xlsx]   (JSON -> Excel)
 
 AGENT ?= knowledge_agent
 SUITE ?= sanity
@@ -37,7 +38,7 @@ FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login gcloud-auth gcloud-auth-check ingestion-cases doctor list new-agent run baseline verdict sources goldens import-cases fields summary review-sheet calibrate dashboard test
+.PHONY: help setup cortex-login gcloud-auth gcloud-auth-check ingestion-cases doctor list new-agent run baseline verdict sources goldens import-cases export-cases fields summary review-sheet calibrate dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
@@ -55,6 +56,7 @@ help:
 	@echo "make summary  AGENT=.. SUITE=.. [LAST=10]  pass rate of every check and judge across the last N runs"
 	@echo "make fields   AGENT=.. [SUITE=..] [CASE=..] preview the fields.yaml values + checks on saved traces [TRACE=file]"
 	@echo "make import-cases AGENT=.. FILE=..          spreadsheet (.xlsx/.csv) -> test case JSON [SHEET=..] [MAPPING=..] [DRY_RUN=1]"
+	@echo "make export-cases AGENT=..                  test case JSON -> one Excel workbook, a sheet per suite [SUITE=..] [FILE=..]"
 	@echo "make review-sheet AGENT=.. SUITE=.. [RUN=..] CSV of answers + judge verdicts for an SME to mark"
 	@echo "make calibrate FILE=..                      compare the judges with the SME's marks"
 	@echo "make dashboard                              open the results dashboard"
@@ -126,6 +128,11 @@ fields:
 import-cases:
 	@test -n "$(FILE)" || { echo 'Give the spreadsheet: make import-cases AGENT=$(AGENT) FILE="path/to/file.xlsx"'; exit 1; }
 	$(EVAL) import-cases $(AGENT) "$(FILE)" $(if $(MAPPING),--mapping $(MAPPING)) $(if $(SHEET),--sheet "$(SHEET)") $(if $(DRY_RUN),--dry-run)
+
+# Test case JSON files -> one formatted Excel workbook (the reverse of import-cases). Every suite unless
+# SUITE= is given on the command line; FILE= sets where (default outputs/exports/).
+export-cases:
+	$(EVAL) export-cases $(AGENT) $(if $(filter command line environment,$(origin SUITE)),--suite $(SUITE)) $(if $(FILE),--out "$(FILE)")
 
 # Judge calibration: a CSV of a run's answers + judge verdicts for an SME to mark, then the comparison.
 review-sheet:

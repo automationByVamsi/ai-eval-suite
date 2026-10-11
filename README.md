@@ -184,6 +184,7 @@ src/                            the framework — src/__init__.py has a map of i
   runners/                      suite_runner (steps 1-6 for every case), test_cases (loading test data)
   fields/                       extract (fields.yaml), checks (checks.yaml), lookup (lookups.py), preview (make fields)
   importers/                    spreadsheet -> test cases (make import-cases)
+  exporters/                    test cases -> Excel workbook (make export-cases)
   metrics/                      library (which metrics exist), judges (engine rule + DeepEval + Pegasus)
   verdict/                      baseline (save), compare (verdict + tolerances)
   reporting/                    console report, dashboard.py (Streamlit)
@@ -224,6 +225,7 @@ from src.utils.adk_trace import state, find_event, event_json, tool_calls  # rea
 | save a stable build as the baseline         | `make baseline AGENT=.. SUITE=.. BUILD=1.4.0 REPS=5` |
 | check a new build against the baseline      | `make verdict  AGENT=.. SUITE=.. BUILD=1.5.0 REPS=5` |
 | import test cases from Excel / CSV          | `make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [DRY_RUN=1]` |
+| export test cases to one Excel workbook     | `make export-cases AGENT=knowledge_agent [SUITE=golden] [FILE=~/Desktop/cases.xlsx]` |
 | fetch source documents for the synthesizer  | `make sources AGENT=knowledge_agent [GROUP="…"] [IDS="36626"]` |
 | generate test cases from them               | `make goldens AGENT=knowledge_agent [GROUP=…] [IDS=…]` |
 | pass rate of every check / judge (e.g. anchor hit rate) over the last N runs | `make summary AGENT=knowledge_agent SUITE=golden LAST=10` |
@@ -641,6 +643,23 @@ for a new agent or a new sheet layout, and change `columns:` and `output:`. Pick
 Knowledge Agent naming (CJM goldens): id `KA_GLD_<DOMAIN>_<Test ID, 3 digits>`, e.g. `KA_GLD_CVH_030`,
 in `testdata/golden/<domain>/`. The domain comes from the Workstream column (`domain.codes` in the
 mapping). Synthesized cases go to `testdata/synthetic/` (suite `synthetic`), so the two never mix.
+
+### Export test cases to Excel (the reverse)
+
+To attach or review test cases as one file instead of many JSON files:
+
+```bash
+make export-cases AGENT=knowledge_agent                          # every suite, one sheet each
+make export-cases AGENT=knowledge_agent SUITE=golden             # one suite
+make export-cases AGENT=knowledge_agent FILE=~/Desktop/KA_cases.xlsx
+```
+
+The workbook (default `outputs/exports/<agent>_test_cases_<date>.xlsx`) starts with a **Summary** sheet
+(suite, folder, number of cases), then one sheet per suite and one row per test case: Test case ID,
+Description, every key of the cases' `input`, `expected` and `metadata` (a coloured band above the
+headers says which), and the JSON file it came from. Lists are one item per line. Borders, wrapped
+text, frozen headers and a filter on every column are set. Suites sharing a folder are exported once.
+No extra package is needed (`src/exporters/xlsx.py` writes the file with the standard library).
 
 ## Synthesizer (generate test cases)
 

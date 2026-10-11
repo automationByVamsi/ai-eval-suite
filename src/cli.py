@@ -9,6 +9,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src summary  <agent> <suite> [--last N | --run ID ...]   rates across several saved runs
   python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
+  python -m src export-cases <agent> [--suite S] [--out FILE.xlsx]       test case JSON -> one Excel workbook
   python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   CSV for an SME to mark
   python -m src calibrate <file.csv>                                   judges vs the SME's marks
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
@@ -79,6 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("--mapping", help="agents/<agent>/importers/<mapping>.yaml (default: the only one)")
     imp.add_argument("--sheet", help="sheet name (default: the mapping's sheet, else the first sheet)")
     imp.add_argument("--dry-run", action="store_true", help="show what would be written, write nothing")
+
+    exp = commands.add_parser("export-cases", help="test case JSON files -> one formatted Excel workbook")
+    exp.add_argument("agent")
+    exp.add_argument("--suite", help="only this suite (default: every suite, one sheet each)")
+    exp.add_argument("--out", help="where to write the .xlsx (default outputs/exports/)")
 
     review = commands.add_parser("review-sheet", help="CSV of a run's answers and judge verdicts for an SME")
     review.add_argument("agent")
@@ -159,6 +165,11 @@ def main(argv: list[str] | None = None) -> int:
 
         from src.reporting.calibration import calibrate, print_calibration
         print_calibration(calibrate(Path(args.file)), Path(args.file))
+        return 0
+
+    if args.command == "export-cases":
+        from src.exporters.cases import export_cases
+        export_cases(args.agent, args.suite, args.out)
         return 0
 
     if args.command == "import-cases":
