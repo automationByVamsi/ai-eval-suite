@@ -603,7 +603,7 @@ for a new agent or a new sheet layout, and change `columns:` and `output:`. Pick
 
 Knowledge Agent naming (CJM goldens): id `KA_GLD_<BUSINESS_AREA>_<Test ID, 3 digits>`, e.g.
 `KA_GLD_COMPLAINT_MANAGERS_030`, in `testdata/golden/complaint_managers/`, sent to the agent as
-`business_area: /Complaint_Managers/`. The business area is the Workstream column, matched to
+`business_area: Complaint_Managers`. The business area is the Workstream column, matched to
 `agents/knowledge_agent/domains.yaml` (official names + aliases such as `CVH`; see `src/core/domains.py`).
 Synthesized cases follow the same standard under `testdata/synthetic/`, so the two never mix.
 
@@ -684,7 +684,7 @@ read its fields: `{generated.input.request}` (cases where the JSON is missing th
 - Knowledge Agent cases are written **domain-wise**, like the golden importer, from the same
   `domains.yaml`: group `Customer Vulnerability Hub` ->
   `testdata/synthetic/customer_vulnerability_hub/KA_SYN_CUSTOMER_VULNERABILITY_HUB_001.json`, sent as
-  `business_area: /Customer_Vulnerability_Hub/` (the style is in `metadata.style`). Names match ignoring case,
+  `business_area: Customer_Vulnerability_Hub` (the style is in `metadata.style`). Names match ignoring case,
   spaces and punctuation; a group not listed keeps its own name.
 - **Answer length** follows the page and the question (a short fact: a line or two; a full procedure: every
   step). The lengths in the style files are typical, not limits.

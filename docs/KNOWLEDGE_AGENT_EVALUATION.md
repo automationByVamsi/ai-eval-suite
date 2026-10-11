@@ -28,15 +28,18 @@ Everything here is in the repo; the README has the full reference for every comm
 ## 2. The Knowledge Agent in brief
 
 Input (from the upstream Resolution Agent): **query** (required), **business_area** (recommended, one of
-the 25 in scope, in the agent's format `/Customer_Vulnerability_Hub_2/`), **question_type** (how / what /
-why / yes_no; default general).
+the 25 in scope, in the agent's format `Customer_Vulnerability_Hub_2`), **question_type** (how / what /
+why / yes_no; default general). The framework sends only these three, as JSON in the message text:
+`{"query": "...", "question_type": "how", "business_area": "Complaint_Managers"}`. A case without a
+question_type or business_area leaves it out (no business area = the whole knowledge base); response_type is
+not sent (the agent's default, `answer`).
 
 **Business-area naming — one standard for every test case** (golden and synthetic), from
 `agents/knowledge_agent/domains.yaml` (the 25 official names, plus aliases such as `CVH` seen in sheets):
 
 | Used for | Format | Example |
 |---|---|---|
-| Sent to the agent (`input.business_area`) | `/Name_With_Underscores/` | `/Complaint_Managers/` |
+| Sent to the agent (`input.business_area`) | `Name_With_Underscores` | `Complaint_Managers` |
 | Test case id | `KA_<GLD/SYN/PII/DEC>_<FULL_NAME>_<n>` | `KA_GLD_COMPLAINT_MANAGERS_001` |
 | Folder | full name, lower snake | `testdata/golden/complaint_managers/` |
 | Readable name (`metadata.business_area_name`) | official name | `Complaint Managers` |

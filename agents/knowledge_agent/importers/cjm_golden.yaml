@@ -10,7 +10,7 @@
 # Naming convention (the same for golden and synthetic cases; the business areas are in ../domains.yaml):
 #   test case id   KA_GLD_<BUSINESS_AREA>_<test id, 3 digits>   e.g. KA_GLD_COMPLAINT_MANAGERS_001 = Test ID 1
 #   file           testdata/golden/<business_area>/<test case id>.json   e.g. golden/complaint_managers/
-#   sent as        business_area: /Complaint_Managers/   (the agent's format)
+#   sent as        business_area: Complaint_Managers   (the agent's format)
 # The Excel Test ID stays in the id, so any case can be found in the sheet again (and its row is
 # in metadata.source). Keep Test IDs unique across the sheet: duplicates stop the import.
 
@@ -71,7 +71,7 @@ output:
     input:
       question: "{row.question}"
       question_type: "{row.question_type}"     # sent to the agent (agent.yaml message:); empty -> left out
-      business_area: "{domain_path}"           # the agent's format, e.g. /Complaint_Managers/
+      business_area: "{domain_path}"           # the agent's format, e.g. Complaint_Managers
     expected:
       expected_answer: "{row.expected_answer}"
       expected_anchor_page_titles: "{row.anchor_pages}"

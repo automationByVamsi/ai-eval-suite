@@ -30,7 +30,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     generic = cases["general"]
     assert cases["how"]["test_case_id"] == "KA_SYN_RECOVERIES_COMMERCIAL_BANK_001"   # numbered per folder
     assert generic["input"] == {"question": "Question 9 about 36626?",              # no question_type sent
-                                "business_area": "/Recoveries_Commercial_Bank/"}     # the agent's format
+                                "business_area": "Recoveries_Commercial_Bank"}     # the agent's format
     assert "question_type" not in generic["metadata"]
     assert generic["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626"}
     assert generic["metadata"]["domain"] == "RECOVERIES_COMMERCIAL_BANK"

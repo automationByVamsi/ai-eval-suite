@@ -85,8 +85,8 @@ def test_relation_labels_and_business_area_come_from_the_design():
     assert checks.run_checks(labels, {"expansion_labels": ["reference", "exception_to"]}, {})[0].status == results.PASS
     assert checks.run_checks(labels, {"expansion_labels": ["related_to"]}, {})[0].status == results.FAIL
     area = {"b": agent.checks["business_area_in_scope"]}
-    assert checks.run_checks(area, {"input_business_area": "/Customer_Vulnerability_Hub_2/"}, {})[0].status \
+    assert checks.run_checks(area, {"input_business_area": "Customer_Vulnerability_Hub_2"}, {})[0].status \
         == results.PASS
-    for wrong in ("CVH", "Customer Vulnerability Hub", "/Space_Tourism/"):   # a code, a plain name, out of scope
+    for wrong in ("CVH", "Customer Vulnerability Hub", "/Complaint_Managers/", "Space_Tourism"):
         assert checks.run_checks(area, {"input_business_area": wrong}, {})[0].status == results.FAIL
     assert checks.run_checks(area, {}, {})[0].status == results.SKIP                                 # none sent

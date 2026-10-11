@@ -68,7 +68,7 @@ quality_filter:                      # regenerate questions the critic scores be
 # Domain-wise, like the golden importer (names from ../domains.yaml):
 #   {domain_folder}  customer_vulnerability_hub      folder
 #   {domain}         CUSTOMER_VULNERABILITY_HUB      id: KA_SYN_CUSTOMER_VULNERABILITY_HUB_001
-#   {domain_path}    /Customer_Vulnerability_Hub/    sent to the agent as business_area
+#   {domain_path}    Customer_Vulnerability_Hub    sent to the agent as business_area
 #   {domain_name}    Customer Vulnerability Hub      readable name, kept in metadata
 output:
   folder: testdata/synthetic/{domain_folder}
@@ -79,7 +79,7 @@ output:
     input:
       question: "{generated.input}"
       question_type: "{question_type}"      # typed styles only; left out for generic ones
-      business_area: "{domain_path}"        # the agent's format, e.g. /Customer_Vulnerability_Hub/
+      business_area: "{domain_path}"        # the agent's format, e.g. Customer_Vulnerability_Hub
     expected:
       expected_answer: "{generated.expected_output}"
       source_page_id: "{source.id}"

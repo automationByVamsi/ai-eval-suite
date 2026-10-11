@@ -94,7 +94,7 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     case = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044.json").read_text())
     assert case["test_case_id"] == "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044"
     assert case["input"] == {"question": ROWS[3][3], "question_type": "how",       # question_type is sent
-                             "business_area": "/Customer_Vulnerability_Hub/"}     # "CVH" in the sheet
+                             "business_area": "Customer_Vulnerability_Hub"}     # "CVH" in the sheet
     assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
                                                                "How to Add a support need in MCP"]
     assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text
@@ -161,9 +161,12 @@ def test_problems_stop_the_import_with_a_clear_message(ka_copy, tmp_path):
 
 def test_csv_and_unknown_domains(ka_copy, tmp_path):
     csv_file = tmp_path / "golden.csv"
-    csv_file.write_text(",".join(HEADERS) + "\n7,PCA,Simple,What is PCA?,What,An answer.,Some Page,,\n")
+    csv_file.write_text(",".join(HEADERS) + "\n7,PCA,Simple,What is PCA?,What,An answer.,Some Page,,\n"
+                        "8,,Simple,What is a support need?,What,An answer.,Some Page,,\n")
     summary = import_cases("knowledge_agent", str(csv_file))
     assert (ka_copy / "testdata/golden/pca/KA_GLD_PCA_007.json").is_file()
+    no_area = json.loads((ka_copy / "testdata/golden/unassigned/KA_GLD_UNASSIGNED_008.json").read_text())
+    assert no_area["input"] == {"question": "What is a support need?", "question_type": "what"}   # none sent
     assert any("domain 'PCA' is not in domains.yaml" in w for w in summary["warnings"])
 
 
@@ -177,7 +180,7 @@ def test_question_types_the_agent_does_not_accept_are_left_out(ka_copy, tmp_path
     folder = ka_copy / "testdata/golden/customer_vulnerability_hub"
     explanation = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_001.json").read_text())
     assert explanation["input"] == {"question": "Why do we record support needs?",       # sent as plain text
-                                    "business_area": "/Customer_Vulnerability_Hub/"}
+                                    "business_area": "Customer_Vulnerability_Hub"}
     assert explanation["metadata"]["question_type_in_sheet"] == "explanation"             # still traceable
     yes_no = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_003.json").read_text())
     assert yes_no["input"]["question_type"] == "yes_no"                                   # accepted: sent

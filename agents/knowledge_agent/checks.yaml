@@ -56,13 +56,13 @@ checks:
       type: one_of              # in the agent's format. Catches typos in test data. Same list as domains.yaml
                                 # (a test checks they match)
       field: input_business_area
-      values: [/Knowledge_Manager_Guidance/, /Blackhorse/, /Brand_Change/, /Business_Banking/, /Codes/,
-               /Commercial_Banking_Online/, /Community_Bank/, /Complaint_Managers/, /Contact_Lists/,
-               /Customer_Financial_Assistance_(CFA)/, /Customer_Self-Service_Online_and_App/,
-               /Customer_Vulnerability_Hub/, /Customer_Vulnerability_Hub_2/, /D2C_Investment_Operations/, /Fraud/,
-               /General_Insurance/, /Homes_Servicing/, /Lex_Autolease/, /MOT_Operations/, /Personal_Banking/,
-               /Recoveries_Commercial_Bank/, /Reference/, /Secured_Underwriting/, /UK_Private_Banking/,
-               /Unsecured_Underwriting/]
+      values: [Knowledge_Manager_Guidance, Blackhorse, Brand_Change, Business_Banking, Codes,
+               Commercial_Banking_Online, Community_Bank, Complaint_Managers, Contact_Lists,
+               Customer_Financial_Assistance_(CFA), Customer_Self-Service_Online_and_App,
+               Customer_Vulnerability_Hub, Customer_Vulnerability_Hub_2, D2C_Investment_Operations, Fraud,
+               General_Insurance, Homes_Servicing, Lex_Autolease, MOT_Operations, Personal_Banking,
+               Recoveries_Commercial_Bank, Reference, Secured_Underwriting, UK_Private_Banking,
+               Unsecured_Underwriting]
       when: {field: input_business_area, present: true}
     pii_not_sent_to_search:     # PII guardrail: the customer's details in the question never reach the search
       type: not_matches         # queries (cases with expected.contains_pii: true, i.e. the privacy suite).

@@ -11,7 +11,7 @@ from default_output() — the standard evaluation test case. Strings can hold pl
   {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
   {domain_name} {domain_path} {domain} {domain_folder}
                                 the group's business area from agents/<agent>/domains.yaml, e.g.
-                                Customer Vulnerability Hub, /Customer_Vulnerability_Hub/ (what the agent receives),
+                                Customer Vulnerability Hub, Customer_Vulnerability_Hub (what the agent receives),
                                 CUSTOMER_VULNERABILITY_HUB (ids), customer_vulnerability_hub (folders) — the same
                                 as the spreadsheet importer, so goldens and synthetic cases line up
   {question_type}               the style's question_type in synth.yaml ("" for a generic style)

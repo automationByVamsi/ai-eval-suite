@@ -30,7 +30,7 @@ test case JSON looks like is set per agent, in a mapping file:
 Placeholders in `output`:
   {row.<name>}       a column, by our name
   {domain} {domain_folder} {domain_name} {domain_path}  the row's domain, e.g. CUSTOMER_VULNERABILITY_HUB,
-                     customer_vulnerability_hub, Customer Vulnerability Hub, /Customer_Vulnerability_Hub/
+                     customer_vulnerability_hub, Customer Vulnerability Hub, Customer_Vulnerability_Hub
                      (src/core/domains.py; "CVH" in the sheet matches if domains.yaml lists it as an alias)
   {source.file} {source.sheet} {source.row}             where the row came from
   {agent.name}       {id}                               the case id (from output.id)
@@ -54,7 +54,7 @@ import yaml
 
 from src.core import paths
 from src.core.agent_config import load_agent
-from src.core.domains import domain_values, load_domains, official_name
+from src.core.domains import domain_values, load_domains, no_domain, official_name
 from src.core.exceptions import ConfigError
 from src.importers.spreadsheet import read_rows
 from src.synthesizer.output_template import render
@@ -269,11 +269,11 @@ def _domain(values: dict[str, Any], config: dict[str, Any], domains: dict[str, A
             warnings: Counter[str]) -> dict[str, str]:
     """The row's domain values ({domain}, {domain_folder}, {domain_name}, {domain_path}) from its column."""
     if not config:
-        return domain_values("ALL", {})
+        return no_domain("ALL")
     text = str(values.get(config.get("column", ""), "") or "").strip()
     if not text:
-        warnings["rows with no domain -> UNASSIGNED"] += 1
-        return domain_values("UNASSIGNED", {})
+        warnings["rows with no domain -> UNASSIGNED (no business_area sent)"] += 1
+        return no_domain("UNASSIGNED")
     if domains and not official_name(text, domains):
         warnings[f"domain '{text}' is not in domains.yaml (add it, or as an alias of its official name)"] += 1
     return domain_values(text, domains)

@@ -11,8 +11,11 @@ connection:                   # how to reach the agent (Google ADK)
   headers: {}
 
 input_field: question        # testdata input.question is sent to the agent
-# A case with a question_type is sent as JSON in the message text: {"query": ..., "question_type": "how"}
-# (the agent's input contract). A case with only a question is sent as plain text.
+# Sent as JSON in the message text (KnowledgeAgentInput in the agent repo):
+#   {"query": "How do I ...?", "question_type": "how", "business_area": "Complaint_Managers"}
+# Only these three. question_type / business_area are left out when the case has none (no business_area =
+# whole knowledge base); response_type is not sent (the agent defaults to "answer"). A case with only a
+# question is sent as plain text.
 message:
   format: json
   fields: {query: question, question_type: question_type, business_area: business_area}   # all but query optional
