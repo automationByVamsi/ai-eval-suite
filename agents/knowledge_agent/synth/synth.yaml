@@ -70,7 +70,7 @@ styles:                              # one file per question style, see styles/;
     file: styles/should_decline.md
     max_cases: 15
     output:
-      folder: testdata/should_decline/{domain_folder}
+      folder: testdata/negative/decline/{domain_folder}
       id: "KA_DEC_{domain}_{n:03}"
       case:                          # the agent must refuse with one of these errors, not invent an answer
         expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}

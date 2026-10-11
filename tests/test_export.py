@@ -14,20 +14,20 @@ def test_every_suite_becomes_a_sheet_with_a_row_per_case(tmp_path, capsys):
     out = export_cases("knowledge_agent", out=tmp_path / "cases.xlsx")
     assert "test case(s) from" in capsys.readouterr().out
     summary = {r["Suite"]: r["Cases"] for r in read_rows(out, sheet="Summary")}
-    assert summary["sanity"] == 2 and summary["should_decline"] == 8
+    assert summary["sanity"] == 2 and summary["negative"] == 12              # decline/ (8) + errors/ (4)
     sanity = read_rows(out, sheet="sanity", header_row=2)                  # row 1: the Input / Expected band
     assert [r["Test case ID"] for r in sanity] == ["TC_002", "TC_012"]
     assert sanity[0]["Question"] == "How do I add a support need?" and sanity[0]["File"] == "TC_002.json"
     assert sanity[1]["Expected answer"].startswith("Always balance data privacy")   # long text, line breaks kept
-    decline = read_rows(out, sheet="should_decline", header_row=2)
-    assert len(decline) == 8 and decline[0]["Should decline"] == "TRUE"
+    negative = read_rows(out, sheet="negative", header_row=2)
+    assert len(negative) == 12 and "TRUE" in [r.get("Should decline") for r in negative]
     sheets = zipfile.ZipFile(out).read("xl/workbook.xml").decode()
-    assert "relevance_only" not in sheets                                  # shares sanity's folder: exported once
+    assert "coverage" in sheets and "diagnose" not in sheets               # golden folder not imported here
 
 
 def test_one_suite_only(tmp_path, monkeypatch):
-    out = export_cases("knowledge_agent", "should_decline", tmp_path / "decline.xlsx")
-    assert len(read_rows(out, sheet="should_decline", header_row=2)) == 8
+    out = export_cases("knowledge_agent", "negative", tmp_path / "negative.xlsx")
+    assert len(read_rows(out, sheet="negative", header_row=2)) == 12
 
     from src.core.agent_config import load_agent
     def with_empty_golden(name):

@@ -74,14 +74,9 @@ def test_knowledge_agent_fields_from_the_fallback_path():
     assert values["expanded_page_ids"] == []                                          # present, but empty
 
 
-def test_time_split_checks_and_run_average():
+def test_time_split_run_average():
     from src.core.results import CaseResult, Run
     from src.reporting.summary import time_split
-    agent = load_agent("knowledge_agent")
-    split = {k: agent.checks[k] for k in ("retrieval_within_40s", "generation_within_15s")}
-    slow = checks.run_checks(split, {"retrieval_seconds": 52.0, "generation_seconds": 3.0}, {})
-    assert [(r.status, r.diagnostic) for r in slow] == [(FAIL, True), (PASS, True)]  # shown, never fails a case
-    assert [r.status for r in checks.run_checks(split, {"retrieval_seconds": {}}, {})] == [SKIP, SKIP]  # no timings
     cases = [CaseResult("A", details={"retrieval_seconds": 16.31, "generation_seconds": 1.71,
                                       "stage_seconds": {"search_node": 5.0}}),
              CaseResult("B", details={"retrieval_seconds": 6.47, "generation_seconds": 3.47})]
@@ -243,7 +238,7 @@ def test_a_failed_lookup_is_an_error_not_a_low_score(outputs, monkeypatch):
     error = next(r for r in case.results if r.name == "lookup")
     assert error.status == "error" and "get_page_content_from_athena(40017)" in error.reason
     assert "Athena unreachable" in error.reason and "lookups.py" in error.reason
-    assert "faithfulness and hallucination could not run" in error.reason                 # says which judge wanted it
+    assert "faithfulness could not run" in error.reason                                   # says which judge wanted it
     assert case.status == "error"
 
 
@@ -286,11 +281,8 @@ def test_lookups_run_only_when_a_judge_needs_them(outputs, monkeypatch):
     for saved in (outputs / SAVED).glob("*.json"):
         saved.unlink()                                             # no saved pages at all
     use_lookup(monkeypatch, lambda pid: pytest.fail("lookup was called"))
-    traces = outputs / "outputs/traces/knowledge_agent"
-    (traces / "relevance_only").mkdir()
-    (traces / "relevance_only" / "TC_002.json").write_text((traces / "sanity" / "TC_002.json").read_text())
-    case = run_suite("knowledge_agent", "relevance_only", offline=True, case_ids=["TC_002"]).cases[0]
-    assert [r.name for r in case.results] == ["relevance"]         # checks: none -> judges only
+    case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"], metrics=["relevance"]).cases[0]
+    assert [r.name for r in case.results if r.kind == "judge"] == ["relevance"]   # METRICS=relevance
     assert case.status == "pass" and not case.details["contexts"]
 
 

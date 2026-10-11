@@ -98,12 +98,13 @@ def _fake_pegasus(monkeypatch, calls):
 def test_response_alignment_run_on_a_saved_what_trace(outputs, monkeypatch):
     calls = []
     _fake_pegasus(monkeypatch, calls)
-    folder = outputs / "outputs/traces/knowledge_agent/response_alignment_only"
+    folder = outputs / "outputs/traces/knowledge_agent/coverage"
     folder.mkdir(parents=True)
     (folder / "TC_QT_WHAT.json").write_text(json.dumps(WHAT))
 
-    case = run_suite("knowledge_agent", "response_alignment_only", offline=True, case_ids=["TC_QT_WHAT"]).cases[0]
-    [result] = case.results
+    case = run_suite("knowledge_agent", "coverage", offline=True, case_ids=["TC_QT_WHAT"],
+                     metrics=["response_alignment"]).cases[0]
+    [result] = [r for r in case.results if r.kind == "judge"]
     assert (result.name, result.status, result.score, result.engine) == ("response_alignment", "pass", 0.9, "pegasus")
     assert result.reason == "The answer gives definitions, as a what question needs. (raw score 9.1/10)"
 
@@ -121,11 +122,8 @@ def test_response_alignment_run_on_a_saved_what_trace(outputs, monkeypatch):
 def test_rag_metrics_still_get_method_and_their_columns(outputs, monkeypatch):
     calls = []
     _fake_pegasus(monkeypatch, calls)
-    traces = outputs / "outputs/traces/knowledge_agent"
-    (traces / "relevance_only").mkdir(exist_ok=True)
-    (traces / "relevance_only" / "TC_002.json").write_text((traces / "sanity" / "TC_002.json").read_text())
-    case = run_suite("knowledge_agent", "relevance_only", offline=True, case_ids=["TC_002"]).cases[0]
-    assert case.results[0].status == "pass"
+    case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"], metrics=["relevance"]).cases[0]
+    assert [r.status for r in case.results if r.kind == "judge"] == ["pass"]
     [call] = calls
     assert call["kwargs"] == {"llm": "LLM", "method": "pegasus"}
     assert set(call["row"]) == {"question", "answer", "retrieved_contexts"}

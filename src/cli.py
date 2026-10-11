@@ -13,6 +13,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   Excel sheet for SMEs to mark
   python -m src calibrate <file.csv>                                   judges vs the SME's marks
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
+                                         [--metrics M ...]   only these judges this time
   python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
   python -m src verdict  <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
 
@@ -101,6 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
         cmd.add_argument("agent")
         cmd.add_argument("suite")
         cmd.add_argument("--reps", type=int, default=1, help="run every case N times (use 3-5 for baselines)")
+        cmd.add_argument("--metrics", nargs="+", help="only these judges this time (default: the suite's)")
         cmd.add_argument("--build", default="", help="build/version label stored with the results")
         cmd.add_argument("--offline", action="store_true", help="reuse saved traces, don't call the agent")
         cmd.add_argument("--no-judges", action="store_true", help="deterministic checks only")
@@ -182,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         run = load_run(args.from_run, args.agent, args.suite)
     else:
         run = run_suite(args.agent, args.suite, offline=args.offline, reps=args.reps, build=args.build,
+                        metrics=args.metrics,
                         judges=not args.no_judges, case_ids=args.cases)
         print_run(run)
 

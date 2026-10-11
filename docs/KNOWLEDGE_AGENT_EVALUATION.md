@@ -41,28 +41,31 @@ the 25 in scope), **question_type** (how / what / why / yes_no; default general)
 | Validation agent + decision router | Scores the evidence, sets HIGH / MEDIUM / LOW | `caveat_when_not_high` |
 | Synthesis agent | Writes the answer in the shape of its question type | correctness, faithfulness, relevance, hallucination, response alignment |
 | Output contract | question_type, answer, confidence, caveats, user_warnings, evidence | `no_internal_markers`, `citations_in_evidence_set`, `page_link_for_every_source` |
-| Errors (design's error table) | Refuses with a typed error | `returned_expected_error` (should_decline + errors suites) |
+| Errors (design's error table) | Refuses with a typed error | `returned_expected_error` (negative suite) |
 | Whole run | Speed, repeatability, privacy | `within_60s`, time split, consistency, privacy leakage |
 
 ---
 
 ## 3. What we test — the suites
 
-Each suite is a folder of test cases (`agents/knowledge_agent/testdata/<suite>/`) plus the judges and
-checks it runs (`agents/knowledge_agent/agent.yaml` → `suites:`).
+Each suite is a folder of test cases (`agents/knowledge_agent/testdata/…`) plus the judges and checks it
+runs (`agents/knowledge_agent/agent.yaml` → `suites:`).
 
-| Suite | Test cases | Purpose |
-|---|---|---|
-| `golden` | Imported from the CJM golden sheet (`make import-cases`) | **The release gate.** All judges, all checks, release targets |
-| `sanity` | 2 hand-picked cases | Smoke test of a build or a setup; every case must pass |
-| `synthetic` | Generated from Athena pages (`make goldens`) | Broad coverage across the 25 business areas; not a gate |
-| `question_types` | Same question as how / what / why / yes_no | The answer has the right shape for its question type |
-| `should_decline` | Questions the knowledge base can't answer | The agent **refuses** (InsufficientContextError / GuardrailError) instead of inventing an answer |
-| `errors` | Bad input / nothing to find (design's error table) | The right error type: empty query, unknown question type, nonsense query, unknown business area |
-| `privacy` | Questions containing made-up customer details | **Output:** the answer doesn't repeat them. **Input:** the PII guardrail keeps them out of the search queries |
-| `stages` | Sanity cases | Judges on intermediate steps (query rewrite, anchor page) |
-| `e2e` | Sanity cases | Every judge once |
-| `*_only` | Sanity cases | One judge, for debugging |
+Seven suites, each with one purpose:
+
+| Suite | Cases (`testdata/…`) | Judges | Checks | When | Gate |
+|---|---|---|---|---|---|
+| `sanity` | `sanity/` — a handful of known cases | relevance, faithfulness | all | every deploy / PR | every case passes |
+| `golden` | `golden/<domain>/` — CJM sheet (`make import-cases`) | correctness, faithfulness, hallucination, relevance, context recall, context precision | all | every release candidate | **release targets** + `make verdict` |
+| `consistency` | `golden/`, cases tagged `"consistency_set": true` (~20) | correctness | basic | release `REPS=3`, baseline `REPS=5`, after a model / prompt change | 100% consistent |
+| `coverage` | `synthetic/` — generated (`make goldens`) + `synthetic/question_types/` | relevance, faithfulness, hallucination, response alignment | basic, answer, input, relation labels, source page, disclosure, performance | weekly / before a release | trend only |
+| `negative` | `negative/decline/` (unanswerable) + `negative/errors/` (design's error table) | hallucination (skipped when it refused) | expected errors, performance | every release candidate | ≥ 95% refused correctly |
+| `safety` | `privacy/` — made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic, PII patterns in queries (diagnostic) | every release candidate | 100% |
+| `diagnose` | `golden/`, replaying golden traces (`traces: golden`) | the 6 stage judges (query rewrite, anchor page) | retrieval | on demand, `OFFLINE=1 CASE=...` | none |
+
+Deterministic checks are free (they read the saved trace) and skip themselves when a case lacks the data;
+LLM judges cost a CORTEX call per case and repetition, so each suite runs only the judges that answer
+its question. One judge for one run: `METRICS="faithfulness"`.
 
 ---
 
@@ -110,14 +113,13 @@ Written in `agents/knowledge_agent/checks.yaml`, read from the trace via `fields
 | expected_errors | returned_expected_error | The agent refused with one of the expected error types | |
 | disclosure | caveat_when_not_high | MEDIUM / LOW confidence comes with a caveat or warning | |
 | performance | within_60s | Response in ≤ 60 s | |
-| performance | retrieval_within_40s / generation_within_15s | Time split (starting limits, not agreed yet) | ✓ |
 
 Retrieval checks are diagnostic because a correct answer from a page the golden doesn't list may still be
 right — those cases go back to the SME, and the golden is updated if the page is also valid.
 
 ---
 
-## 6. Release targets (golden suite)
+## 6. Release targets
 
 | Target | Bar | Source |
 |---|---|---|
@@ -127,7 +129,9 @@ right — those cases go back to the SME, and the golden is updated if the page 
 | Anchor hit | ≥ 80% | MVP Testing Plan #7 |
 | Within 60 s | ≥ 95% | MVP success metrics |
 | Error rate | ≤ 5% | MVP success metrics |
-| Consistency (REPS > 1) | 100% of cases | HIVE-6165: same anchor pages and correctness passes in every repetition |
+| Consistency (`consistency` suite, REPS ≥ 3) | 100% of cases | HIVE-6165: same anchor pages and correctness passes in every repetition |
+| Correct refusal (`negative` suite) | ≥ 95% | Pedro's test 7 |
+| Privacy, answer and search queries (`safety` suite) | 100% | Pedro's test 10 |
 
 A missed target fails `make verdict`. A case-level drop beyond tolerance against the baseline is a regression.
 
@@ -177,12 +181,20 @@ make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx" DRY_RU
 make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx"             # golden cases
 make goldens AGENT=knowledge_agent                                                    # synthetic cases (optional)
 
-# 2. Run
-make run AGENT=knowledge_agent SUITE=sanity                  # smoke test first
-make run AGENT=knowledge_agent SUITE=golden REPS=3           # the real evaluation (judges + checks)
-make run AGENT=knowledge_agent SUITE=should_decline
-make run AGENT=knowledge_agent SUITE=errors
-make run AGENT=knowledge_agent SUITE=privacy
+# 2. Run — every deploy
+make run AGENT=knowledge_agent SUITE=sanity
+
+# 2. Run — every release candidate
+make verdict AGENT=knowledge_agent SUITE=golden BUILD=1.5.0      # quality + release targets vs the baseline
+make run AGENT=knowledge_agent SUITE=consistency REPS=3          # same answer every time (HIVE-6165)
+make run AGENT=knowledge_agent SUITE=negative                    # refuses what it should
+make run AGENT=knowledge_agent SUITE=safety                      # personal data in / out
+
+# 2. Run — weekly, or before a release
+make run AGENT=knowledge_agent SUITE=coverage                    # breadth across business areas / question types
+
+# 2. Run — on demand, when retrieval drops (re-judges saved golden traces, no agent call)
+make run AGENT=knowledge_agent SUITE=diagnose OFFLINE=1 CASE="KA_GLD_CVH_003 KA_GLD_BB_010"
 
 # 3. Look at results
 make dashboard
@@ -191,13 +203,17 @@ make dashboard
 make review-sheet AGENT=knowledge_agent SUITE=golden         # -> outputs/review/<run id>.xlsx, send to the SME
 make calibrate FILE="<the file the SME sent back>.xlsx"      # judge vs SME agreement, best thresholds
 
-# 5. Release decision
-make baseline AGENT=knowledge_agent SUITE=golden BUILD=1.4.0 REPS=3   # once, on a stable build
-make verdict  AGENT=knowledge_agent SUITE=golden BUILD=1.5.0 REPS=3   # every new build
+# 5. Baseline — once, on a stable build (then every verdict compares with it)
+make baseline AGENT=knowledge_agent SUITE=golden BUILD=1.4.0
+make run AGENT=knowledge_agent SUITE=consistency REPS=5
 ```
 
+**Consistency set:** tag about 20 golden cases (spread across business areas and question types) with
+`"consistency_set": true` in their `metadata`. The `consistency` suite runs only those.
+
 Useful flags on `make run`: `CASE="ID1 ID2"` (only these cases), `OFFLINE=1` (replay saved traces, no
-agent call), `JUDGES=0` (checks only, fast, no LLM cost), `REPS=n` (repeat for consistency).
+agent call), `JUDGES=0` (checks only, fast, no LLM cost), `REPS=n` (repeat), `METRICS="faithfulness"`
+(only these judges this run).
 
 ### Sharing test cases
 
@@ -243,13 +259,14 @@ every check's result — the first thing to run when a check looks wrong.
 
 **To confirm on the first real run:**
 - **Error replies:** we assumed the agent's typed errors come back as an HTTP 500 body, an error in the
-  final output, or an ADK error event. Run `SUITE=errors` and check `agent_error` on the dashboard; if
+  final output, or an ADK error event. Run `SUITE=negative` and check `agent_error` on the dashboard; if
   it's empty while the agent did refuse, add the right path to `agent_error` in `fields.yaml`.
-- **`should_decline`:** if the agent answers with LOW confidence and a caveat instead of an error for some
+- **`negative/decline`:** if the agent answers with LOW confidence and a caveat instead of an error for some
   questions, agree with the agent team which behaviour is correct, then adjust `expected_error` in those cases.
 - **PII on input:** the query privacy leakage judge and the pattern check read the rewritten query and sub-queries. If the PII guardrail is disabled in the test
   environment the check will fail — that is a real finding, not a framework bug.
-- **Time-split limits** (40 s retrieval / 15 s generation) are placeholders until the agent team agrees targets.
+- **Time split** (retrieval / validation / generation seconds) is reported on the dashboard, not gated, until
+  the agent team agrees per-stage targets.
 
 **Waiting on the agent team:**
 - Page **revision** in the evidence → "current document version cited" (test 9).

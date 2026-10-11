@@ -242,21 +242,22 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 
 `make list` shows every agent, suite and its judges. The Knowledge Agent's suites (`agent.yaml` → `suites:`):
 
-| Suite | Cases (`testdata/…`) | Judges | Checks | Use it to… |
-|---|---|---|---|---|
-| `sanity` | `sanity/` | relevance, correctness, faithfulness, hallucination | all | smoke-test a build or a setup; every case must pass |
-| `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, hallucination, privacy leakage, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
-| `should_decline` | `should_decline/` — questions the KB can't answer | hallucination | basic, expected errors, disclosure, performance | the agent must **refuse** (InsufficientContextError / GuardrailError, set in each case's `expected_error`) instead of inventing an answer |
-| `errors` | `errors/` — bad input / nothing to find (the design's error table) | none | expected errors, performance | the right error type for an empty query, an unknown question type, a nonsense query, an unknown business area |
-| `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
-| `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
-| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic, PII not sent to search (diagnostic) | the answer doesn't repeat personal data, and the PII guardrail keeps it out of the search queries |
-| `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness, hallucination | basic, answer, source page | broad coverage; not a release gate |
-| `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
-| `relevance_only`, `faithfulness_only`, `hallucination_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
+| Suite | Cases (`testdata/…`) | Judges | Checks | When | Gate |
+|---|---|---|---|---|---|
+| `sanity` | `sanity/` — a handful of known cases | relevance, faithfulness | all | every deploy / PR | every case passes |
+| `golden` | `golden/<domain>/` — CJM sheet (`make import-cases`) | correctness, faithfulness, hallucination, relevance, context recall, context precision | all | every release candidate | **release targets** + `make verdict` |
+| `consistency` | `golden/`, cases tagged `"consistency_set": true` (~20) | correctness | basic | release `REPS=3`, baseline `REPS=5`, after a model / prompt change | 100% consistent |
+| `coverage` | `synthetic/` — generated (`make goldens`) + `synthetic/question_types/` | relevance, faithfulness, hallucination, response alignment | basic, answer, input, relation labels, source page, disclosure, performance | weekly / before a release | trend only |
+| `negative` | `negative/decline/` (unanswerable) + `negative/errors/` (design's error table) | hallucination (skipped when it refused) | expected errors, performance | every release candidate | ≥ 95% refused correctly |
+| `safety` | `privacy/` — made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic, PII patterns in queries (diagnostic) | every release candidate | 100% |
+| `diagnose` | `golden/`, replaying golden traces (`traces: golden`) | the 6 stage judges (query rewrite, anchor page) | retrieval | on demand, `OFFLINE=1 CASE=...` | none |
+
+Deterministic checks are free (they read the saved trace) and skip themselves when a case lacks the data;
+LLM judges cost a CORTEX call per case and repetition, so each suite runs only the judges that answer
+its question. One judge for one run: `METRICS="faithfulness"`.
 
 Flags for any `make run` / `baseline` / `verdict`: `CASE="ID1 ID2"` (only these cases),
-`OFFLINE=1`, `JUDGES=0`, `REPS=5`, `BUILD=1.5.0` (label the run with the agent build).
+`OFFLINE=1`, `JUDGES=0`, `REPS=5`, `BUILD=1.5.0` (label the run with the agent build), `METRICS="a b"` (only these judges).
 
 **Time and cost:** a live case takes ~10–60 s for the agent plus one call per judge. 100 golden
 cases × `REPS=5` is 500 agent calls and ~3,000 judge calls — hours. Try one case with `CASE=` first.
@@ -548,9 +549,9 @@ group), and **each suite chooses which checks it runs** — judges and checks ar
 
 ```yaml
 suites:
-  golden:          {metrics: [relevance, correctness, faithfulness]}            # checks: all (default)
-  relevance_only:  {metrics: [relevance], checks: none}                          # judges only
-  stages:          {metrics: [intent_preservation], checks: [basic, retrieval]}  # groups and/or check names
+  golden:    {metrics: [relevance, correctness, faithfulness]}             # checks: all (default)
+  negative:  {metrics: [hallucination], checks: [expected_errors]}         # groups and/or check names
+  diagnose:  {metrics: [intent_preservation], checks: none, traces: golden} # judges only, golden's traces
 ```
 
 `basic` is the built-in group (`answer_non_empty`, `expected.keywords`). Lookups
@@ -648,7 +649,7 @@ make sources AGENT=knowledge_agent                                  # fetch ever
 make goldens AGENT=knowledge_agent GROUP="Recoveries Commercial Bank"  # generate for one domain
 make goldens AGENT=knowledge_agent IDS="36626"                      # …or for specific pages
 make goldens AGENT=knowledge_agent IDS="36626" STYLES="how why"    # …only some styles
-make run     AGENT=knowledge_agent SUITE=synthetic                  # evaluate the agent on them
+make run     AGENT=knowledge_agent SUITE=coverage                   # evaluate the agent on them
 ```
 
 **Sources.** Every source turns what it reads into the same document —
@@ -690,8 +691,8 @@ read its fields: `{generated.input.request}` (cases where the JSON is missing th
   the agent, and the reference answer has the shape the agent gives for that type. `general` sends a plain
   question (no type), answered with a summary.
 - **Special sets.** `privacy` (made-up customer details in the question; at most 15 cases →
-  `testdata/privacy/`, suite `privacy`) and `should_decline` (on-topic questions the page doesn't answer; at
-  most 15 → `testdata/should_decline/`, suite `should_decline`). A style can set `max_cases:` (it then takes
+  `testdata/privacy/`, suite `safety`) and `should_decline` (on-topic questions the page doesn't answer; at
+  most 15 → `testdata/negative/decline/`, suite `negative`). A style can set `max_cases:` (it then takes
   pages from each domain in turn, so the set is varied) and its own `output:` (folder / id / case fields,
   merged over the main `output:`).
 - New cases are **added** next to existing ones (numbering continues). `REPLACE=1` replaces the earlier
@@ -783,10 +784,10 @@ highlighted) and the answer, confidence and scores of every run.
 ## Baseline and verdict
 
 ```bash
-make baseline AGENT=knowledge_agent SUITE=e2e BUILD=1.4.0 REPS=5    # on a build you trust
-git add baselines/ && git commit -m "baseline knowledge_agent e2e @ 1.4.0"
+make baseline AGENT=knowledge_agent SUITE=golden BUILD=1.4.0         # on a build you trust
+git add baselines/ && git commit -m "baseline knowledge_agent golden @ 1.4.0"
 
-make verdict  AGENT=knowledge_agent SUITE=e2e BUILD=1.5.0 REPS=5    # on the new build
+make verdict  AGENT=knowledge_agent SUITE=golden BUILD=1.5.0         # on the new build
 ```
 
 LLM agents and judges aren't deterministic, so run each case several times (`REPS`). For every

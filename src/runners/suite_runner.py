@@ -23,6 +23,7 @@ Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belon
 
 from __future__ import annotations
 
+import dataclasses
 import importlib.util
 import json
 import shutil
@@ -35,6 +36,7 @@ from typing import Any
 from src.clients.adk_client import call_agent
 from src.core import paths
 from src.core.agent_config import Agent, Suite, load_agent
+from src.core.exceptions import ConfigError
 from src.core.results import CaseResult, Result, Run, check
 from src.fields.checks import fields_read, run_checks
 from src.fields.extract import extract, is_empty
@@ -63,16 +65,23 @@ class SuiteContext:
 # --- the suite --------------------------------------------------------------------------------------
 
 def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: int = 1,
-              build: str = "", judges: bool = True, case_ids: list[str] | None = None) -> Run:
+              build: str = "", judges: bool = True, case_ids: list[str] | None = None,
+              metrics: list[str] | None = None) -> Run:
     """
     Run every case of one suite `reps` times, then save the run.
 
     offline:  replay saved traces instead of calling the agent
     judges:   False runs the deterministic checks only (no CORTEX calls)
     case_ids: only these test_case_ids
+    metrics:  only these judges this time (METRICS=correctness), instead of the suite's own list
     """
     agent = load_agent(agent_name)
     suite = agent.suite(suite_name)
+    if metrics:
+        unknown = [m for m in metrics if m not in agent.metrics]
+        if unknown:
+            raise ConfigError(f"METRICS: {unknown} are not in agent.yaml metrics:. Known: {sorted(agent.metrics)}")
+        suite = dataclasses.replace(suite, metrics=list(metrics))
     cases = load_cases(agent, suite)
     if case_ids:
         cases = [c for c in cases if c["test_case_id"] in case_ids]
@@ -294,8 +303,9 @@ def _message(agent: Agent, case: dict[str, Any]) -> str:
 
 
 def _latest_trace_path(ctx: SuiteContext, case: dict[str, Any]) -> Path:
-    """outputs/traces/<agent>/<suite>/<case_id>.json — the case's latest trace (what OFFLINE=1 replays)."""
-    return paths.OUTPUTS_DIR / "traces" / ctx.agent.name / ctx.suite.name / f"{case['test_case_id']}.json"
+    """outputs/traces/<agent>/<suite>/<case_id>.json — the case's latest trace (what OFFLINE=1 replays).
+    A suite with `traces: golden` shares the golden suite's traces."""
+    return paths.OUTPUTS_DIR / "traces" / ctx.agent.name / ctx.suite.traces / f"{case['test_case_id']}.json"
 
 
 def _saved_trace(latest: Path) -> dict[str, Any]:

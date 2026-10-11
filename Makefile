@@ -30,7 +30,7 @@ DRY_RUN ?=
 TRACE ?=
 LAST ?= 1
 
-FLAGS = --reps $(REPS) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
+FLAGS = --reps $(REPS) $(if $(METRICS),--metrics $(METRICS)) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
 # Which Python runs the commands: the project's .venv (made by make setup), or — if you activated a
 # virtual env first — that one. --frozen: use uv.lock as it is, never re-resolve (so commands work
@@ -46,7 +46,7 @@ help:
 	@echo "make doctor                                 check Python env, Pegasus, env files, certificates, CORTEX"
 	@echo "make list                                   agents and suites"
 	@echo "make new-agent NAME=.. [INPUT_FIELD=..]     create agents/<NAME>/ from the template"
-	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n] [CASE="TC_001 TC_002"]"
+	@echo "make run      AGENT=.. SUITE=..             run a suite  [OFFLINE=1] [JUDGES=0] [REPS=n] [CASE="TC_001 TC_002"] [METRICS="faithfulness"]"
 	@echo "make baseline AGENT=.. SUITE=.. BUILD=..    run a stable build and save it as the baseline [REPS=5]"
 	@echo "make verdict  AGENT=.. SUITE=.. BUILD=..    run the new build and compare with the baseline [REPS=5]"
 	@echo "make sources  AGENT=.. [GROUP=..] [IDS=..]  synthesizer: fetch source documents into synth/cache"

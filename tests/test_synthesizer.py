@@ -22,7 +22,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
 
     folder = ka_copy / "testdata/synthetic/rcb"   # domain-wise, by code (synth.yaml domain_codes)
     assert {p.parent for p in written} == {folder, ka_copy / "testdata/privacy/rcb",
-                                           ka_copy / "testdata/should_decline/rcb"}
+                                           ka_copy / "testdata/negative/decline/rcb"}
     cases = {}
     for path in sorted(written):                                       # the first case of each style
         case = json.loads(path.read_text())
@@ -50,7 +50,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
                                    "expected_error": ["InsufficientContextError", "GuardrailError"]}
 
     agent = load_agent("knowledge_agent")
-    assert len(load_cases(agent, agent.suite("synthetic"))) == 10
+    assert len(load_cases(agent, agent.suite("coverage"))) == 14         # 10 generated + 4 question_types/
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
     assert manifest["generated"] == 14 and manifest["failed"] == []
 

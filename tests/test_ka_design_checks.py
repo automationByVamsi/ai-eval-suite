@@ -38,7 +38,7 @@ def test_an_expected_error_is_the_agent_s_answer(outputs, monkeypatch):
                          "your query. Please rephrase your query and try again."}
     server = _fake_agent(monkeypatch, lambda: (500, refusal))
     try:
-        run = run_suite("knowledge_agent", "errors", judges=False, case_ids=["KA_ERR_003"])
+        run = run_suite("knowledge_agent", "negative", judges=False, case_ids=["KA_ERR_003"])
     finally:
         server.shutdown()
     case = run.cases[0]
@@ -51,7 +51,7 @@ def test_an_answer_where_an_error_was_expected_fails(outputs, monkeypatch):
     # The agent invents an answer to an unanswerable question instead of refusing.
     server = _fake_agent(monkeypatch, lambda: (200, TC_002["raw_events"]))
     try:
-        run = run_suite("knowledge_agent", "errors", judges=False, case_ids=["KA_ERR_003"])
+        run = run_suite("knowledge_agent", "negative", judges=False, case_ids=["KA_ERR_003"])
     finally:
         server.shutdown()
     case = run.cases[0]

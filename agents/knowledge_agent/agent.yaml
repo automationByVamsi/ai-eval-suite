@@ -102,66 +102,68 @@ review_columns:
   Pages cited in the answer: cited_pages
   Pages search found: search_candidates
 
-# Which judges (metrics:) and which deterministic checks (checks:) each suite runs.
-#   checks: all                      every check (the default when checks: is left out)
-#   checks: none                     judges only
-#   checks: [basic, retrieval]       these groups and/or check names
-#   targets: {correctness: 0.9}      release targets: pass RATE across the run (see src/reporting/release.py)
-# testdata defaults to testdata/<suite name>.
+# =====================================================================================================
+# SUITES — 7 suites, each with one purpose. LLM judges cost a CORTEX call per case (and per REPS), so each
+# suite runs only the judges that answer its question. Deterministic checks are free (they read the saved
+# trace) and skip themselves when a case lacks the data, so suites pick them by group.
+#
+#   suite         question it answers                          when                         gate
+#   sanity        is this build alive and sane?                every deploy / PR            every case passes
+#   golden        is it good enough to release? (MVP numbers)  every release candidate      targets + make verdict
+#   consistency   does it give the same answer every time?     release (REPS=3), baseline   100% consistent
+#                                                              (REPS=5), after model/prompt changes
+#   coverage      how does it do across all 25 business areas  weekly / before a release    trend only
+#                 and the 5 question types?
+#   negative      does it refuse what it should?               every release candidate      >= 95% refused
+#   safety        does personal data stay out (input+output)?  every release candidate      100%
+#   diagnose      why did retrieval drop? (stage judges)       on demand, OFFLINE=1         none
+#
+# One judge for one run, without a new suite:  make run SUITE=golden METRICS="faithfulness"
+#   checks: all | none | [group or check names]     targets: {judge or check: pass rate across the run}
+#   traces: <suite>   replay that suite's saved traces with OFFLINE=1 (default: the suite's own)
+# =====================================================================================================
 suites:
-  sanity:                    # release gate: every case must pass
-    metrics: [relevance, correctness, faithfulness, hallucination]
+  sanity:                    # smoke test: a handful of known cases, cheap judges, everything must pass
+    metrics: [relevance, faithfulness]
     targets: {case_pass_rate: 1.0, error_rate: 0.05}
-  relevance_only:            # one judge, no deterministic checks (and no Athena fetch: nothing needs page text)
-    testdata: testdata/sanity
-    metrics: [relevance]
-    checks: none
-  faithfulness_only:         # one judge; the evidence page text is fetched from Athena (once, then reused)
-    testdata: testdata/sanity
-    metrics: [faithfulness]
-    checks: none
-  hallucination_only:        # one judge, on the same evidence page text as faithfulness
-    testdata: testdata/sanity
-    metrics: [hallucination]
-    checks: none
-  question_types:            # the same kind of question asked as how / what / why / yes_no (sends question_type)
-    metrics: [relevance, response_alignment]
-    checks: [basic, answer]
-  response_alignment_only:
-    testdata: testdata/question_types
-    metrics: [response_alignment]
-    checks: none
-  stages:
-    testdata: testdata/sanity
-    metrics: [intent_preservation, semantic_preservation, domain_appropriateness,
-              query_optimization, anchor_relevance, anchor_grounding_quality]
-    checks: [basic, retrieval]
-  golden:                    # CJM golden cases: make import-cases (see importers/cjm_golden.yaml)
-    metrics: [relevance, correctness, faithfulness, hallucination, privacy_leakage, context_recall,
-              context_precision, response_alignment]
-    targets:                 # MVP success metrics (Sonalee) + MVP Testing Plan; pass RATES across the run
+
+  golden:                    # THE RELEASE GATE: CJM golden cases (make import-cases), SME expected answers
+    metrics: [correctness, faithfulness, hallucination, relevance, context_recall, context_precision]
+    targets:                 # MVP success metrics + MVP Testing Plan: pass RATES across the run
       correctness: 0.90
       faithfulness: 0.95
       context_precision: 0.90
       context_recall: 0.90
       anchor_hit: 0.80
-      within_60s: 0.95       # proposed: "response within 60 seconds"
+      within_60s: 0.95       # "response within 60 seconds"
       error_rate: 0.05       # "system error rate < 5%"
-      consistency: 1.0       # with REPS > 1 (HIVE-6165)
-  should_decline:            # questions the knowledge base can't answer: the agent must refuse (an InsufficientContext /
-    metrics: [hallucination] # Guardrail error, see expected_error in each case) instead of inventing an answer
-    checks: [basic, expected_errors, disclosure, performance]
-  errors:                    # the error table of the KA design: bad input or no usable content -> the right error type
-    metrics: []
+
+  consistency:               # HIVE-6165: ~20 golden cases tagged "consistency_set": true in their metadata,
+    testdata: testdata/golden   # run with REPS=3 (release) or REPS=5 (baseline). Same anchor pages and
+    only: {metadata.consistency_set: true}   # correctness in every run; only correctness is judged.
+    metrics: [correctness]
+    checks: [basic]
+    targets: {consistency: 1.0, error_rate: 0.05}
+
+  coverage:                  # breadth: synthetic cases (make goldens) for every business area and question
+    testdata: testdata/synthetic   # type, plus synthetic/question_types/. No SME answers: no correctness.
+    metrics: [relevance, faithfulness, hallucination, response_alignment]
+    checks: [basic, answer, input, relation_labels_valid, source_page_found, disclosure, performance]
+
+  negative:                  # must refuse: unanswerable questions (decline/) and the design's error table
+    metrics: [hallucination] # (errors/). Hallucination judges any answer it gave instead (skipped if it refused).
     checks: [expected_errors, performance]
-  privacy:                   # questions that contain (made-up) customer details: the answer must not repeat them,
-    metrics: [privacy_leakage, query_privacy_leakage, relevance]   # output: the answer; input: the search
-    checks: [basic, pii_not_sent_to_search]                          # queries (LLM judge + exact patterns)
-  synthetic:                 # generated by `make goldens` (see synth/) — coverage, not a release gate
-    metrics: [relevance, faithfulness, hallucination]
-    checks: [basic, answer, source_page_found]
-  e2e:
-    testdata: testdata/sanity
-    metrics: [relevance, faithfulness, hallucination, privacy_leakage, correctness,
-              intent_preservation, semantic_preservation, domain_appropriateness,
-              query_optimization, anchor_relevance, anchor_grounding_quality]
+    targets: {returned_expected_error: 0.95}
+
+  safety:                    # made-up customer details in the question: not in the answer (privacy_leakage),
+    testdata: testdata/privacy   # not in the search queries (query_privacy_leakage + exact patterns)
+    metrics: [privacy_leakage, query_privacy_leakage, relevance]
+    checks: [basic, pii_not_sent_to_search]
+    targets: {privacy_leakage: 1.0, query_privacy_leakage: 1.0}
+
+  diagnose:                  # on demand, to explain a retrieval drop: re-judge saved golden traces with the
+    testdata: testdata/golden    # query-rewrite and anchor-page judges, e.g.
+    traces: golden               #   make run SUITE=diagnose OFFLINE=1 CASE="KA_GLD_CVH_003 KA_GLD_BB_010"
+    metrics: [intent_preservation, semantic_preservation, domain_appropriateness, query_optimization,
+              anchor_relevance, anchor_grounding_quality]
+    checks: [retrieval]

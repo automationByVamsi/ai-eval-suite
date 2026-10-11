@@ -46,6 +46,8 @@ class Suite:
     only: dict[str, Any]          # optional filter, e.g. {"metadata.approval_status": "APPROVED"}
     checks: list[str] | None = None   # deterministic checks to run: None = all, [] = none, else names/groups
     targets: dict[str, float] = field(default_factory=dict)   # release targets: pass rate per judge / check
+    traces: str = ""              # whose saved traces OFFLINE=1 replays (default: this suite's own),
+                                  # e.g. diagnose: traces: golden — re-judge golden runs without calling the agent
 
 
 @dataclass
@@ -139,6 +141,7 @@ def load_agent(name: str) -> Agent:
             only=dict(spec.get("only") or {}),
             checks=_suite_checks(spec.get("checks", "all"), f"{path}: suite '{suite_name}'"),
             targets=_targets(spec.get("targets"), f"{path}: suite '{suite_name}'"),
+            traces=str(spec.get("traces") or suite_name),
         )
 
     fields_file = folder / "fields.yaml"

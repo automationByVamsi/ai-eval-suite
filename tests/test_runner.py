@@ -1,6 +1,7 @@
 """The evaluation loop: config loading, offline and live runs, test case loading, new agents, the CLI."""
 
 import json
+import shutil
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
@@ -185,3 +186,29 @@ def test_comment_after_an_empty_env_value_is_not_the_value(tmp_path, monkeypatch
     monkeypatch.setattr(env, "_SHELL_VARS", set())
     env.load_env_file(tmp_path / ".env")
     assert os.environ["CORTEX_BASE_URL"] == "" and os.environ["X_KEEP"] == "v"
+
+
+def test_metrics_override_and_shared_traces(outputs):
+    """METRICS= picks the judges for one run; a suite with `traces: <other>` replays that suite's traces."""
+    with pytest.raises(ConfigError, match="not in agent.yaml metrics"):
+        run_suite("knowledge_agent", "sanity", offline=True, metrics=["no_such_judge"])
+    run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, metrics=["relevance"])
+    assert run.metrics == []                                       # JUDGES=0 still wins
+    agent = load_agent("knowledge_agent")
+    assert agent.suite("diagnose").traces == "golden" and agent.suite("golden").traces == "golden"
+
+
+def test_an_agent_sub_folder_is_its_own_agent(temp_agents, outputs):
+    """agents/<agent>/<part>/agent.yaml runs as AGENT=<agent>/<part>, with its own results folder."""
+    from src.core.agent_config import list_agents
+    create_agent("parent_agent")
+    child = temp_agents / "parent_agent" / "part"
+    child.mkdir()
+    for item in ("agent.yaml", "testdata"):
+        source = temp_agents / "parent_agent" / item
+        shutil.copytree(source, child / item) if source.is_dir() else shutil.copy(source, child / item)
+    (child / "client.py").write_text("def call_agent(settings, message):\n"
+                                     "    return {'agentOutput': 'ok ' + message}\n")
+    assert "parent_agent/part" in list_agents()
+    run = run_suite("parent_agent/part", "sanity", judges=False)
+    assert run.run_id.endswith("_parent_agent.part_sanity")
