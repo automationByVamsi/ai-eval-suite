@@ -54,7 +54,7 @@ def load_shared_env() -> None:
 def load_agent_env(agent_name: str) -> None:
     """
     env/.env.<agent>, if there is one. Its values override env/.env. A sub-agent such as
-    knowledge_agent/ingestion reads env/.env.knowledge_agent, then env/.env.knowledge_agent.ingestion.
+    knowledge_agent/pipeline reads env/.env.knowledge_agent, then env/.env.knowledge_agent.pipeline.
     """
     parts = agent_name.split("/")
     for depth in range(1, len(parts) + 1):

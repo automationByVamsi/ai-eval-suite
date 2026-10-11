@@ -14,8 +14,7 @@ Settings (env/.env):
 
 Certificate checks follow VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
 
-Used by: synthesizer/sources/athena_mcp.py, agents/knowledge_agent/lookups.py,
-         agents/knowledge_agent/ingestion/client.py.
+Used by: synthesizer/sources/athena_mcp.py, agents/knowledge_agent/lookups.py.
 """
 
 from __future__ import annotations

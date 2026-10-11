@@ -155,7 +155,7 @@ def load_run(ref: str, agent: str | None = None, suite: str | None = None) -> Ru
 
 
 def flat(agent: str) -> str:
-    """An agent name as one folder / file name part: 'knowledge_agent/ingestion' -> 'knowledge_agent.ingestion'."""
+    """An agent name as one folder / file name part: 'knowledge_agent/pipeline' -> 'knowledge_agent.pipeline'."""
     return agent.replace("/", ".")
 
 

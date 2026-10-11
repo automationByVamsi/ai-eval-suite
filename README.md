@@ -21,7 +21,6 @@ first run. This README explains how the framework works and how to use it.
 - [Import test cases from a spreadsheet](#import-test-cases-from-a-spreadsheet) · [Synthesizer](#synthesizer-generate-test-cases)
 - [SME review sheet and judge calibration](#sme-review-sheet-and-judge-calibration)
 - [Release targets and consistency](#release-targets-and-consistency) · [Baseline and verdict](#baseline-and-verdict)
-- [Ingestion: the pipeline's Markdown](#ingestion-the-pipelines-markdown-knowledge_agentingestion)
 - [Pass, fail, skip, error](#pass-fail-skip-error) · [Troubleshooting](#troubleshooting)
 
 ## How it works
@@ -574,55 +573,6 @@ This creates `agents/claims_agent/` from the template and prints the next steps:
 Add `fields.yaml` entries when you want stage fields, and `checks.yaml` for
 agent-specific checks — `agents/knowledge_agent/` is a full example. For an agent that is not Google
 ADK, rename `client.py.example` to `client.py` and fill in the three TODOs.
-
-## Ingestion: the pipeline's Markdown (`knowledge_agent/ingestion`)
-
-Before the Knowledge Agent can answer, a preprocessing pipeline copies every knowledge-base page from
-Athena into GCS buckets: `page.md` (the Markdown) and `metadata.json` (whose `content.html` is the exact
-HTML it converted). `agents/knowledge_agent/ingestion/` checks that the Markdown is a faithful copy of that
-HTML. It is not a chat agent: its `client.py` reads, for each test case's `page_id`, both files from GCS
-and the page's current revision from Athena, and the framework judges the Markdown against the HTML like
-any agent's answer. (Without a `metadata.json` the live Athena page is the source; the trace says which.)
-
-It sits inside the Knowledge Agent's folder because it tests part of the same system, but runs on its
-own: any sub-folder of an agent with its own `agent.yaml` is run as `AGENT=<agent>/<folder>`, with its own
-test cases (page ids, not questions), results and baseline — so a pipeline problem never lowers the
-Knowledge Agent's pass rate or verdict.
-
-```bash
-make gcloud-auth                              # Google Cloud sign-in (browser SSO), once
-make ingestion-cases                          # pages per domain in the bucket + one test case per page
-make run AGENT=knowledge_agent/ingestion SUITE=markdown JUDGES=0     # checks only: fast, every page
-make run AGENT=knowledge_agent/ingestion SUITE=markdown              # + the two judges (LLM calls per page)
-```
-
-`make ingestion-cases` lists the Markdown bucket, prints how many pages each domain (first folder) has,
-and writes `testdata/markdown/<domain>/KA_MD_<page_id>.json` with each page's exact file paths
-(`PER_DOMAIN=5` for a sample, `DOMAIN=<folder>` for one domain; existing cases are kept).
-
-| What | How | Where |
-|---|---|---|
-| Same headings, list items, table rows, links, callouts | counted in the source HTML and in the Markdown | `checks.yaml` structure (counts from `parser.py`) |
-| The page's text is all there | share of the page's lines found in the Markdown ≥ 98% | `checks.yaml` content |
-| The two stored copies agree | `page.md` = `content.markdown` in `metadata.json` | `checks.yaml` storage |
-| Made from the current page | the revision in `metadata.json` = the revision in Athena now (else out of date) | `checks.yaml` version |
-| Nothing added or changed | Pegasus safety Hallucination, the source page's text as the context | `markdown_hallucination` |
-| Nothing lost | rubric judge (`rubrics/markdown_completeness.md`) | `markdown_completeness` |
-
-`parser.py` first cleans the HTML with the pipeline's own rules (`html_to_markdown.py`), so what the
-pipeline drops on purpose is not counted as lost: HTML escaped several times is unescaped, hidden blocks
-(`data-llm-no-index="true"`, recent changes, scripts, styles, the table of contents) and images are
-removed, lists inside table cells are not counted (they become text in the cell), and links count by their
-text (the pipeline writes `[Customer Support Needs]`, without the URL). Each case also gets
-`differences` (every count side by side, the lines missing and the lines added) and a one-line `summary`.
-
-In the dashboard, an ingestion case shows a **page comparison**: the source page and the Markdown
-(rendered or raw) side by side, the differences, the page's metadata, then the checks and judges.
-
-The buckets are in `connection:` of `agents/knowledge_agent/ingestion/agent.yaml` (override with
-`GCS_MD_BUCKET` and `GCS_JSON_BUCKET` in `env/.env`). Reading GCS
-needs no Google Python package: `src/clients/gcs_client.py` uses the token of your `make gcloud-auth`
-sign-in. Start with a sample (`make ingestion-cases PER_DOMAIN=5`): a full run reads every page.
 
 ## Import test cases from a spreadsheet
 

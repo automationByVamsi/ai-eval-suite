@@ -140,7 +140,7 @@ A missed target fails `make verdict`. A case-level drop beyond tolerance against
 | # | Test | Status |
 |---|---|---|
 | 1 | Athena ingestion completeness | Pipeline — not started (proposed for the pipeline team) |
-| 2 | Markdown transformation accuracy | Built (`knowledge_agent/ingestion`), not yet run on real pages |
+| 2 | Markdown transformation accuracy | Built on branch `ingestion-control` (not on the main branch), not yet run on real pages |
 | 3 | Contextual metadata accuracy | Pipeline — not started (needs SME-labelled metadata) |
 | 4 | Relationship / graph accuracy | Pipeline — not started; agent side: relation labels validated |
 | 5 | Simple retrieval | ✅ Recall@5, NDCG@5, context recall / precision |
@@ -256,9 +256,10 @@ every check's result — the first thing to run when a check looks wrong.
 - **Permission model** (user entitlements → permitted page IDs) → entitlement leakage (test 10).
 - Test pages with planted instructions → indirect prompt injection (test 10).
 
-**Pipeline tests (1, 3, 4):** proposed to sit with the pre-processing pipeline team. Test 2 is built in
-`agents/knowledge_agent/ingestion/` (`make ingestion-cases PER_DOMAIN=5`, then
-`make run AGENT=knowledge_agent/ingestion SUITE=markdown JUDGES=0`); it has not been run on real pages.
+**Pipeline tests (1–4):** kept off the main branch. Test 2 (Markdown transformation accuracy) is built on
+branch **`ingestion-control`** (`agents/knowledge_agent/ingestion/`, `make gcloud-auth`, `make ingestion-cases
+PER_DOMAIN=5`, `make run AGENT=knowledge_agent/ingestion SUITE=markdown JUDGES=0`); it has not been run on
+real pages. Tests 1, 3 and 4 are proposed for the pre-processing pipeline team.
 
 ---
 

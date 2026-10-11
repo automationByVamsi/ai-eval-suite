@@ -15,7 +15,7 @@ Everything about an agent lives in its own folder:
       synth/           optional: synthesizer settings (make goldens)
       importers/*.yaml optional: spreadsheet column mappings (make import-cases)
       <part>/agent.yaml optional: another part of the same system, tested on its own as AGENT=<name>/<part>
-                       (e.g. knowledge_agent/ingestion — the pipeline that prepares the agent's pages)
+                       (e.g. knowledge_agent/pipeline — a part of the agent's system tested on its own)
 
 Used by: the runner, the synthesizer and the CLI. To add or change an agent you edit its folder,
 never this file. This file only changes when agent.yaml gets a new top-level key.
@@ -82,7 +82,7 @@ class Agent:
 def list_agents() -> list[str]:
     """
     Every folder under agents/ with an agent.yaml, and every sub-folder of an agent that has its own
-    (e.g. agents/knowledge_agent/ingestion -> 'knowledge_agent/ingestion'). Folders starting with _
+    (e.g. agents/knowledge_agent/pipeline -> 'knowledge_agent/pipeline'). Folders starting with _
     (the template) are skipped.
     """
     agents = [p for p in paths.AGENTS_DIR.iterdir() if (p / "agent.yaml").is_file() and not p.name.startswith("_")]
