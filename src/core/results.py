@@ -4,7 +4,8 @@ What a result is, and how a run is saved to and loaded from disk.
 Every check and every judge produces one `Result` with one of four statuses:
     pass | fail | skip (the case doesn't have the data this needs) | error (it could not run)
 
-A case passes when nothing in it failed or errored. A run passes when every case passed.
+A case passes when nothing in it failed or errored (a diagnostic check's FAIL is shown but
+doesn't count). A run passes when every case passed.
 A run is saved as outputs/runs/<run_id>/results.json — the dashboard and the verdict read that file.
 
 Used by: the runner (creates results), parsers (`check()`), reporting and verdict (read them).
@@ -34,6 +35,7 @@ class Result:
     threshold: float | None = None
     engine: str = ""             # judges only: "pegasus" or "deepeval"
     group: str = ""              # checks only: the group it is written under in checks.yaml (dashboard)
+    diagnostic: bool = False     # checks only: shown, but a FAIL does not fail the case (checks.yaml diagnostic: true)
 
 
 def check(name: str, passed: bool, reason_if_failed: str = "", group: str = "") -> Result:
@@ -63,7 +65,7 @@ class CaseResult:
 
     @property
     def status(self) -> str:
-        statuses = {r.status for r in self.results}
+        statuses = {r.status for r in self.results if not (r.diagnostic and r.status == FAIL)}
         if self.error or ERROR in statuses:
             return ERROR
         return FAIL if FAIL in statuses else PASS

@@ -37,7 +37,8 @@ def print_run(run: Run) -> None:
                 reason = f" {r.reason}" if r.status in (FAIL, ERROR) else ""
                 print(f"        {r.status.upper():<5} judge:{r.name}{score} [{r.engine or '-'}]{reason}".rstrip())
             elif r.status in (FAIL, ERROR):
-                print(f"        {r.status.upper():<5} {r.kind}:{r.name} {r.reason}".rstrip())
+                note = " (diagnostic: doesn't fail the case)" if r.diagnostic and r.status == FAIL else ""
+                print(f"        {r.status.upper():<5} {r.kind}:{r.name}{note} {r.reason}".rstrip())
     reps = f" x {run.reps} reps" if run.reps > 1 else ""
     print_summary(summarise([run]), f"Rates over {len({c.case_id for c in run.cases})} case(s){reps}")
     print_release(run)

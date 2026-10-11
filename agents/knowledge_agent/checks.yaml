@@ -10,25 +10,38 @@ checks:
     page_link_for_every_source: {type: same_count, fields: [evidence_page_ids, evidence_links]}
 
   retrieval:                  # golden cases: the expected pages were found (ids or titles, whichever the case has)
+    # diagnostic: shown on every case, but a miss doesn't fail the case — a good answer from a page the
+    # golden doesn't list may still be right (ask the SME). The run's targets (anchor_hit >= 80%) still gate.
     anchor_hit:
       type: any_in
+      diagnostic: true
       compare:
         - {field: anchor_page_ids, expected: expected_anchor_page_ids}
         - {field: anchor_titles,   expected: expected_anchor_page_titles}
-    search_recall_at_5:       # every expected anchor page is among the first 5 search candidates the agent logged
+    search_recall_at_5:       # every expected anchor page is in the first 5 search results
       type: recall
       k: 5
       threshold: 1.0
+      diagnostic: true
       compare:
-        - {field: search_candidates, expected: expected_anchor_page_ids}
+        - {field: search_ranked, expected: expected_anchor_page_ids}
+    search_ndcg_at_5:         # ... and near the top: 1.0 = first, 0.63 = second, 0.5 = third (Pedro's test 5)
+      type: ndcg
+      k: 5
+      threshold: 0.7
+      diagnostic: true
+      compare:
+        - {field: search_ranked, expected: expected_anchor_page_ids}
     expansion_recall:         # the expected related pages were added by relation expansion
       type: recall
       threshold: 0.7
+      diagnostic: true
       compare:
         - {field: expanded_page_ids, expected: expected_related_page_ids}
         - {field: expanded_titles,   expected: expected_related_page_titles}
     source_page_found:        # synthetic cases: the page the question was generated from is in the evidence
       type: any_in
+      diagnostic: true
       field: evidence_page_ids
       expected: source_page_id
 

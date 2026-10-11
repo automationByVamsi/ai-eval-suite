@@ -133,6 +133,47 @@ def test_precision_and_recall_at_k_on_logged_search_candidates():
     assert result.score == 1.0 and result.status == "pass"
 
 
+def test_ndcg_matches_ranx_on_the_tc_002_search():
+    # TC_002 searched "add support need process" -> 40346, 40345, 40011 (best first). Expected values from
+    # ranx ndcg@5 on the same lists: 0.6309 (gold at rank 2), 0.3869 (gold 40017 never found), 1.0.
+    assert checks.ndcg(["40346", "40345", "40011"], ["40345"]) == 0.6309
+    assert checks.ndcg(["40346", "40345", "40011"], ["40345", "40017"]) == 0.3869
+    assert checks.ndcg(["40022", "40015"], ["40015", "40022"]) == 1.0
+    assert checks.ndcg(["40346"], ["40345"]) == 0.0
+    assert checks.ndcg(["1", "2", "3", "4", "5", "6"], ["6"], k=5) == 0.0          # below the top 5
+
+
+def test_ndcg_check_merges_one_ranked_list_per_search():
+    spec = {"type": "ndcg", "k": 5, "threshold": 0.7,
+            "compare": [{"field": "search_ranked", "expected": "expected_anchor_page_ids"}]}
+    checks.validate({"n": spec}, "test")
+    def run(ranked, gold):
+        case = {"expected": {"expected_anchor_page_ids": gold}}
+        return checks.run_checks({"n": spec}, {"search_ranked": ranked}, case)[0]
+
+    tc_002 = run([["40346", "40345", "40011"]], ["40345"])
+    assert (tc_002.status, tc_002.score, tc_002.threshold) == ("fail", 0.6309, 0.7)
+    assert "{'40345': 2}" in tc_002.reason                                    # where the gold page was
+    tc_012 = run([["40022"], ["40015"]], ["40015"])                          # two searches: 1st in the 2nd one
+    assert (tc_012.status, tc_012.score) == ("pass", 1.0)
+    both = run([["40022", "40099"], ["40015", "40022"]], ["40015", "40099"])  # 1st in one search, 2nd in other
+    assert both.score == round((1 + 0.6309) / 1.6309, 4)
+    assert run([["40346"]], []).status == "skip"                             # no gold pages: skipped
+    assert checks._positions([["a", "b"], ["c", "a"]]) == {"a": 1, "c": 1, "b": 2}   # best position in any
+
+
+def test_a_diagnostic_check_is_shown_but_does_not_fail_the_case():
+    spec = {"type": "any_in", "field": "anchor_page_ids", "expected": "expected_anchor_page_ids", "diagnostic": True}
+    checks.validate({"anchor_hit": spec}, "test")
+    [miss] = checks.run_checks({"anchor_hit": spec}, {"anchor_page_ids": ["40346"]},
+                               {"expected": {"expected_anchor_page_ids": ["40345"]}})
+    assert miss.status == "fail" and miss.diagnostic
+    good_answer = CaseResult("TC", results=[Result("correctness", "judge", "pass", score=0.9, threshold=0.7), miss])
+    assert good_answer.status == "pass"                                      # the answer was right
+    bad_answer = CaseResult("TC", results=[Result("correctness", "judge", "fail", score=0.2, threshold=0.7), miss])
+    assert bad_answer.status == "fail"
+
+
 def test_when_can_read_the_test_cases_expected_block():
     spec = {"type": "present", "field": "disclosures", "when": {"expected": "should_decline", "is": True}}
     decline = {"expected": {"should_decline": True}}

@@ -499,7 +499,7 @@ checks:
 ```
 
 Types: `present`, `one_of`, `equals`, `min_words`, `not_contains`, `range`, `same_count`, `subset`,
-`any_in`, `all_in`, `precision`, `recall` (see `src/fields/checks.py`). A check whose expected value
+`any_in`, `all_in`, `precision`, `recall`, `ndcg` (see `src/fields/checks.py`). A check whose expected value
 the case lacks is SKIPPED. `parser.py` is still there for logic YAML can't express.
 
 Options:
@@ -516,7 +516,18 @@ Options:
     {type: present, field: disclosures, when: {expected: should_decline, is: true}}
   reasons_logged:                        # every listed field must be non-empty
     {type: present, fields: [relevance_reason, sufficiency_reason]}
+  search_ndcg_at_5:                      # are the expected pages near the TOP of the ranked list?
+    type: ndcg                           # 1st = 1.0, 2nd = 0.63, 3rd = 0.5 (the same as ranx ndcg@5)
+    k: 5
+    diagnostic: true                     # shown on the case, but a FAIL doesn't fail the case
+    compare: [{field: search_ranked, expected: expected_anchor_page_ids}]
 ```
+
+`search_ranked` is one ranked list per sub-query (the agent sorts Athena's results by score, best first,
+and only removes pages after that). With several lists, each page counts at its best position in any of
+them. The Knowledge Agent's `retrieval` checks (anchor hit, Recall@5, NDCG@5, expansion recall) are all
+`diagnostic`: a correct answer from a page the golden doesn't list may still be right, so a miss is shown,
+not failed — the run's targets (e.g. anchor hit ≥ 80%) still gate the release.
 
 Retrieval checks only see what the agent's trace logs (e.g. `search_branches.*.filtered_page_ids`):
 "Precision@5" means precision of the top 5 candidates *as logged*, not of the full search index.

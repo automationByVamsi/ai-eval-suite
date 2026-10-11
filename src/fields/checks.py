@@ -24,9 +24,16 @@ Types that compare a field with the test case's `expected` block (SKIP when the 
   all_in        every expected item is in the field
   precision     share of the field's items that are expected  >= threshold (default 0.7)
   recall        share of the expected items in the field      >= threshold (default 0.7)
+  ndcg          are the expected items near the TOP of the field (a ranked list, best first)?
+                1.0 = all expected items first; each one counts less the lower it is (1 / log2(position + 1))
     k: 5                    only the first 5 items of the field count (precision@5 on a ranked list)
     expected: [a, b]        the values of several expected keys together
     compare: [{field: x, expected: a}, {field: y, expected: b}]   the first pair the case has a value for
+  A field holding several ranked lists (e.g. one per search): each item counts at its BEST position in
+  any of them — [[a, b], [c]]: a and c are both 1st, b is 2nd (with k: in the top k of any search).
+
+Show a check without letting it fail the case (the run's targets still use its pass rate):
+    diagnostic: true
 
 Run a check only sometimes (else SKIP):
     when: {field: confidence, in: [MEDIUM, LOW]}      when: {field: metadata_missing, is: true}
@@ -37,16 +44,17 @@ Text is compared ignoring case and extra spaces ("How To  Add" == "how to add").
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from src.core.exceptions import ConfigError
 from src.core.results import FAIL, PASS, SKIP, Result
 from src.fields.extract import is_empty
 
-COMPARING = {"any_in", "all_in", "precision", "recall"}
+COMPARING = {"any_in", "all_in", "precision", "recall", "ndcg"}
 TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset"} | COMPARING
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
-        "threshold", "when", "description", "group", "k"}
+        "threshold", "when", "description", "group", "k", "diagnostic"}
 
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
@@ -96,7 +104,8 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
     expected = case.get("expected") or {}
     results = []
     for name, spec in checks.items():
-        result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""))
+        result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""),
+                        diagnostic=bool(spec.get("diagnostic")))
         result.reason = _when(spec.get("when"), fields, expected)
         if not result.reason:
             passed, reason = _check(spec, fields, expected, result)
@@ -148,7 +157,7 @@ def _check(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any
 
 def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any],
              result: Result) -> tuple[bool | None, str]:
-    """any_in / all_in / precision / recall: the field's items against the case's expected items."""
+    """any_in / all_in / precision / recall / ndcg: the field's items against the case's expected items."""
     pairs = spec.get("compare") or [{"field": spec.get("field"), "expected": spec.get("expected")}]
     for pair in pairs:
         want = list(dict.fromkeys(item for key in _list(pair.get("expected")) for item in _items(expected.get(key))))
@@ -159,7 +168,8 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
         names = " or ".join("+".join(f"expected.{k}" for k in (ks if isinstance(ks, list) else [ks])) for ks in keys)
         return None, f"skipped: case has no {names}"
     name = pair["field"]
-    have = _items(fields.get(name))[: int(spec["k"])] if spec.get("k") else _items(fields.get(name))
+    positions = _positions(fields.get(name))
+    have = [item for item, position in positions.items() if not spec.get("k") or position <= int(spec["k"])]
     common = {w for w in want if w in have}
     match spec["type"]:
         case "any_in":
@@ -167,6 +177,12 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
         case "all_in":
             missing = [w for w in want if w not in have]
             return not missing, f"{name} lacks {missing}"
+    if spec["type"] == "ndcg":
+        result.threshold = float(spec.get("threshold", 0.7))
+        result.score = ndcg(positions, want, int(spec.get("k", 5)))
+        return (result.score >= result.threshold,
+                f"ndcg {result.score:.2f} < {result.threshold}: expected={sorted(want)} found at "
+                f"{ {w: positions.get(w, 'not found') for w in want} } (1 = first) in {name}={have}")
     base = have if spec["type"] == "precision" else want         # precision: of what was found; recall: of expected
     if not base:
         return None, f"skipped: {name} is empty"
@@ -174,6 +190,30 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
     result.score = round(len(common) / len(set(base)), 4)
     return (result.score >= result.threshold,
             f"{spec['type']} {result.score:.2f} < {result.threshold}: {name}={sorted(have)} expected={sorted(want)}")
+
+
+def ndcg(ranked: list[str] | dict[str, int], relevant: list[str], k: int = 5) -> float:
+    """
+    NDCG@k with yes/no relevance (the same as ranx's ndcg@k): how near the top the relevant items are.
+    `ranked`: a list, best first, or {item: position} (1 = first). Each relevant item in the top k is worth
+    1 / log2(position + 1) — 1st = 1.0, 2nd = 0.63, 3rd = 0.5 — and the total is divided by the best possible
+    (every relevant item at the top). 0..1.
+    """
+    positions = ranked if isinstance(ranked, dict) else {item: i for i, item in reversed(list(enumerate(ranked, 1)))}
+    gain = sum(1 / math.log2(p + 1) for item, p in positions.items() if item in relevant and p <= k)
+    best = sum(1 / math.log2(p + 1) for p in range(1, min(len(set(relevant)), k) + 1))
+    return round(min(1.0, gain / best), 4) if best else 0.0
+
+
+def _positions(value: Any) -> dict[str, int]:
+    """{item: its position, 1 = first}, best first. Several ranked lists (one per search) -> each item's best
+    position in any of them: [[a, b], [c]] -> {a: 1, c: 1, b: 2}."""
+    lists = [v for v in _list(value) if isinstance(v, list)] or [value]
+    best: dict[str, int] = {}
+    for ranked in lists:
+        for position, item in enumerate(_items(ranked), 1):
+            best[item] = min(position, best.get(item, position))
+    return dict(sorted(best.items(), key=lambda pair: pair[1]))
 
 
 def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: dict[str, Any]) -> str:

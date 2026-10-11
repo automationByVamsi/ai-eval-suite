@@ -107,7 +107,7 @@ def first_issue(case: CaseResult) -> str:
         return explain_case_error(case.error)[0]
     for status in (ERROR, FAIL):
         for r in case.results:
-            if r.status == status:
+            if r.status == status and not (status == FAIL and r.diagnostic):
                 if status == ERROR:
                     return explain_result_error(r)[0]
                 score = f" ({r.score:.2f} < {r.threshold:.2f})" if r.score is not None and r.threshold else ""
@@ -199,8 +199,12 @@ def judge_html(result: Result) -> str:
 
 def check_html(result: Result) -> str:
     kind = {PASS: "good", FAIL: "bad", ERROR: "warn", SKIP: "muted"}[result.status]
+    if result.status == FAIL and result.diagnostic:            # shown, but it doesn't fail the case
+        kind = "warn"
     score = (f' <span class="muted">{result.score:.2f} / {result.threshold:.2f}</span>'
              if result.score is not None and result.threshold is not None else "")
+    if result.status == FAIL and result.diagnostic:
+        score += " " + chip("diagnostic: doesn't fail the case", "warn-soft")
     reason = f'<div class="row-reason">{esc(result.reason)}</div>' if result.reason else ""
     return (f'<div class="check"><span class="icon {kind}">{STATUS_ICON[result.status]}</span>'
             f'<div><div class="row-name">{esc(label(result.name))}{score}</div>{reason}</div></div>')

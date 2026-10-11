@@ -44,6 +44,9 @@ fields:
   branch_sub_queries: "state.search_branches.*.sub_query"
   branch_count:       {path: "length(state.search_branches.*.sub_query)", default: 0}
   search_candidates:  {path: "state.search_branches.*.filtered_page_ids[]", unique: true}
+  # The same, one ranked list per sub-query. Each list is best match first: the agent sorts Athena's
+  # results by score (highest first) and the applicability filter only removes pages (KA store.py).
+  search_ranked:      "state.search_branches.*.filtered_page_ids"
   metadata_missing:   "state.search_branches.*.has_missing_candidate_metadata"   # one per branch
 
   # --- 4. Anchor selection ----------------------------------------------------------------------
