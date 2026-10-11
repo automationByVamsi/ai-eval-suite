@@ -235,6 +235,15 @@ def test_review_sheet_and_calibration(tmp_path):
     assert 0.75 < report["best_threshold"] <= 0.9 and report["best_agreement"] == 1.0
 
 
+def test_calibrate_says_why_there_is_nothing_to_compare(tmp_path):
+    from src.reporting.calibration import why_empty
+    no_judges = review_sheet(_run([CaseResult("C1", question="q", answer="a")]), tmp_path / "no_judges.xlsx")
+    assert "made without judges" in why_empty(no_judges)
+    unmarked = review_sheet(_run([CaseResult("C1", question="q", answer="a", results=[
+        Result("correctness", "judge", "pass", score=0.9, threshold=0.7)])]), tmp_path / "unmarked.xlsx")
+    assert calibrate(unmarked) == [] and "no row has an SME verdict" in why_empty(unmarked)
+
+
 def test_calibrate_still_reads_an_old_csv_review_sheet(tmp_path):
     old = tmp_path / "old.csv"
     old.write_text("case_id,correctness_score,correctness_threshold,sme_verdict\n"

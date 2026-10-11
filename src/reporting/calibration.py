@@ -161,9 +161,23 @@ def _read_review(sheet: Path) -> tuple[list[dict[str, Any]], dict[str, tuple[str
     return [{**r, "sme": r.get("sme_verdict")} for r in rows], judges
 
 
+def why_empty(sheet: Path) -> str:
+    """Why a review sheet gave nothing to compare, in one line: no judges, no verdicts, or no overlap."""
+    rows, judges = _read_review(Path(sheet))
+    marked = [r for r in rows if str(r.get("sme") or "").strip().lower() in SME_PASS | SME_FAIL]
+    if not judges:
+        return ("the sheet has no LLM judge scores — the run was made without judges (JUDGES=0, or a suite "
+                "with no metrics). Run the suite with judges, then make review-sheet again.")
+    if not marked:
+        typed = sorted({str(r.get("sme")) for r in rows if str(r.get("sme") or "").strip()})
+        return ("no row has an SME verdict of pass / fail" + (f" (found: {typed})" if typed else "")
+                + f" — is this the file the SME saved, and is the column still '{SME_VERDICT}'?")
+    return f"{len(marked)} row(s) have an SME verdict, but none of them has a judge score (judges skipped or errored)."
+
+
 def print_calibration(report: list[dict[str, Any]], sheet: Path) -> None:
     if not report:
-        print(f"\nNo rows with an SME verdict (pass / fail) and a judge score in {sheet}\n")
+        print(f"\nNothing to compare in {sheet}:\n  {why_empty(sheet)}\n")
         return
     print(f"\nJudge vs SME ({sheet})")
     print("-" * 96)
