@@ -1,113 +1,101 @@
-# AI Eval Suite — Setup Guide
+# Setup
 
-Installs the framework and verifies it with an offline and a live run. Follow the steps in order.
-For how the framework works, see [README.md](README.md).
+Set up the AI Eval Suite on your machine and run your first evaluation. Do the steps in order;
+each one says **what to do**, **what you should see**, and **what to do if you don't**.
+
+You need: a Mac, Linux or Windows machine, `git`, a terminal (the one in VS Code is fine), and network
+access to the bank's services (VPN when remote). On Windows, use **WSL 2** (recommended) or **Git Bash**
+— not PowerShell or Command Prompt; Step 1 sets them up. Windows has not been verified by the team yet. How the framework works: [README.md](README.md).
+
+| Step | | Needs |
+|---|---|---|
+| 1 | [Install uv](#step-1--install-uv) | — |
+| 2 | [Get the code](#step-2--get-the-code) | repository access |
+| 3 | [Create your settings file](#step-3--create-your-settings-file) | — |
+| 4 | [Fill in `env/.env`](#step-4--fill-in-envenv) | your credentials |
+| 5 | [Install everything](#step-5--install-everything) | SAR token |
+| 6 | [Sign in to CORTEX (DevKit only)](#step-6--sign-in-to-cortex-devkit-only) | DevKit access |
+| 7 | [Check the machine](#step-7--check-the-machine) | — |
+| 8 | [Check the framework](#step-8--check-the-framework) | — |
+| 9 | [First run — offline](#step-9--first-run-offline) | nothing |
+| 10 | [First run — live](#step-10--first-run-live) | agent URL, CORTEX, Athena |
+| 11 | [Open the dashboard](#step-11--open-the-dashboard) | — |
+
+Run every command from the repository folder (`ai-eval-suite`).
 
 ---
 
-## 1. Requirements
+## Before you start: credentials to request
 
-### Platforms
+Ask for these first — they take the longest. They go **only** into `env/.env` on your machine
+(Step 4), never into code, commits, chat or tickets.
 
-| Platform | Support | Shell to use |
+| Credential | Used for | Without it |
 |---|---|---|
-| macOS | Supported | Terminal or the VS Code terminal |
-| Linux | Supported | Any terminal |
-| Windows 10 / 11 — **WSL 2** | Recommended for Windows | Ubuntu (WSL) terminal |
-| Windows 10 / 11 — **Git Bash** | Alternative | Git Bash |
-
-> **Windows:** not yet verified by the team. Use WSL 2 where possible: it behaves exactly like Linux.
-> PowerShell and Command Prompt are not supported (the `make` commands need a Unix shell).
-
-### Software
-
-| Tool | Purpose |
-|---|---|
-| `git` | Get the code |
-| `uv` 0.5+ | Installs Python and every package (do not install Python yourself) |
-| `make` | Runs the commands in this guide |
-| VS Code (optional) | Editor and terminal |
-
-### Access and credentials
-
-| Item | Used for | Without it |
-|---|---|---|
-| Repository access | Getting the code | — |
-| Bank network / VPN | Every live call | Offline runs only |
-| SAR token (token name + pass code) | Installing Pegasus and the CorteX DevKit | Judges run on DeepEval; no DevKit sign-in |
-| CORTEX API key (host, client id, key) **or** DevKit SSO access | LLM judges | `JUDGES=0` runs only |
-| Knowledge Agent URL + ADK app name | Calling the agent | `OFFLINE=1` runs only |
-| Hive Athena MCP client id + secret | Page text for judges; the synthesizer | Faithfulness, hallucination and context judges ERROR |
-
-> **Security:** credentials go only in `env/.env` on your machine. Never put them in code, commits,
-> chat or tickets. `env/` is git-ignored.
+| **SAR token** (token name + pass code — the one the Pegasus guide puts in `pip.conf`) | installing Pegasus and the CorteX DevKit | judges run on DeepEval instead of Pegasus; DevKit sign-in not possible |
+| **CORTEX**: an API key (host, client id, key) **or** DevKit SSO access | the LLM judges | only `JUDGES=0` runs work |
+| **Knowledge Agent** URL and ADK app name | calling the agent | only `OFFLINE=1` runs work |
+| **Hive Athena MCP** client id + secret | page text for judges (faithfulness, hallucination, context recall/precision); the synthesizer | those judges ERROR |
 
 ---
 
-## 2. Install the tools
+## Step 1 — Install uv
 
-Do **one** of the sections below, then check the result.
+uv installs the right Python and every package for this project. You don't install Python yourself.
 
-### macOS
-
-```bash
-xcode-select --install                                   # git and make (skip if already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh          # or: brew install uv
-```
-
-### Linux (Ubuntu / Debian)
+**Mac / Linux:**
 
 ```bash
-sudo apt update && sudo apt install -y git make curl
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/install.sh | sh        # or: brew install uv
 ```
 
-### Windows — WSL 2 (recommended)
+Linux without `make` or `git`: `sudo apt install -y make git` (Ubuntu / Debian).
 
-1. In **PowerShell as Administrator**:
+**Windows — WSL 2 (recommended).** WSL runs Ubuntu inside Windows, so everything works as on Linux.
 
-   ```powershell
-   wsl --install -d Ubuntu
-   ```
-
-2. Restart Windows. Open **Ubuntu** from the Start menu and create your Linux user.
-3. In the Ubuntu terminal, follow the **Linux** section above.
-4. Keep the repository inside the Linux file system (e.g. `~/ai-eval-suite`), not under `/mnt/c/`.
-   It is much faster.
-5. VS Code: install the **WSL** extension, then run `code .` from the Ubuntu terminal.
-
-### Windows — Git Bash (alternative)
-
-1. In **PowerShell**:
-
-   ```powershell
-   winget install --id Git.Git -e
-   winget install --id astral-sh.uv -e
-   winget install --id ezwinports.make -e
-   ```
-
-2. Open **Git Bash** and use it for every command in this guide.
-3. Stop git from converting line endings (otherwise `make setup` fails):
+1. In PowerShell **as Administrator**: `wsl --install -d Ubuntu`, then restart Windows.
+2. Open **Ubuntu** from the Start menu and create your Linux user.
+3. In the Ubuntu terminal:
 
    ```bash
-   git config --global core.autocrlf input
+   sudo apt update && sudo apt install -y make git curl
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-### Check
+4. Use the Ubuntu terminal for every step from now on. In VS Code, install the **WSL** extension.
+
+**Windows — Git Bash (alternative).** In PowerShell:
+
+```powershell
+winget install --id Git.Git -e
+winget install --id astral-sh.uv -e
+winget install --id ezwinports.make -e
+```
+
+Then open **Git Bash** and use it for every step from now on.
 
 Close and reopen the terminal, then:
 
 ```bash
-git --version
-uv --version        # 0.5 or newer
-make --version
+uv --version      # 0.5 or newer
+make --version    # any version
 ```
 
-**Expected:** all three print a version.
+- `make: command not found` on a Mac → `xcode-select --install`, then reopen the terminal.
+- `make: command not found` on Windows → WSL: `sudo apt install -y make`; Git Bash: the `winget` line above.
+- `uv: command not found` → reopen the terminal (the installer adds uv to your PATH).
+
+**Done when** both commands print a version.
 
 ---
 
-## 3. Get the code
+## Step 2 — Get the code
+
+Windows, Git Bash only — first, so git keeps the scripts' Linux line endings:
+
+```bash
+git config --global core.autocrlf input
+```
 
 ```bash
 git clone <repository URL> ai-eval-suite
@@ -115,124 +103,161 @@ cd ai-eval-suite
 git checkout refactor-version-1
 ```
 
-**Expected:** `git branch --show-current` prints `refactor-version-1`.
+Windows, WSL: clone into your Linux home folder (`cd ~` first), not under `/mnt/c/` — it is much faster.
 
-Run every remaining command from the `ai-eval-suite` folder.
+Open the folder in VS Code (`code .`) and use its terminal from now on (WSL: run `code .` from the
+Ubuntu terminal; Git Bash: choose Git Bash as the VS Code terminal).
+
+**Done when** `git branch --show-current` prints `refactor-version-1`.
 
 ---
 
-## 4. Create the settings file
+## Step 3 — Create your settings file
 
 ```bash
 make setup
 ```
 
-**Expected:** `Created env/.env - fill in your values`, followed by a note that Pegasus is skipped.
-`git status` must **not** list `env/.env`.
+The first time, this copies `env/.env.example` to **`env/.env`** (your private settings file) and
+installs what it can without credentials. You'll see `Created env/.env - fill in your values` and a
+note that Pegasus is skipped — that's expected now.
+
+**Done when** the file `env/.env` exists.
+
+`env/` is git-ignored: `env/.env` is never committed. Check with `git status` — it must not list it.
 
 ---
 
-## 5. Fill in `env/.env`
+## Step 4 — Fill in `env/.env`
 
-Open `env/.env` in your editor. Format: one `NAME=value` per line, no spaces around `=`, no quotes,
-comments on their own line.
+Open `env/.env` in VS Code. Every setting is explained in the file; fill in these:
 
 ### Required
 
 | Setting | Value |
 |---|---|
-| `SAR_TOKEN_NAME` | SAR token name |
-| `SAR_TOKEN_PASS_CODE` | SAR token pass code |
-| `VERIFY_TLS` | `false` — or remove it and set `CA_BUNDLE=<path to corporate CA .pem>` |
-| `KNOWLEDGE_ADK_BASE_URL` | Knowledge Agent URL, no trailing `/` |
-| `KNOWLEDGE_ADK_APP_NAME` | ADK app name (usually `knowledge_agent`) |
-| `HIVE_ATHENA_CLIENT_ID` | Athena MCP client id |
-| `HIVE_ATHENA_CLIENT_SECRET` | Athena MCP client secret |
-| `CORTEX_AUTH` | `api_key` or `devkit` |
-| `CORTEX_MODEL` | Keep the value in the file |
+| `SAR_TOKEN_NAME` | your SAR token name |
+| `SAR_TOKEN_PASS_CODE` | your SAR token pass code |
+| `VERIFY_TLS` | keep `false` (the office proxy re-signs HTTPS) — **or** delete it and set `CA_BUNDLE=/path/to/corporate-ca.pem` |
+| `KNOWLEDGE_ADK_BASE_URL` | the Knowledge Agent URL, no trailing `/` |
+| `KNOWLEDGE_ADK_APP_NAME` | the agent's ADK app name (usually `knowledge_agent`) |
+| `HIVE_ATHENA_CLIENT_ID` | your Athena MCP client id |
+| `HIVE_ATHENA_CLIENT_SECRET` | your Athena MCP client secret |
+| `CORTEX_AUTH` | `api_key` or `devkit` — see below |
+| `CORTEX_MODEL` | keep the value in the file unless told otherwise |
 
-### CORTEX — complete one column
+### CORTEX — fill one of the two
 
-| `CORTEX_AUTH=api_key` | `CORTEX_AUTH=devkit` |
+| If `CORTEX_AUTH=api_key` | If `CORTEX_AUTH=devkit` |
 |---|---|
-| `CORTEX_HOST` — gateway URL ending in `/v1` | `CORTEX_ENV` — `int`, `pre` or `prd` (optional, default `prd`) |
-| `CORTEX_CLIENT_ID` | Sign in at step 7 |
+| `CORTEX_HOST` — the gateway URL, ending in `/v1` | `CORTEX_ENV` — `int`, `pre` or `prd` (optional; Pegasus defaults to `prd`) |
+| `CORTEX_CLIENT_ID` | nothing else — you sign in with SSO in Step 6 |
 | `CORTEX_API_KEY` | |
 
-All other settings: leave as they are. Settings for one agent only can go in
-`env/.env.<agent>` (e.g. `env/.env.knowledge_agent`); they override `env/.env` for that agent.
+### Leave as they are (unless told otherwise)
 
-**Expected:** every required setting has a value.
+`HIVE_ATHENA_BASE_URL` (already set to the test environment), `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`,
+`KNOWLEDGE_ADK_BASE_PATH`, `KNOWLEDGE_ADK_USER_ID`, `CORTEX_BASE_URL`, `CORTEX_CLIENT_SECRET`,
+`PEGASUS_CORTEX_MODEL`, `PEGASUS_CERT_PATH`.
+
+### Format rules
+
+- one `NAME=value` per line, no spaces around `=`, no quotes needed;
+- comments go on their **own** line, never after a value;
+- settings for one agent only can go in `env/.env.<agent>` (e.g. `env/.env.knowledge_agent`) —
+  they override `env/.env` for that agent.
+
+**Done when** every required setting has a value.
 
 ---
 
-## 6. Install the packages
+## Step 5 — Install everything
+
+Now that `env/.env` has your SAR token:
 
 ```bash
 make setup
 ```
 
-| Last line | Action |
-|---|---|
-| `Installed everything, including Pegasus and the CorteX DevKit.` | None — continue |
-| `… The CorteX DevKit could not be installed.` | None if `CORTEX_AUTH=api_key`; otherwise check the SAR token and VPN, run again |
-| `… Pegasus could not be installed.` | Check the SAR token and VPN, run again |
-| `NOTE: no SAR token in env/.env …` | Fill in `SAR_TOKEN_NAME` / `SAR_TOKEN_PASS_CODE` (step 5), run again |
+Read the last lines:
 
-> Always install with `make setup`. A plain `uv sync` removes Pegasus.
+| You see | Meaning / action |
+|---|---|
+| `Installed everything, including Pegasus and the CorteX DevKit.` | Done. |
+| `… The CorteX DevKit could not be installed.` | Fine if you use `CORTEX_AUTH=api_key`; otherwise check the token and network, run again. |
+| `… Pegasus could not be installed.` | Check the SAR token and that you're on the bank network/VPN, run again. |
+| `NOTE: no SAR token in env/.env …` | `SAR_TOKEN_NAME` / `SAR_TOKEN_PASS_CODE` are empty or misspelt (Step 4). |
+
+Always install with `make setup`, never a bare `uv sync` — `uv sync` doesn't know your token and
+removes Pegasus.
+
+**Done when** you see the first line of the table.
 
 ---
 
-## 7. Sign in to CORTEX (DevKit only)
+## Step 6 — Sign in to CORTEX (DevKit only)
 
-Skip if `CORTEX_AUTH=api_key`.
+Skip this step if `CORTEX_AUTH=api_key`.
 
 ```bash
 make cortex-login
 ```
 
-**Expected:** a browser opens for SSO; the command ends without an error. The token is stored in the
-OS keychain (macOS Keychain, Windows Credential Manager, Linux keyring). Repeat when judges fail with
-an authentication error.
+A browser opens for SSO; the token is stored in your keychain (Windows: Credential Manager). On WSL,
+if no browser opens, copy the URL it prints into a Windows browser. Run it again whenever judges start
+failing with an authentication error.
 
-> **WSL:** if no browser opens, copy the URL printed in the terminal into a Windows browser.
+**Done when** the command finishes without an error.
 
 ---
 
-## 8. Verify the installation
+## Step 7 — Check the machine
 
 ```bash
 make doctor
-make test
 ```
 
-**Expected:**
+One line per item, then one real call to CORTEX (and one Pegasus metric when Pegasus is installed).
+Secrets are never printed.
 
-- `make doctor` ends with `All good.` Fix every `[FAIL]` line and run it again.
-  `[WARN] pegasus` is acceptable (judges then run on DeepEval).
-- `make test` ends with `… passed` and no `failed`. A failure on a fresh checkout is a code
-  defect — report it.
+| Line | Want | If not |
+|---|---|---|
+| `env files` | `[OK  ]` | you're not in the repository folder, or Step 3 wasn't done |
+| `deepeval` | `[OK  ]` | `make setup` |
+| `pegasus` | `[OK  ]` | `[WARN]` → Step 5 (judges still run, on DeepEval) |
+| `certificates` | `[OK  ]` | `CA_BUNDLE` path doesn't exist → fix it, or use `VERIFY_TLS=false` |
+| `CORTEX_AUTH` | `[OK  ]` | typo in `env/.env` |
+| `CORTEX_HOST` or `CorteX DevKit` | `[OK  ]` | fill the CORTEX settings for your mode (Step 4) / Step 6 |
+| `CORTEX call` | `[OK  ]` | see [Problems](#problems-during-setup) — the line names the URL it called |
+| last line | `All good.` | fix each `[FAIL]` line and run `make doctor` again |
 
-| `make doctor` line | If not `[OK  ]` |
-|---|---|
-| `env files` | Run from the `ai-eval-suite` folder; complete step 4 |
-| `deepeval` | `make setup` |
-| `pegasus` | Step 6 |
-| `certificates` | Fix the `CA_BUNDLE` path, or use `VERIFY_TLS=false` |
-| `CORTEX_AUTH` / `CORTEX_HOST` / `CorteX DevKit` | Step 5, or step 7 for DevKit |
-| `CORTEX call` | See [Troubleshooting](#11-troubleshooting); the line shows the URL called |
+**Done when** the last line is `All good.`
 
 ---
 
-## 9. First run — offline
+## Step 8 — Check the framework
 
-Replays the saved traces with deterministic checks only. No agent, no CORTEX, no network.
+```bash
+make test
+```
+
+The framework's own tests: offline, no credentials, ~10 seconds.
+
+**Done when** it ends with `… passed` and no `failed`. A failure on a fresh checkout is a problem in
+the code, not in your setup — report it.
+
+---
+
+## Step 9 — First run (offline)
+
+Replays the traces saved in the repository (`outputs/traces/`) and runs the deterministic checks.
+No agent, no CORTEX, no network.
 
 ```bash
 make run AGENT=knowledge_agent SUITE=sanity OFFLINE=1 JUDGES=0
 ```
 
-**Expected:**
+You should see:
 
 ```
 PASS  TC_002  [5 skipped]
@@ -240,48 +265,68 @@ PASS  TC_012  [5 skipped]
 2 passed, 0 failed, 0 errors  ->  outputs/runs/<run id>/results.json
 ```
 
-`skipped` = the check has no golden data for these cases, or does not apply. It is not a failure.
+"skipped" means the sanity cases have no golden data for those checks (expected pages, source page),
+or the check doesn't apply (the caveat check runs only for MEDIUM / LOW confidence) — not a failure.
+
+**Done when** your output matches.
 
 ---
 
-## 10. First run — live
+## Step 10 — First run (live)
 
-Run in order. Each command adds one service, so a failure points to that service.
+Calls the agent and the judges. Run the three commands in order — each adds one service, so if one
+fails you know which.
 
-| # | Command | Adds | Expected |
-|---|---|---|---|
-| 1 | `make run AGENT=knowledge_agent SUITE=sanity JUDGES=0` | Agent | Both cases evaluated, no `ERROR` (10–60 s per case) |
-| 2 | `make run AGENT=knowledge_agent SUITE=sanity` | CORTEX judges, Athena | Judge lines such as `PASS judge:relevance score=0.86/0.7 [pegasus]` |
-| 3 | `make fields AGENT=knowledge_agent CASE=TC_002` | — | Every field read from the trace; key fields not `NOT FOUND` |
-| 4 | `make dashboard` | — | http://localhost:8501 shows the run (stop with `Ctrl+C`) |
+```bash
+make run AGENT=knowledge_agent SUITE=sanity JUDGES=0          # 1. the agent only
+make run AGENT=knowledge_agent SUITE=sanity                   # 2. + judges (CORTEX) and page text (Athena)
+make fields AGENT=knowledge_agent CASE=TC_002                 # 3. what was read from the new trace
+```
 
-`FAIL` = a result about the agent. `ERROR` = a setup problem: see Troubleshooting.
+1. Both cases are evaluated with no `ERROR` (each question takes 10–60 s).
+2. Each case also shows judge lines like `PASS  judge:relevance score=0.86/0.7 [pegasus]`.
+   `judge:correctness` is SKIP — sanity cases have no golden answer.
+3. Prints every field read from the trace (answer, anchor pages, …); none of the important ones
+   should say `NOT FOUND`.
 
-**Setup is complete.** Next: [README.md](README.md) for everyday commands.
+**Done when** all three work. `FAIL` lines are results about the agent, not setup problems;
+`ERROR` lines are setup problems — see below.
 
 ---
 
-## 11. Troubleshooting
+## Step 11 — Open the dashboard
 
-Run `make doctor` first: it checks most of these and prints the URL it called.
+```bash
+make dashboard
+```
 
-| Symptom | Fix |
+Opens http://localhost:8501. Choose the agent, suite and run in the left sidebar. Stop it with
+`Ctrl+C` in the terminal.
+
+**Done when** you can see your run from Step 10. You're set up — next, read
+[README.md](README.md) for how the framework works and the everyday commands.
+
+---
+
+## Problems during setup
+
+Start with `make doctor`: it checks most of these and prints the URL it called.
+
+| You see | Fix |
 |---|---|
-| `make: *** No rule to make target …` | Run from the `ai-eval-suite` folder |
-| `make: command not found` | Step 2 for your platform; reopen the terminal |
-| `uv: command not found` | Reopen the terminal (the installer updates `PATH`) |
-| `No module named '…'` | `git pull`, then `make setup` |
-| `[WARN] pegasus … not installed` | SAR token in `env/.env`, VPN on, `make setup` |
-| `SSL: CERTIFICATE_VERIFY_FAILED` | `VERIFY_TLS=false`, or `CA_BUNDLE=<corporate CA file>` |
-| CORTEX `401` / `403` | Wrong or expired `CORTEX_API_KEY` / `CORTEX_CLIENT_ID`; DevKit: `make cortex-login` |
-| CORTEX `404` | `CORTEX_HOST` must end in `/v1`; compare with the URL in the error |
-| CORTEX `429` | Rate limited; it retries. Run fewer cases: `CASE="TC_002"` |
-| Case `ERROR`: connection refused / timed out | Check `KNOWLEDGE_ADK_BASE_URL`, VPN, agent environment status |
-| Case `ERROR`: `get_page_content_from_athena(<id>) failed` | Check `HIVE_ATHENA_CLIENT_ID` / `_SECRET` / `_BASE_URL` |
-| `.git/index.lock` exists | No git command running? Delete the file |
-| **Windows:** `$'\r': command not found` or `bad interpreter` | Line endings: `git config --global core.autocrlf input`, then re-clone |
-| **Windows:** a file path is not found | Use forward slashes. Git Bash: `FILE="/c/Users/<you>/Downloads/golden.xlsx"`. WSL: `FILE="/mnt/c/Users/<you>/Downloads/golden.xlsx"` |
-| **WSL:** very slow commands | Move the repository from `/mnt/c/...` to `~/` |
-| **WSL:** no network to bank services | Some VPN clients do not route WSL traffic; use Git Bash, or ask IT to enable WSL VPN routing |
+| `make: *** No rule to make target …` | you're not in the repository folder — `cd ai-eval-suite` |
+| `No module named '…'` (e.g. `jmespath`) | `git pull`, then `make setup`. Still there: `uv lock`, then `make setup` |
+| `[WARN] pegasus … not installed` | SAR token in `env/.env`, bank network/VPN, `make setup` |
+| `SSL: CERTIFICATE_VERIFY_FAILED` | `VERIFY_TLS=false` in `env/.env`, or `CA_BUNDLE=<corporate CA file>` |
+| CORTEX `401` / `403` | wrong or expired key (`CORTEX_API_KEY`, `CORTEX_CLIENT_ID`); with DevKit: `make cortex-login` |
+| CORTEX `404` | wrong URL — compare the URL in the error with `CORTEX_HOST` (it must end in `/v1`) |
+| CORTEX `429` | rate limited — it retries; run fewer cases (`CASE="TC_002"`) |
+| case `ERROR`: connection refused / timed out | `KNOWLEDGE_ADK_BASE_URL` wrong, VPN off, or the agent environment is down |
+| case `ERROR`: `get_page_content_from_athena(<id>) failed` | check `HIVE_ATHENA_CLIENT_ID` / `_SECRET` / `_BASE_URL` |
+| `.git/index.lock` or `.git/HEAD.lock` exists | an earlier git command was interrupted: make sure none is running, delete the file |
+| Windows: `$'\r': command not found` or `bad interpreter` | Windows line endings: `git config --global core.autocrlf input`, then clone again (Step 2) |
+| Windows: a file path is not found (e.g. `FILE=`) | use forward slashes — Git Bash: `/c/Users/<you>/Downloads/x.xlsx`; WSL: `/mnt/c/Users/<you>/Downloads/x.xlsx` |
+| WSL: commands are very slow | the repository is under `/mnt/c/` — clone it again into `~` |
+| WSL: bank services unreachable, Windows browser fine | the VPN doesn't route WSL traffic — use Git Bash, or ask IT about VPN routing for WSL |
 
-More: [README.md → Troubleshooting](README.md#troubleshooting).
+More (results, trace format changes, imports): [README.md → Troubleshooting](README.md#troubleshooting).
