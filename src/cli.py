@@ -10,7 +10,7 @@ Command line. Every `make` target runs one of these (`make help` shows the make 
   python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
   python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
   python -m src export-cases <agent> [--suite S] [--out FILE.xlsx]       test case JSON -> one Excel workbook
-  python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   CSV for an SME to mark
+  python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   Excel sheet for SMEs to mark
   python -m src calibrate <file.csv>                                   judges vs the SME's marks
   python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
   python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
@@ -86,11 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--suite", help="only this suite (default: every suite, one sheet each)")
     exp.add_argument("--out", help="where to write the .xlsx (default outputs/exports/)")
 
-    review = commands.add_parser("review-sheet", help="CSV of a run's answers and judge verdicts for an SME")
+    review = commands.add_parser("review-sheet", help="Excel sheet of a run's answers for SMEs to mark")
     review.add_argument("agent")
     review.add_argument("suite")
     review.add_argument("--run", default="latest", help="'latest' (default) or a run id")
-    review.add_argument("--out", help="where to write the CSV (default outputs/review/<run id>.csv)")
+    review.add_argument("--out", help="where to write the .xlsx (default outputs/review/<run id>.xlsx)")
     cal = commands.add_parser("calibrate", help="compare the judges with an SME-marked review sheet")
     cal.add_argument("file")
 
@@ -157,7 +157,8 @@ def main(argv: list[str] | None = None) -> int:
         from src.reporting.calibration import review_sheet
         out = review_sheet(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None,
                            load_agent(args.agent).review_columns)
-        print(f"Review sheet: {out}\nAsk the SME to fill sme_verdict (pass / fail), then: make calibrate FILE={out}")
+        print(f"Review sheet: {out}\nAsk the SME to fill the yellow columns (pass / fail + notes), "
+              f"then: make calibrate FILE={out}")
         return 0
 
     if args.command == "calibrate":

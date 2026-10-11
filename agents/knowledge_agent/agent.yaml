@@ -81,10 +81,11 @@ consistency:
 # Which pages search found, which the agent chose as anchor, which it added as related, and which the
 # answer cites — each page as "id | title | link", one per line, so the SME can open and check them.
 review_columns:
-  Pages search found: search_candidates
   Anchor pages: anchor_pages
-  Related pages: related_pages
+  Supporting pages (relation expansion): related_pages
+  All evidence pages used: evidence_pages
   Pages cited in the answer: cited_pages
+  Pages search found: search_candidates
 
 # Which judges (metrics:) and which deterministic checks (checks:) each suite runs.
 #   checks: all                      every check (the default when checks: is left out)

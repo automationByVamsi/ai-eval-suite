@@ -7,6 +7,8 @@ wrapped text, sensible column widths, frozen headers and a filter on every colum
 
 A column is (group, header). When columns have groups, a band row above the headers names each group
 ("Input", "Expected", ...) in its own colour. Values: text, numbers, True/False; None -> empty cell.
+Cell(value, "good" | "bad" | "input") colours one cell: green, red, or yellow (a cell for someone to fill).
+Sheet(..., dropdowns={column: ["pass", "fail"]}) gives a column a drop-down list of allowed values.
 
 Like the reader (src/importers/spreadsheet.py) this needs no extra package: an .xlsx is a zip of XML
 files, written here with the standard library.
@@ -29,12 +31,14 @@ MAX_LINES = 12                    # tallest row, in lines of text (the cell scro
 GROUP_STYLES = {"Input": 2, "Expected": 3, "Metadata": 4}
 STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="3">
+<fonts count="5">
   <font><sz val="11"/><name val="Calibri"/></font>
   <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
   <font><b/><sz val="11"/><color rgb="FF1F3864"/><name val="Calibri"/></font>
+  <font><b/><sz val="11"/><color rgb="FF006100"/><name val="Calibri"/></font>
+  <font><b/><sz val="11"/><color rgb="FF9C0006"/><name val="Calibri"/></font>
 </fonts>
-<fills count="8">
+<fills count="10">
   <fill><patternFill patternType="none"/></fill>
   <fill><patternFill patternType="gray125"/></fill>
   <fill><patternFill patternType="solid"><fgColor rgb="FF1F3864"/></patternFill></fill>
@@ -43,6 +47,8 @@ STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill>
   <fill><patternFill patternType="solid"><fgColor rgb="FFEDEDED"/></patternFill></fill>
   <fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/></patternFill></fill>
+  <fill><patternFill patternType="solid"><fgColor rgb="FFFFC7CE"/></patternFill></fill>
 </fills>
 <borders count="2">
   <border><left/><right/><top/><bottom/><diagonal/></border>
@@ -51,7 +57,7 @@ STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
     <diagonal/></border>
 </borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="8">
+<cellXfs count="11">
   <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
   <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"
       applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
@@ -67,10 +73,25 @@ STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       <alignment vertical="top" wrapText="1"/></xf>
   <xf numFmtId="0" fontId="0" fillId="7" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1">
       <alignment vertical="top" wrapText="1"/></xf>
+  <xf numFmtId="0" fontId="3" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"
+      applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+  <xf numFmtId="0" fontId="4" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"
+      applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+  <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment vertical="top" wrapText="1"/></xf>
 </cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
 </styleSheet>"""
 HEADER, BAND_OTHER, BODY, BODY_STRIPE = 1, 5, 6, 7
+TONES = {"good": 8, "bad": 9, "input": 10}
+
+
+@dataclass
+class Cell:
+    """A value with a colour: tone "good" (green), "bad" (red) or "input" (yellow: for someone to fill)."""
+
+    value: Any
+    tone: str = ""
 
 
 @dataclass
@@ -81,6 +102,7 @@ class Sheet:
     columns: list[tuple[str, str]]
     rows: list[list[Any]] = field(default_factory=list)
     freeze_columns: int = 1          # columns kept visible when scrolling right (e.g. the test case id)
+    dropdowns: dict[int, list[str]] = field(default_factory=dict)   # column number (1 = A) -> allowed values
 
 
 def write_xlsx(path: str | Path, sheets: list[Sheet]) -> Path:
@@ -127,6 +149,12 @@ def _worksheet(sheet: Sheet) -> str:
     merges = _group_merges(sheet.columns) if has_groups else []
     merge_xml = (f'<mergeCells count="{len(merges)}">' + "".join(f'<mergeCell ref="{m}"/>' for m in merges)
                  + "</mergeCells>") if merges else ""
+    lists = "".join(f'<dataValidation type="list" allowBlank="1" showErrorMessage="1" '
+                    f'sqref="{_col(c)}{header_row + 1}:{_col(c)}{max(last_row, header_row + 1)}">'
+                    f'<formula1>"{escape(",".join(values))}"</formula1></dataValidation>'
+                    for c, values in sheet.dropdowns.items())
+    if lists:
+        merge_xml += f'<dataValidations count="{len(sheet.dropdowns)}">{lists}</dataValidations>'
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             f'<dimension ref="A1:{last_col}{last_row}"/>'
@@ -139,7 +167,9 @@ def _worksheet(sheet: Sheet) -> str:
 
 
 def _cell(ref: str, value: Any, style: int) -> str:
-    """One cell: a number stays a number; everything else is text."""
+    """One cell: a number stays a number; everything else is text. A Cell brings its own colour."""
+    if isinstance(value, Cell):
+        value, style = value.value, TONES.get(value.tone, style)
     if value is None or value == "":
         return f'<c r="{ref}" s="{style}"/>'
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -160,16 +190,22 @@ def _widths(sheet: Sheet) -> list[float]:
     """Each column as wide as its longest line (header included), within MIN_WIDTH..MAX_WIDTH."""
     widths = []
     for i, (_, header) in enumerate(sheet.columns):
-        longest = max([len(line) for row in sheet.rows if i < len(row)
-                       for line in str(row[i] if row[i] is not None else "").splitlines()] + [len(header)])
+        texts = [_text(row[i]) for row in sheet.rows if i < len(row)]
+        longest = max([len(line) for text in texts for line in text.splitlines()] + [len(header)])
         widths.append(min(MAX_WIDTH, max(MIN_WIDTH, longest + 2)))
     return widths
+
+
+def _text(value: Any) -> str:
+    value = value.value if isinstance(value, Cell) else value
+    return str(value if value is not None else "")
 
 
 def _height(values: list[Any], widths: list[float]) -> int:
     """Row height (points) to show the tallest wrapped cell, up to MAX_LINES lines."""
     lines = 1
     for value, width in zip(values, widths, strict=False):
+        value = value.value if isinstance(value, Cell) else value
         text = str(value if value is not None else "")
         wrapped = sum(max(1, -(-len(line) // int(width - 1))) for line in text.splitlines() or [""])
         lines = max(lines, wrapped)

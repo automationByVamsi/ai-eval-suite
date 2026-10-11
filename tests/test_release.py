@@ -1,6 +1,6 @@
 """Release targets, consistency across repetitions (HIVE-6165), new check options, SME calibration."""
 
-import csv
+import zipfile
 
 from conftest import ROOT
 from streamlit.testing.v1 import AppTest
@@ -201,28 +201,46 @@ def test_knowledge_agent_suites_load_with_targets_and_new_checks(outputs):
 # --- SME calibration ---------------------------------------------------------------------------------
 
 def test_review_sheet_and_calibration(tmp_path):
+    from src.exporters.xlsx import Sheet, write_xlsx
+    from src.importers.spreadsheet import read_rows
     cases = [CaseResult(f"C{i}", question="q", answer="a", results=[
-        Result("correctness", "judge", "pass" if s >= 0.7 else "fail", score=s, threshold=0.7)])
+        Result("correctness", "judge", "pass" if s >= 0.7 else "fail", score=s, threshold=0.7),
+        Result("anchor_hit", "check", "fail", diagnostic=True), Result("within_60s", "check", "pass")])
         for i, s in enumerate([0.95, 0.9, 0.75, 0.72, 0.4, 0.3])]
-    cases[0].details = {"search_candidates": ["1", "2"],
+    cases[0].input = {"question": "q", "question_type": "how", "business_area": "Business Banking"}
+    cases[0].details = {"search_candidates": ["1", "2"], "confidence": "high",
                         "anchor_pages": [{"page_id": "1", "title": "Add a need", "uri_ui": "https://kb/1"}]}
     columns = {"Pages search found": "search_candidates", "Anchor pages": "anchor_pages"}
-    sheet = review_sheet(_run(cases), tmp_path / "review.csv", columns)
-    rows = list(csv.DictReader(sheet.open()))
-    assert rows[0]["correctness_score"] == "0.95" and rows[0]["sme_verdict"] == ""
-    assert rows[0]["Pages search found"] == "1\n2"                   # one item per line
-    assert rows[0]["Anchor pages"] == "1 | Add a need | https://kb/1"  # id | title | link
-    assert rows[1]["Anchor pages"] == ""                             # a case without the field: empty cell
+    sheet = review_sheet(_run(cases), tmp_path / "review.xlsx", columns)
+    rows = read_rows(sheet, sheet="Review", header_row=2)
+    first = rows[0]
+    assert (first["Query type"], first["Business area"], first["Confidence"]) == ("how", "Business Banking", "HIGH")
+    assert first["Correctness (pass ≥ 0.7)"] == "0.95" and first["SME verdict (pass / fail)"] == ""
+    assert first["Pages search found"] == "1\n2"                       # one item per line
+    assert first["Anchor pages"] == "1 | Add a need | https://kb/1"     # id | title | link
+    assert first["Deterministic checks"] == "1/2 passed\nFailed: Anchor hit (diagnostic)"
+    assert rows[1]["Anchor pages"] == ""                               # a case without the field: empty cell
+    assert "How to review" in zipfile.ZipFile(sheet).read("xl/workbook.xml").decode()
+
+    # The SME fills the verdicts (0.75 and 0.72 aren't good enough), saved as the same workbook.
+    headers = [h for h in first if h != "_row"]
     for row, sme in zip(rows, ["pass", "pass", "fail", "fail", "fail", "fail"], strict=True):
-        row["sme_verdict"] = sme                                     # the SME says 0.75 and 0.72 aren't good enough
-    with sheet.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
-        writer.writeheader()
-        writer.writerows(rows)
-    [report] = calibrate(sheet)
+        row["SME verdict (pass / fail)"] = sme
+    marked = write_xlsx(tmp_path / "marked.xlsx", [Sheet("Review", [("Band", h) for h in headers],
+                                                         [[r[h] for h in headers] for r in rows])])
+    [report] = calibrate(marked)
+    assert report["judge"] == "correctness" and report["threshold"] == 0.7
     assert report["n"] == 6 and report["false_pass"] == 2 and report["false_fail"] == 0
     assert round(report["agreement"], 2) == 0.67
     assert 0.75 < report["best_threshold"] <= 0.9 and report["best_agreement"] == 1.0
+
+
+def test_calibrate_still_reads_an_old_csv_review_sheet(tmp_path):
+    old = tmp_path / "old.csv"
+    old.write_text("case_id,correctness_score,correctness_threshold,sme_verdict\n"
+                   "C1,0.9,0.7,pass\nC2,0.8,0.7,fail\nC3,0.3,0.7,fail\n")
+    [report] = calibrate(old)
+    assert (report["n"], report["false_pass"], report["false_fail"]) == (3, 1, 0)
 
 
 # --- dashboard ---------------------------------------------------------------------------------------

@@ -78,7 +78,7 @@ flowchart LR
 
     RES --> CON["Console report<br/>+ release targets"]
     RES --> DASH["Dashboard<br/>make dashboard"]
-    RES --> REV["Review sheet (CSV)<br/>make review-sheet"]
+    RES --> REV["Review sheet (Excel)<br/>make review-sheet"]
     RES --> BV["Baseline / verdict<br/>make baseline / verdict"]
 ```
 
@@ -231,7 +231,7 @@ from src.utils.adk_trace import state, find_event, event_json, tool_calls  # rea
 | pass rate of every check / judge (e.g. anchor hit rate) over the last N runs | `make summary AGENT=knowledge_agent SUITE=golden LAST=10` |
 | look at results                             | `make dashboard` |
 | SME review sheet for a run (judge calibration) | `make review-sheet AGENT=knowledge_agent SUITE=golden [RUN=<run id>]` |
-| judge vs SME agreement, best threshold      | `make calibrate FILE=outputs/review/<run id>.csv` |
+| judge vs SME agreement, best threshold      | `make calibrate FILE=outputs/review/<run id>.xlsx` |
 | test the framework itself                   | `make test` |
 
 Every command exits with 1 when something failed, so it drops straight into CI.
@@ -753,32 +753,37 @@ make review-sheet AGENT=knowledge_agent SUITE=golden                # latest run
 make review-sheet AGENT=knowledge_agent SUITE=golden RUN=<run id>   # a given run
 ```
 
-It writes `outputs/review/<run id>.csv` (opens in Excel), one row per case and repetition:
+It writes `outputs/review/<run id>.xlsx`, a formatted workbook ready to share with SMEs and POs
+(borders, colour bands, frozen headers, filters):
 
-| Column | Content |
+- **How to review** — the run (agent, suite, build, cases), what the reviewer is asked to do, and each
+  judge's pass mark.
+- **Review** — one row per case (and repetition):
+
+| Group | Columns |
 |---|---|
-| `run_id`, `case_id`, `rep` | which run, case, repetition |
-| `question`, `agent_answer`, `expected_answer` | the question, the agent's answer, the golden answer |
-| *the agent's `review_columns:`* | Knowledge Agent: **Pages search found** (ids), **Anchor pages**, **Related pages**, **Pages cited in the answer** — each page as `id \| title \| link`, one per line |
-| `<judge>_score`, `<judge>_verdict`, `<judge>_threshold` | for every judge in the run |
-| `sme_verdict`, `sme_notes` | empty — for the SME |
+| Test case | Case ID, (Run), Query type, Business area, Query |
+| Agent answer | Agent answer, Confidence (green HIGH / red LOW), Expected answer |
+| Pages | the agent's `review_columns:` — Knowledge Agent: **Anchor pages**, **Supporting pages** (relation expansion), **All evidence pages used**, **Pages cited in the answer**, **Pages search found** — each page as `id \| title \| link`, one per line |
+| LLM judges | one column per judge, e.g. `Faithfulness (pass ≥ 0.7)`: the score, green when it passed, red when it failed |
+| Result | Deterministic checks (`8/9 passed` + the failed ones), Case result |
+| SME review | **SME verdict** (pass / fail drop-down) and **SME notes** — yellow, for the reviewer |
 
-The extra columns are set per agent in `agent.yaml`: `review_columns: {column heading: field}`.
+The page columns are set per agent in `agent.yaml`: `review_columns: {column heading: field}`.
 
-**2. The SME marks it:** for ~20+ rows, `sme_verdict` = `pass` / `fail` ("good enough to give a
-colleague?") and optional `sme_notes`. Keep the file as CSV (Excel: Save As → CSV UTF-8) and don't
-change other columns.
+**2. The SME marks it:** for ~20+ rows, choose pass / fail ("good enough to give a colleague?") and add
+a note when it fails. Keep the file as .xlsx and don't rename the headers.
 
 **3. Compare:**
 
 ```bash
-make calibrate FILE=outputs/review/<run id>.csv
+make calibrate FILE=outputs/review/<run id>.xlsx
 ```
 
 Per judge: rows compared, **agreement** with the SME, **false passes** (judge passed what the SME
 failed — the dangerous kind), false fails, and the threshold that would agree best. Change a
 threshold in `agent.yaml` only with enough rows (20+) and a clear gain. Rows without an
-`sme_verdict` are ignored.
+SME verdict are ignored. Review sheets saved as `.csv` by older versions still work.
 
 ## Release targets and consistency
 
