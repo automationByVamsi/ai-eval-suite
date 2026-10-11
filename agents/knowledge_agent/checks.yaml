@@ -50,3 +50,9 @@ checks:
 
   performance:                # MVP success metric: a response within 60 seconds
     within_60s:             {type: range, field: latency_ms, min: 0, max: 60000}
+    # Where the time goes (retrieval vs generation). Starting limits, not agreed with the agent team yet,
+    # so diagnostic: shown on the case, never fails it. Run averages: console + dashboard "Time split".
+    retrieval_within_40s:   {type: range, field: retrieval_seconds,  min: 0, max: 40, diagnostic: true,
+                             when: {field: retrieval_seconds, present: true}}
+    generation_within_15s:  {type: range, field: generation_seconds, min: 0, max: 15, diagnostic: true,
+                             when: {field: generation_seconds, present: true}}

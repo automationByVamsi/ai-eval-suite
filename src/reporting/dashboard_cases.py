@@ -203,6 +203,10 @@ def show_debug_tabs(case: CaseResult) -> None:
             st.caption(f"Trace: `{case.trace}`")
     with timing_tab:
         stages = (case.details or {}).get("stage_seconds")
+        split = {k.removesuffix("_seconds"): v for k, v in (case.details or {}).items()
+                 if k.endswith("_seconds") and isinstance(v, (int, float)) and not isinstance(v, bool)}
+        if split:
+            st.markdown(" · ".join(f"**{name}** {seconds:.1f}s" for name, seconds in split.items()))
         if isinstance(stages, dict) and stages:
             frame = pd.DataFrame({"stage": list(stages), "seconds": list(stages.values())})
             st.altair_chart(alt.Chart(frame).mark_bar(cornerRadiusEnd=4, color="#6366f1").encode(

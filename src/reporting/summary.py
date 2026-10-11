@@ -53,6 +53,21 @@ def summarise(runs: list[Run]) -> list[dict[str, Any]]:
     return sorted(summary, key=lambda r: r["kind"] != "judge")
 
 
+def time_split(runs: list[Run]) -> dict[str, float]:
+    """
+    Where the time goes, averaged over every case: each numeric field ending in _seconds
+    (e.g. retrieval_seconds, validation_seconds, generation_seconds from fields.yaml) -> its mean.
+    {} when the agent has no such fields.
+    """
+    values: dict[str, list[float]] = defaultdict(list)
+    for run in runs:
+        for case in run.cases:
+            for name, value in (case.details or {}).items():
+                if name.endswith("_seconds") and isinstance(value, (int, float)) and not isinstance(value, bool):
+                    values[name.removesuffix("_seconds")].append(value)
+    return {name: round(sum(v) / len(v), 2) for name, v in values.items()}
+
+
 def print_summary(rows: list[dict[str, Any]], title: str) -> None:
     """The rates table (rows that never ran — all skipped — are listed on one line at the end)."""
     print(f"\n{title}")

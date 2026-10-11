@@ -11,7 +11,7 @@ from typing import Any
 
 from src.core.results import ERROR, FAIL, PASS, SKIP, Run
 from src.reporting.release import consistency, gate
-from src.reporting.summary import print_summary, summarise
+from src.reporting.summary import print_summary, summarise, time_split
 
 RULE = "-" * 72
 
@@ -41,6 +41,9 @@ def print_run(run: Run) -> None:
                 print(f"        {r.status.upper():<5} {r.kind}:{r.name}{note} {r.reason}".rstrip())
     reps = f" x {run.reps} reps" if run.reps > 1 else ""
     print_summary(summarise([run]), f"Rates over {len({c.case_id for c in run.cases})} case(s){reps}")
+    split = time_split([run])
+    if split:
+        print("Time split (mean per case): " + " · ".join(f"{name} {sec:.1f}s" for name, sec in split.items()))
     print_release(run)
     counts = {s: sum(c.status == s for c in run.cases) for s in (PASS, FAIL, ERROR)}
     print(RULE)

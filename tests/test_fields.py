@@ -59,6 +59,9 @@ def test_knowledge_agent_fields_from_the_full_metadata_path():
     assert values["validation_message"].endswith("content_length=8535")               # a status message
     assert values["synthesizer_page_ids"] == ["40345", "40015"]                        # from the model reply
     assert values["stage_seconds"]["search_node"] == 5.0
+    assert values["search_ranked"] == [["40346", "40345", "40011"]]                   # one list per search
+    assert (values["retrieval_seconds"], values["validation_seconds"], values["generation_seconds"]) \
+        == (16.31, 5.66, 1.71)                                                         # the time split
 
 
 def test_knowledge_agent_fields_from_the_fallback_path():
@@ -69,6 +72,20 @@ def test_knowledge_agent_fields_from_the_fallback_path():
     assert values["anchor_fallback"] and values["expansion_skipped"]                  # the agent's reasons
     assert values["anchor_page_ids"] == ["40022", "40015"]
     assert values["expanded_page_ids"] == []                                          # present, but empty
+
+
+def test_time_split_checks_and_run_average():
+    from src.core.results import CaseResult, Run
+    from src.reporting.summary import time_split
+    agent = load_agent("knowledge_agent")
+    split = {k: agent.checks[k] for k in ("retrieval_within_40s", "generation_within_15s")}
+    slow = checks.run_checks(split, {"retrieval_seconds": 52.0, "generation_seconds": 3.0}, {})
+    assert [(r.status, r.diagnostic) for r in slow] == [(FAIL, True), (PASS, True)]  # shown, never fails a case
+    assert [r.status for r in checks.run_checks(split, {"retrieval_seconds": {}}, {})] == [SKIP, SKIP]  # no timings
+    cases = [CaseResult("A", details={"retrieval_seconds": 16.31, "generation_seconds": 1.71,
+                                      "stage_seconds": {"search_node": 5.0}}),
+             CaseResult("B", details={"retrieval_seconds": 6.47, "generation_seconds": 3.47})]
+    assert time_split([Run("knowledge_agent", "sanity", cases=cases)]) == {"retrieval": 11.39, "generation": 2.59}
 
 
 def test_field_options():

@@ -84,6 +84,14 @@ fields:
   # --- Timing -----------------------------------------------------------------------------------
   latency_ms:          trace.latency_ms
   stage_seconds:       timing
+  # The time split (Pedro's test 9: retrieval vs generation latency), in seconds:
+  #   retrieval  = search + fetch metadata + anchor identification + relation expansion + fetch pages
+  #   validation = the agent checking its evidence (neither finding pages nor writing the answer)
+  #   generation = synthesis (writing the answer)
+  # Empty when the trace has no stage timings (then the checks below are skipped).
+  retrieval_seconds:   "timing && sum([not_null(timing.search_node, `0`), not_null(timing.fetch_metadata_node, `0`), not_null(timing.anchor_identification_workflow, `0`), not_null(timing.relation_expansion_workflow, `0`), not_null(timing.fetch_page_workflow, `0`)])"
+  validation_seconds:  "timing && not_null(timing.validation_workflow, `0`)"
+  generation_seconds:  "timing && not_null(timing.synthesis_workflow, `0`)"
 
   # --- Pages, with title and link (for the SME review sheet: review_columns in agent.yaml) ---------
   # The final output's evidence lists every page the agent used (anchor + related): page_id, title, uri_ui.

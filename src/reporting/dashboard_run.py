@@ -22,7 +22,7 @@ from src.reporting.dashboard_cases import show_case_list
 from src.reporting.dashboard_consistency import show_consistency_tab
 from src.reporting.dashboard_data import load
 from src.reporting.dashboard_style import html
-from src.reporting.summary import summarise
+from src.reporting.summary import summarise, time_split
 from src.verdict.baseline import baseline_path
 from src.verdict.compare import compare
 
@@ -98,6 +98,7 @@ def show_header(run: Run, stats: dict) -> None:
 def show_overview(run: Run, stats: dict, summary: list[dict], consistency_rows: list[dict]) -> None:
     """The run at a glance: numbers, release targets, consistency, scoreboards, what needs attention."""
     show_kpis(stats)
+    show_time_split(run)
     show_targets(run)
     if consistency_rows:
         show_consistency_card(run, consistency_rows)
@@ -114,6 +115,18 @@ def show_overview(run: Run, stats: dict, summary: list[dict], consistency_rows: 
 
     show_needs_attention(run)
     show_heatmap(run)
+
+
+def show_time_split(run: Run) -> None:
+    """Where the time goes, averaged over the cases (fields ending in _seconds, e.g. retrieval / generation)."""
+    split = time_split([run])
+    if not split:
+        return
+    total = sum(split.values())
+    html('<div class="kpis">' + "".join(
+        ui.kpi(f"{name.capitalize()} time", f"{seconds:.1f}s",
+               f"mean per case · {seconds / total:.0%} of these stages" if total else "mean per case")
+        for name, seconds in split.items()) + "</div>")
 
 
 def show_kpis(stats: dict) -> None:
