@@ -8,6 +8,9 @@ judges, and reports pass / fail against release targets. Today it evaluates the 
 **First time here? Set up with [SETUP.md](SETUP.md)** — step by step, from a fresh clone to your
 first run. This README explains how the framework works and how to use it.
 
+
+> **Knowledge Agent evaluation handover** (what we test, how to run it, open items): [docs/KNOWLEDGE_AGENT_EVALUATION.md](docs/KNOWLEDGE_AGENT_EVALUATION.md)
+
 ## Contents
 
 - [How it works](#how-it-works) · [Architecture](#architecture) · [Words used here](#words-used-here)
