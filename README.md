@@ -317,7 +317,7 @@ raw trace). Then decide: agent bug (report it with the case id and trace file), 
 | CORTEX with an API key, or with the DevKit        | `CORTEX_AUTH=api_key` or `devkit` in `env/.env` (see [CORTEX and Pegasus](#cortex-and-pegasus)) |
 | CORTEX timeout / retries / API key                | `CORTEX_TIMEOUT_S`, `CORTEX_RETRIES`, `CORTEX_API_KEY` in `env/.env` |
 | SSL certificate errors (office proxy)             | `VERIFY_TLS=false` or `CA_BUNDLE=...` in `env/.env` (one setting for every call) |
-| Pegasus "not installed" warning                    | SAR token in `env/.env`, then `make setup` ([SETUP.md](SETUP.md), Step 5); check with `make doctor` |
+| Pegasus "not installed" warning                    | SAR token in `env/.env`, then `make setup` ([SETUP.md](SETUP.md), step 6); check with `make doctor` |
 | an endpoint, header or auth scheme changed        | the matching file in `src/clients/` |
 | add a new kind of synthesizer source (an API, …)  | one new file in `src/synthesizer/sources/` (copy `json_records.py`) |
 
@@ -418,7 +418,7 @@ judge `question` + `answer` unless you list more: `needs: [question, answer, con
 
 ## CORTEX and Pegasus
 
-How to set them up: [SETUP.md](SETUP.md), Steps 4–7. How they work:
+How to set them up: [SETUP.md](SETUP.md), steps 4–7. How they work:
 
 ### CORTEX: API key or DevKit
 
@@ -440,7 +440,7 @@ guardrails — so no key is needed (`CORTEX_ENV`, default `prd`). With `api_key`
 Pegasus (`lbg-pegasus`) and the CorteX DevKit (`cortex-devkit`) come from SAR, so they need your SAR
 token — the same token the Pegasus guide puts in `pip.conf`. The project is already set up for both
 (`pyproject.toml`: their SAR indexes and the `pegasus` / `devkit` groups, the guides' "uv option").
-Installing them needs only your SAR token in `env/.env` and `make setup` ([SETUP.md](SETUP.md), Step 5);
+Installing them needs only your SAR token in `env/.env` and `make setup` ([SETUP.md](SETUP.md), step 6);
 the steps are in `scripts/setup.sh`. The token is handed to uv for that one command and stored nowhere else.
 
 Without Pegasus, Pegasus metrics run on DeepEval, and every result records which engine scored it.
@@ -835,7 +835,7 @@ An unreachable agent or judge is an **error** — never a pass, a skip, or a sco
 
 ## Troubleshooting
 
-Setup problems (installs, certificates, CORTEX auth, `make doctor`): [SETUP.md → Problems](SETUP.md#problems-during-setup).
+Setup problems (installs, certificates, CORTEX auth, `make doctor`): [SETUP.md → Troubleshooting](SETUP.md#11-troubleshooting).
 
 | You see | Cause | Fix |
 |---|---|---|
