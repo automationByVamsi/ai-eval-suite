@@ -26,6 +26,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import shutil
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -129,21 +130,30 @@ def get_trace(ctx: SuiteContext, case: dict[str, Any], rep: int) -> dict[str, An
     or with OFFLINE=1 read the last saved one. Any problem -> CaseCouldNotRun("agent: ...").
     """
     latest = _latest_trace_path(ctx, case)
+    rep_file = ctx.run.folder / "traces" / f"{case['test_case_id']}__rep{rep + 1}.json"
+    start = time.perf_counter()
     try:
         if ctx.offline:
             return _saved_trace(latest)
         call = ctx.client.call_agent if ctx.client else call_agent
         trace = call(ctx.agent.connection, _message(ctx.agent, case))
-        _save_trace(trace, latest, ctx.run.folder / "traces" / f"{case['test_case_id']}__rep{rep + 1}.json")
+        _save_trace(trace, latest, rep_file)
         return trace
     except Exception as exc:  # noqa: BLE001 — an unreachable agent is an ERROR, not a skip
+        if case.get("expected", {}).get("expected_error") and not ctx.offline:
+            # The case expects the agent to refuse with an error (e.g. InsufficientContextError):
+            # the error is its answer, checked by the expected_errors checks.
+            trace = {"agentOutput": "", "agent_error": str(exc), "raw_events": [],
+                     "latency_ms": round((time.perf_counter() - start) * 1000, 1)}
+            _save_trace(trace, latest, rep_file)
+            return trace
         raise CaseCouldNotRun(f"agent: {exc}") from exc
 
 
 def read_fields(ctx: SuiteContext, case: dict[str, Any], trace: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
     """
     What the checks and judges look at, in three layers (a later layer wins):
-      1. the standard fields   question, answer, contexts, expected_answer
+      1. the standard fields   question, answer, contexts, expected_answer, input_<key> (what the case sent)
       2. fields.yaml           every field of the agent (lookups only when this suite needs them)
       3. parser.py parse()     if the agent has one
     Returns (fields, lookup problems). A required field that found nothing, or a crash in parser.py,
@@ -155,12 +165,14 @@ def read_fields(ctx: SuiteContext, case: dict[str, Any], trace: dict[str, Any]) 
         "answer": trace.get("agentOutput") or "",
         "contexts": list(trace.get("context") or []),
         "expected_answer": case.get("expected", {}).get("expected_answer", ""),
+        # what the test case sent, e.g. input_business_area (checks can validate the test data itself)
+        **{f"input_{key}": value for key, value in (case.get("input") or {}).items()},
     }
     lookup_errors: list[str] = []
     if agent.fields:
         values, missing = extract(trace, agent.fields, offline=ctx.offline, fetch=_fields_needed(ctx))
         lookup_errors = values.pop("_fetch_errors", [])
-        if missing:
+        if missing and not values.get("agent_error"):        # an error reply has no answer: that's expected
             raise CaseCouldNotRun(
                 f"required field(s) {missing} not found in the trace — has the trace format changed? "
                 f"Check with: make fields AGENT={agent.name} SUITE={ctx.suite.name} CASE={case['test_case_id']}")
@@ -211,7 +223,7 @@ def _standard_checks(fields: dict[str, Any], case: dict[str, Any], selected: lis
 
     answer = str(fields.get("answer") or "")
     checks = []
-    if wanted("answer_non_empty"):
+    if wanted("answer_non_empty") and not case["expected"].get("expected_error"):   # an error is its answer
         checks.append(check("answer_non_empty", bool(answer.strip()), "agent returned an empty answer", "basic"))
     if wanted("keywords"):
         for keyword in case["expected"].get("keywords") or []:

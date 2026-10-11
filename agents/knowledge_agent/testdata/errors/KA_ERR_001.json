@@ -1,0 +1,15 @@
+{
+  "test_case_id": "KA_ERR_001",
+  "description": "Invalid input: an empty query is rejected",
+  "input": {
+    "question": ""
+  },
+  "expected": {
+    "expected_error": [
+      "InvalidInputError"
+    ]
+  },
+  "metadata": {
+    "origin": "KA I/O design: error messages"
+  }
+}

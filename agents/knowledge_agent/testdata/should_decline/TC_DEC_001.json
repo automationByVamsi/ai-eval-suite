@@ -5,6 +5,10 @@
     "question": "What is the current interest rate on a Club Lloyds current account?"
   },
   "expected": {
-    "should_decline": true
+    "should_decline": true,
+    "expected_error": [
+      "InsufficientContextError",
+      "GuardrailError"
+    ]
   }
 }

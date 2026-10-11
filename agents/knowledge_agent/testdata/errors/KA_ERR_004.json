@@ -1,0 +1,17 @@
+{
+  "test_case_id": "KA_ERR_004",
+  "description": "Unknown business area: not one of the 25 in scope, so no content matches the filter",
+  "input": {
+    "question": "How do I add a support need?",
+    "business_area": "Space Tourism"
+  },
+  "expected": {
+    "expected_error": [
+      "InvalidInputError",
+      "InsufficientContextError"
+    ]
+  },
+  "metadata": {
+    "origin": "KA I/O design: error messages"
+  }
+}

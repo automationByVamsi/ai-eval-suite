@@ -39,11 +39,49 @@ checks:
       compare:
         - {field: expanded_page_ids, expected: expected_related_page_ids}
         - {field: expanded_titles,   expected: expected_related_page_titles}
+    relation_labels_valid:    # every relation the agent used is one of the design's relation types
+      type: one_of
+      field: expansion_labels
+      values: [subpage, external, escalation, prerequisite, follows_on, follows on, governed_by, governed by,
+               supersedes, variant_of, variant of, exception_to, exception to, reference, references, unknown]
+      when: {field: expansion_labels, present: true}
     source_page_found:        # synthetic cases: the page the question was generated from is in the evidence
       type: any_in
       diagnostic: true
       field: evidence_page_ids
       expected: source_page_id
+
+  input:                      # what reaches search is in scope and free of personal details
+    business_area_in_scope:     # the business area the case sends is one of the 25 in scope (KA I/O design):
+      type: one_of              # catches typos in golden / synthetic test data
+      field: input_business_area
+      values: [Knowledge Manager Guidance, Blackhorse, Brand Change, Business Banking, Codes,
+               Commercial Banking Online, Community Bank, Complaint Managers, Contact Lists,
+               Customer Financial Assistance (CFA), Customer Self-Service Online and App,
+               Customer Vulnerability Hub, Customer Vulnerability Hub 2, D2C Investment Operations, Fraud,
+               General Insurance, Homes Servicing, Lex Autolease, MOT Operations, Personal Banking,
+               Recoveries Commercial Bank, Reference, Secured Underwriting, UK Private Banking,
+               Unsecured Underwriting]
+      when: {field: input_business_area, present: true}
+    pii_not_sent_to_search:     # PII guardrail: the customer's details in the question never reach the search
+      type: not_matches         # queries (cases with expected.contains_pii: true, i.e. the privacy suite)
+      fields: [rewritten_query, branch_sub_queries]
+      patterns:
+        - '\b\d{2}-\d{2}-\d{2}\b'                          # sort code
+        - '\b\d{8}\b'                                     # account number
+        - '\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]\b'          # National Insurance number
+        - '\b07\d{3}\s?\d{6}\b'                            # UK mobile number
+        - '[\w.+-]+@[\w-]+\.[\w.]+'                          # email address
+        - '\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b'              # postcode
+        - '\b\d{1,2}/\d{1,2}/\d{2,4}\b'                      # date (of birth)
+        - '\b(Mr|Mrs|Ms|Miss|Dr)\.?\s+[A-Z][a-z]+'             # title + name
+      when: {expected: contains_pii, is: true}
+
+  expected_errors:            # cases that expect the agent to refuse with an error (expected.expected_error)
+    returned_expected_error:    # e.g. an unanswerable question -> InsufficientContextError, not an invented answer
+      type: contains
+      field: agent_error
+      expected: expected_error
 
   disclosure:                 # a MEDIUM / LOW confidence answer tells the caller (caveat or warning)
     caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}

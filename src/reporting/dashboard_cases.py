@@ -76,6 +76,11 @@ def show_answer_column(case: CaseResult, col) -> None:
         html(f'<div class="card-label">Agent answer<span class="count">{"".join(meta)}</span></div>')
         if case.answer:
             st.markdown(case.answer)
+        elif d.get("agent_error"):
+            expected = (case.expected or {}).get("expected_error")
+            html(f'<div class="note">The agent refused with an error'
+                 f'{" (this case expects one: " + ui.esc(", ".join(expected)) + ")" if expected else ""}:</div>')
+            st.code(str(d["agent_error"])[:1500], language=None)
         else:
             html('<div class="note">No answer.</div>')
         notes = [*(d.get("caveats") or []), *(d.get("user_warnings") or [])]

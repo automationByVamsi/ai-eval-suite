@@ -5,6 +5,10 @@
     "question": "What is the bank's policy for supporting customers who are working on the International Space Station?"
   },
   "expected": {
-    "should_decline": true
+    "should_decline": true,
+    "expected_error": [
+      "InsufficientContextError",
+      "GuardrailError"
+    ]
   }
 }

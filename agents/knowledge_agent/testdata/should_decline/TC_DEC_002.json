@@ -5,6 +5,10 @@
     "question": "How do I set up a mortgage payment holiday for a customer?"
   },
   "expected": {
-    "should_decline": true
+    "should_decline": true,
+    "expected_error": [
+      "InsufficientContextError",
+      "GuardrailError"
+    ]
   }
 }

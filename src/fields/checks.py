@@ -18,9 +18,12 @@ Types that look at the trace's fields only:
   range         every field in `fields:` (or `field`) is a number between `min` and `max`
   same_count    every field in `fields:` has the same number of items
   subset        every item of the field is in `of:` (one or more fields, combined)
+  not_matches   the text (of `field`, or every field in `fields:`) matches none of the regex `patterns:`
+                (case ignored), e.g. no sort code or phone number reached the search queries
 
 Types that compare a field with the test case's `expected` block (SKIP when the case has no value):
   any_in        at least one expected item is in the field             (e.g. anchor hit)
+  contains      the field's text contains at least one expected item  (e.g. the error type returned)
   all_in        every expected item is in the field
   precision     share of the field's items that are expected  >= threshold (default 0.7)
   recall        share of the expected items in the field      >= threshold (default 0.7)
@@ -45,16 +48,18 @@ Text is compared ignoring case and extra spaces ("How To  Add" == "how to add").
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 from src.core.exceptions import ConfigError
 from src.core.results import FAIL, PASS, SKIP, Result
 from src.fields.extract import is_empty
 
-COMPARING = {"any_in", "all_in", "precision", "recall", "ndcg"}
-TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset"} | COMPARING
+COMPARING = {"any_in", "all_in", "precision", "recall", "ndcg", "contains"}
+TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset",
+         "not_matches"} | COMPARING
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
-        "threshold", "when", "description", "group", "k", "diagnostic"}
+        "threshold", "when", "description", "group", "k", "diagnostic", "patterns"}
 
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
@@ -148,6 +153,11 @@ def _check(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any
         case "same_count":
             counts = {n: len(_items(fields.get(n))) for n in spec.get("fields") or []}
             return len(set(counts.values())) <= 1, f"counts differ: {counts}"
+        case "not_matches":
+            text = "\n".join(str(item) for n in many for item in _list(fields.get(n)))
+            found = [m.group(0) for pattern in spec.get("patterns") or []
+                     for m in [re.search(pattern, text, re.IGNORECASE)] if m]
+            return not found, f"found {found} in {', '.join(many)}"
         case "subset":
             allowed = [item for f in _items(spec.get("of")) for item in _items(fields.get(f))]
             extra = [v for v in _items(value) if v not in allowed]
@@ -168,6 +178,10 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
         names = " or ".join("+".join(f"expected.{k}" for k in (ks if isinstance(ks, list) else [ks])) for ks in keys)
         return None, f"skipped: case has no {names}"
     name = pair["field"]
+    if spec["type"] == "contains":
+        text = _norm(" ".join(str(v) for v in _list(fields.get(name))))
+        return (any(w in text for w in want),
+                f"{name} has none of {want}" + (f": {text[:300]!r}" if text else " (it is empty)"))
     positions = _positions(fields.get(name))
     have = [item for item, position in positions.items() if not spec.get("k") or position <= int(spec["k"])]
     common = {w for w in want if w in have}

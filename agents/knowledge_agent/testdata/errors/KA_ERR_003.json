@@ -1,0 +1,15 @@
+{
+  "test_case_id": "KA_ERR_003",
+  "description": "No relevant page: a query that matches nothing in Athena",
+  "input": {
+    "question": "Zorvath plinquent marbadoo frimble wozzlecraft?"
+  },
+  "expected": {
+    "expected_error": [
+      "InsufficientContextError"
+    ]
+  },
+  "metadata": {
+    "origin": "KA I/O design: error messages"
+  }
+}

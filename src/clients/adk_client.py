@@ -41,7 +41,7 @@ def call_agent(connection: dict[str, Any], message: str) -> dict[str, Any]:
         "headers": _headers(connection.get("headers") or {}),
     }
 
-    last_error: Exception | None = None
+    last_error: Exception | str | None = None
     for attempt in range(retries + 1):
         start = time.perf_counter()
         try:
@@ -66,7 +66,7 @@ def call_agent(connection: dict[str, Any], message: str) -> dict[str, Any]:
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code < 500:
                 raise AgentCallError(f"{app}: HTTP {exc.response.status_code} {exc.response.text[:300]}") from exc
-            last_error = exc
+            last_error = f"HTTP {exc.response.status_code} {exc.response.text[:1000]}"   # keeps the agent's error
         except (httpx.TransportError, KeyError, ValueError) as exc:
             # Network trouble, or a reply without a session id / not JSON: worth another try.
             last_error = exc

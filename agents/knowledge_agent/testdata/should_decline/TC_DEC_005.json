@@ -5,6 +5,10 @@
     "question": "How many days exactly does a colleague have to review a support need for a customer with a pet goldfish?"
   },
   "expected": {
-    "should_decline": true
+    "should_decline": true,
+    "expected_error": [
+      "InsufficientContextError",
+      "GuardrailError"
+    ]
   }
 }

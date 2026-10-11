@@ -30,6 +30,11 @@ fields:
   evidence_page_ids: "final.evidence[].page_id"
   evidence_titles:   "final.evidence[].title"
   evidence_links:    "final.evidence[].uri_ui"           # one link per evidence page
+  # When the agent refuses with an error (InvalidInputError, InsufficientContextError, GuardrailError, ...):
+  # the error text, wherever it is — the call's error (saved by the runner), an error in the final output,
+  # or an ADK error event. Empty when the agent answered.
+  agent_error:       {path: [trace.agent_error, final.error_type, final.error.error_type, final.error.type, final.error,
+                             "trace.raw_events[?errorMessage].[errorCode, errorMessage][]"], join: " "}
 
   # --- 1. Input normalisation -----------------------------------------------------------------
   agent_query:       state.query                         # the question as the agent received it

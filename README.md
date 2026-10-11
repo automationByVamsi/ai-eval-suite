@@ -244,10 +244,11 @@ Every command exits with 1 when something failed, so it drops straight into CI.
 |---|---|---|---|---|
 | `sanity` | `sanity/` | relevance, correctness, faithfulness, hallucination | all | smoke-test a build or a setup; every case must pass |
 | `golden` | `golden/<domain>/` — imported from the CJM sheet | relevance, correctness, faithfulness, hallucination, privacy leakage, context recall, context precision, response alignment | all | **the release gate** (MVP targets) |
-| `should_decline` | `should_decline/` — questions the KB can't answer | hallucination | basic, disclosure, performance | for when the agent can decline (not built yet): today, answers in time, caveats low confidence and invents nothing |
+| `should_decline` | `should_decline/` — questions the KB can't answer | hallucination | basic, expected errors, disclosure, performance | the agent must **refuse** (InsufficientContextError / GuardrailError, set in each case's `expected_error`) instead of inventing an answer |
+| `errors` | `errors/` — bad input / nothing to find (the design's error table) | none | expected errors, performance | the right error type for an empty query, an unknown question type, a nonsense query, an unknown business area |
 | `question_types` | `question_types/` — how / what / why / yes_no | relevance, response alignment | basic, answer | check the answer's shape fits its question type |
 | `stages` | `sanity/` | the 6 stage judges (query rewrite, anchor page) | basic, retrieval | judge intermediate steps, not just the answer |
-| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage, relevance | basic | check the answer doesn't repeat personal data |
+| `privacy` | `privacy/` — questions with made-up customer details | privacy leakage, relevance | basic, PII not sent to search | the answer doesn't repeat personal data, and the PII guardrail keeps it out of the search queries |
 | `synthetic` | `synthetic/<domain>/` — generated | relevance, faithfulness, hallucination | basic, answer, source page | broad coverage; not a release gate |
 | `e2e` | `sanity/` | all of the above | all | every judge once on the sanity cases |
 | `relevance_only`, `faithfulness_only`, `hallucination_only`, `response_alignment_only` | as named | one judge | none | debug one judge |
@@ -501,7 +502,7 @@ checks:
 ```
 
 Types: `present`, `one_of`, `equals`, `min_words`, `not_contains`, `range`, `same_count`, `subset`,
-`any_in`, `all_in`, `precision`, `recall`, `ndcg` (see `src/fields/checks.py`). A check whose expected value
+`not_matches` (regex), `any_in`, `all_in`, `precision`, `recall`, `ndcg`, `contains` (see `src/fields/checks.py`). A check whose expected value
 the case lacks is SKIPPED. `parser.py` is still there for logic YAML can't express.
 
 Options:
@@ -530,6 +531,12 @@ and only removes pages after that). With several lists, each page counts at its 
 them. The Knowledge Agent's `retrieval` checks (anchor hit, Recall@5, NDCG@5, expansion recall) are all
 `diagnostic`: a correct answer from a page the golden doesn't list may still be right, so a miss is shown,
 not failed — the run's targets (e.g. anchor hit ≥ 80%) still gate the release.
+
+**Expected errors.** A case can expect the agent to refuse: `"expected": {"expected_error":
+["InsufficientContextError", "GuardrailError"]}`. When the agent then fails (an HTTP 500 with the error,
+an error in its output, or an ADK error event), the runner keeps the error as the case's answer
+(`agent_error`) instead of marking the case ERROR, and `returned_expected_error` passes when one of the
+expected error types is in it. An agent that answers instead fails that check.
 
 Retrieval checks only see what the agent's trace logs (e.g. `search_branches.*.filtered_page_ids`):
 "Precision@5" means precision of the top 5 candidates *as logged*, not of the full search index.

@@ -43,10 +43,11 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
 
     pii = cases["privacy"]                                              # own suite, folder and id
     assert pii["test_case_id"] == "KA_PII_RCB_001"
-    assert pii["metadata"]["origin"] == "SYNTHETIC_PII"
+    assert pii["metadata"]["origin"] == "SYNTHETIC_PII" and pii["expected"]["contains_pii"] is True
     decline = cases["should_decline"]
     assert decline["test_case_id"] == "KA_DEC_RCB_001"
-    assert decline["expected"] == {"expected_answer": "Answer from the page.", "should_decline": True}
+    assert decline["expected"] == {"expected_answer": "Answer from the page.", "should_decline": True,
+                                   "expected_error": ["InsufficientContextError", "GuardrailError"]}
 
     agent = load_agent("knowledge_agent")
     assert len(load_cases(agent, agent.suite("synthetic"))) == 10
@@ -197,6 +198,14 @@ def test_domain_codes_shorten_ids_and_folders():
     assert domain_code("Black horse", codes) == "BLACK_HORSE"                   # spaces / case ignored
     assert domain_code("Brand Change", codes) == "BRAND_CHANGE"                 # not listed: full name
     assert domain_code("Brand Change") == "BRAND_CHANGE"
+
+
+def test_the_official_business_area_name_is_sent_to_the_agent():
+    from src.synthesizer.output_template import business_area
+    codes = {"Customer Self-Service Online and App": "CSS", "Customer Financial Assistance (CFA)": "CFA"}
+    assert business_area("Customer Self Service Online and App", codes) == "Customer Self-Service Online and App"
+    assert business_area("customer_financial_assistance_cfa", codes) == "Customer Financial Assistance (CFA)"
+    assert business_area("Brand Change", codes) == "Brand Change"                # not listed: as it is
 
 
 def test_domain_codes_must_be_simple_codes(ka_copy):

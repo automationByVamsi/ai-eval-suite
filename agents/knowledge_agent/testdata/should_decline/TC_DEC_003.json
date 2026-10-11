@@ -5,6 +5,10 @@
     "question": "How do I add a support need in the Galaxy CRM system?"
   },
   "expected": {
-    "should_decline": true
+    "should_decline": true,
+    "expected_error": [
+      "InsufficientContextError",
+      "GuardrailError"
+    ]
   }
 }
