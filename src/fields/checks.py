@@ -135,9 +135,9 @@ def _check(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any
             return not found, f"{name} contains {found}"
         case "range":
             low, high = float(spec.get("min", 0)), float(spec.get("max", 1))
-            bad = {n: fields.get(n) for n in many
-                   if not isinstance(fields.get(n), (int, float)) or not low <= fields.get(n) <= high}
-            return not bad, f"not numbers in [{low}, {high}]: {bad}"
+            problems = [_out_of_range(n, fields.get(n), low, high) for n in many]
+            problems = [p for p in problems if p]
+            return not problems, "; ".join(problems)
         case "same_count":
             counts = {n: len(_items(fields.get(n))) for n in spec.get("fields") or []}
             return len(set(counts.values())) <= 1, f"counts differ: {counts}"
@@ -243,3 +243,34 @@ def _list(value: Any) -> list[Any]:
 def _norm(value: Any) -> str:
     """Lowercase and collapse whitespace."""
     return " ".join(str(value if value is not None else "").casefold().split())
+
+
+def _out_of_range(name: str, value: Any, low: float, high: float) -> str:
+    """Why `value` fails a range check, in words ("" when it is fine), e.g.
+    'The agent took 85.8 s, over the 60 s limit' for latency_ms, 'score is 1.2, above the maximum of 1' otherwise."""
+    if value is None or value == "" or value == []:
+        return f"{name} is missing from the trace"
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return f"{name} is not a number: {value!r}"
+    if low <= value <= high:
+        return ""
+    if name.endswith("_ms"):                       # a duration in milliseconds: say it in seconds
+        value, low, high, unit = value / 1000, low / 1000, high / 1000, " s"
+    elif name.endswith(("_seconds", "_s")):
+        unit = " s"
+    else:
+        unit = ""
+    if unit:                                       # latency_ms -> "The agent", retrieval_seconds -> "Retrieval"
+        what = re.sub(r"_(ms|seconds|s)$", "", name).replace("_", " ")
+        what = "The agent" if what in ("latency", "duration", "response time", "elapsed") else what.capitalize()
+        if value > high:
+            return f"{what} took {_num(value)}{unit}, over the {_num(high)}{unit} limit"
+        return f"{what} took {_num(value)}{unit}, under the {_num(low)}{unit} minimum"
+    if value > high:
+        return f"{name} is {_num(value)}, above the maximum of {_num(high)}"
+    return f"{name} is {_num(value)}, below the minimum of {_num(low)}"
+
+
+def _num(value: float) -> str:
+    """85823.7 -> '85,823.7', 60.0 -> '60', 85.8237 -> '85.8'."""
+    return f"{value:,.1f}".rstrip("0").rstrip(".")

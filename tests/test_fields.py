@@ -393,3 +393,13 @@ def test_checks_live_only_in_checks_yaml(temp_agents):
 def test_lookup_field_needs_ids_defined_above():
     with pytest.raises(ConfigError, match="needs ids:"):
         extract.validate({"contexts": {"lookup": "f", "ids": "page_ids"}}, "fields.yaml")
+
+
+def test_range_failures_read_as_sentences():
+    from src.fields.checks import run_checks
+    slow = {"s": {"type": "range", "field": "latency_ms", "min": 0, "max": 60000}}
+    assert run_checks(slow, {"latency_ms": 85823.7}, {})[0].reason == "The agent took 85.8 s, over the 60 s limit"
+    assert run_checks(slow, {"latency_ms": 3000}, {})[0].status == PASS
+    assert "missing" in run_checks(slow, {}, {})[0].reason
+    score = {"s": {"type": "range", "field": "score", "min": 0, "max": 1}}
+    assert run_checks(score, {"score": 1.2}, {})[0].reason == "score is 1.2, above the maximum of 1"
