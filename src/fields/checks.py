@@ -1,48 +1,36 @@
 """
-Deterministic checks, written in agents/<agent>/checks.yaml, run on the fields from fields.yaml.
-Each check gives one PASS / FAIL / SKIP result.
+Deterministic checks from agents/<agent>/checks.yaml, run on the fields from fields.yaml.
+Each check gives PASS / FAIL / SKIP. Checks can be nested under a group name: {group: {check: spec}}.
 
-    checks:
-      answer:                                   # a group (the dashboard shows checks by group)
-        answer_min_words: {type: min_words, field: answer, min: 8}
-        confidence_valid: {type: one_of, field: confidence, values: [HIGH, MEDIUM, LOW]}
-      retrieval:
-        anchor_hit:       {type: any_in, field: anchor_page_ids, expected: expected_anchor_page_ids}
-
-Types that look at the trace's fields only:
-  present       the field has a value (with fields: [...], every one of them)
-  one_of        the value (or every item of a list) is one of `values`
-  equals        the field equals `other:` (another field) or `value:`
+Field-only types:
+  present       the field (or every one in `fields:`) has a value
+  one_of        the value (or every list item) is in `values`
+  equals        the field equals `other:` (a field) or `value:`
   min_words     the text has at least `min` words
   not_contains  the text contains none of `values`
-  range         every field in `fields:` (or `field`) is a number between `min` and `max`
+  range         every field in `fields:` (or `field`) is a number in [`min`, `max`]
   same_count    every field in `fields:` has the same number of items
-  subset        every item of the field is in `of:` (one or more fields, combined)
-  not_matches   the text (of `field`, or every field in `fields:`) matches none of the regex `patterns:`
-                (case ignored), e.g. no sort code or phone number reached the search queries
+  subset        every item of the field is in `of:` (one or more fields)
+  not_matches   the text of `field` / `fields:` matches none of the regex `patterns:` (case ignored)
 
-Types that compare a field with the test case's `expected` block (SKIP when the case has no value):
-  any_in        at least one expected item is in the field             (e.g. anchor hit)
-  contains      the field's text contains at least one expected item  (e.g. the error type returned)
+Types comparing a field with the case's `expected` block (SKIP when the case has no value):
+  any_in        at least one expected item is in the field
+  contains      the field's text contains at least one expected item
   all_in        every expected item is in the field
-  precision     share of the field's items that are expected  >= threshold (default 0.7)
-  recall        share of the expected items in the field      >= threshold (default 0.7)
-  ndcg          are the expected items near the TOP of the field (a ranked list, best first)?
-                1.0 = all expected items first; each one counts less the lower it is (1 / log2(position + 1))
-    k: 5                    only the first 5 items of the field count (precision@5 on a ranked list)
-    expected: [a, b]        the values of several expected keys together
-    compare: [{field: x, expected: a}, {field: y, expected: b}]   the first pair the case has a value for
-  A field holding several ranked lists (e.g. one per search): each item counts at its BEST position in
-  any of them — [[a, b], [c]]: a and c are both 1st, b is 2nd (with k: in the top k of any search).
+  precision     share of the field's items that are expected >= threshold (default 0.7)
+  recall        share of expected items found in the field >= threshold (default 0.7)
+  ndcg          expected items rank near the top of the field (best first) >= threshold
+  k: 5          only the first k items count
+  expected: [a, b]   several expected keys combined
+  compare: [{field: x, expected: a}, ...]   use the first pair the case has a value for
+  Several ranked lists in one field: each item counts at its best position ([[a, b], [c]]: a, c 1st; b 2nd).
 
-Show a check without letting it fail the case (the run's targets still use its pass rate):
-    diagnostic: true
+Options:
+  diagnostic: true   shown, but never fails the case (targets still use its pass rate)
+  when: {field: f, in: [..]} | {field: f, is: x} | {field: f, present: true} | {expected: key, is: x}
+                     run only when the condition holds, else SKIP
 
-Run a check only sometimes (else SKIP):
-    when: {field: confidence, in: [MEDIUM, LOW]}      when: {field: metadata_missing, is: true}
-    when: {field: cited_page_ids, present: true}      when: {expected: should_decline, is: true}
-
-Text is compared ignoring case and extra spaces ("How To  Add" == "how to add").
+Text compares ignore case and extra spaces.
 """
 
 from __future__ import annotations
@@ -63,7 +51,7 @@ KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "ot
 
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
-    """Check checks.yaml when the agent loads. Returns {check name: spec}; grouped checks get `group:`."""
+    """Validate checks.yaml and flatten groups. Returns {check name: spec}; grouped checks get `group:`."""
     flat: dict[str, dict[str, Any]] = {}
     for name, spec in (checks or {}).items():
         is_group = isinstance(spec, dict) and spec and "type" not in spec and all(
@@ -82,7 +70,7 @@ def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
 
 
 def _problem(spec: Any, defined_twice: bool) -> str:
-    """What is wrong with one check ('' when it is fine)."""
+    """Return what is wrong with one check spec, or '' when it is fine."""
     if not isinstance(spec, dict):
         return "must be a mapping like {type: present, field: answer}"
     if defined_twice:
@@ -97,7 +85,7 @@ def _problem(spec: Any, defined_twice: bool) -> str:
 
 
 def fields_read(spec: dict[str, Any]) -> set[str]:
-    """The fields one check reads (so lookups run only when a check needs them)."""
+    """Return the field names one check reads, so lookups run only when needed."""
     names = {spec.get("field"), spec.get("other"), (spec.get("when") or {}).get("field")}
     names |= set(_list(spec.get("fields"))) | set(_list(spec.get("of")))
     names |= {pair.get("field") for pair in spec.get("compare") or []}
@@ -105,7 +93,7 @@ def fields_read(spec: dict[str, Any]) -> set[str]:
 
 
 def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: dict[str, Any]) -> list[Result]:
-    """One Result per check, in the order they are written."""
+    """Run every check and return one Result each, in written order."""
     expected = case.get("expected") or {}
     results = []
     for name, spec in checks.items():
@@ -115,7 +103,7 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
         if not result.reason:
             passed, reason = _check(spec, fields, expected, result)
             if passed is None:
-                result.reason = reason                                   # skipped
+                result.reason = reason
             else:
                 result.status, result.reason = (PASS, "") if passed else (FAIL, reason)
         results.append(result)
@@ -124,10 +112,10 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
 
 def _check(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any],
            result: Result) -> tuple[bool | None, str]:
-    """(passed, reason if it failed). passed is None when the check is skipped."""
+    """Run one check; return (passed, reason). passed is None when the check is skipped."""
     name = spec.get("field")
     value = fields.get(name or "")
-    many = spec.get("fields") or [name]                     # checks that can read several fields
+    many = spec.get("fields") or [name]
     match spec["type"]:
         case "present":
             empty = [n for n in many if is_empty(fields.get(n))]
@@ -167,7 +155,7 @@ def _check(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any
 
 def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, Any],
              result: Result) -> tuple[bool | None, str]:
-    """any_in / all_in / precision / recall / ndcg: the field's items against the case's expected items."""
+    """Run a comparing check (any_in, contains, all_in, precision, recall, ndcg) against the case's expected."""
     pairs = spec.get("compare") or [{"field": spec.get("field"), "expected": spec.get("expected")}]
     for pair in pairs:
         want = list(dict.fromkeys(item for key in _list(pair.get("expected")) for item in _items(expected.get(key))))
@@ -197,7 +185,7 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
         return (result.score >= result.threshold,
                 f"ndcg {result.score:.2f} < {result.threshold}: expected={sorted(want)} found at "
                 f"{ {w: positions.get(w, 'not found') for w in want} } (1 = first) in {name}={have}")
-    base = have if spec["type"] == "precision" else want         # precision: of what was found; recall: of expected
+    base = have if spec["type"] == "precision" else want
     if not base:
         return None, f"skipped: {name} is empty"
     result.threshold = float(spec.get("threshold", 0.7))
@@ -207,12 +195,7 @@ def _compare(spec: dict[str, Any], fields: dict[str, Any], expected: dict[str, A
 
 
 def ndcg(ranked: list[str] | dict[str, int], relevant: list[str], k: int = 5) -> float:
-    """
-    NDCG@k with yes/no relevance (the same as ranx's ndcg@k): how near the top the relevant items are.
-    `ranked`: a list, best first, or {item: position} (1 = first). Each relevant item in the top k is worth
-    1 / log2(position + 1) — 1st = 1.0, 2nd = 0.63, 3rd = 0.5 — and the total is divided by the best possible
-    (every relevant item at the top). 0..1.
-    """
+    """Binary-relevance NDCG@k (0..1, same as ranx). `ranked` is a best-first list or {item: position}."""
     positions = ranked if isinstance(ranked, dict) else {item: i for i, item in reversed(list(enumerate(ranked, 1)))}
     gain = sum(1 / math.log2(p + 1) for item, p in positions.items() if item in relevant and p <= k)
     best = sum(1 / math.log2(p + 1) for p in range(1, min(len(set(relevant)), k) + 1))
@@ -220,8 +203,7 @@ def ndcg(ranked: list[str] | dict[str, int], relevant: list[str], k: int = 5) ->
 
 
 def _positions(value: Any) -> dict[str, int]:
-    """{item: its position, 1 = first}, best first. Several ranked lists (one per search) -> each item's best
-    position in any of them: [[a, b], [c]] -> {a: 1, c: 1, b: 2}."""
+    """Return {item: position (1 = first)}, best first; with several lists, each item's best position."""
     lists = [v for v in _list(value) if isinstance(v, list)] or [value]
     best: dict[str, int] = {}
     for ranked in lists:
@@ -231,7 +213,7 @@ def _positions(value: Any) -> dict[str, int]:
 
 
 def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: dict[str, Any]) -> str:
-    """'' when the check should run, else why it is skipped. Reads a field, or a key of the case's expected."""
+    """Return '' when the `when:` condition holds, else the skip reason."""
     if not condition:
         return ""
     if "expected" in condition:
@@ -249,13 +231,15 @@ def _when(condition: dict[str, Any] | None, fields: dict[str, Any], expected: di
 
 
 def _items(value: Any) -> list[str]:
-    """Anything -> a list of normalised texts, so ids and titles compare cleanly."""
+    """Return the value as a list of normalised, non-empty texts."""
     return [_norm(v) for v in _list(value) if not is_empty(v)]
 
 
 def _list(value: Any) -> list[Any]:
+    """Return the value as a list ([] when empty)."""
     return value if isinstance(value, list) else [] if is_empty(value) else [value]
 
 
 def _norm(value: Any) -> str:
+    """Lowercase and collapse whitespace."""
     return " ".join(str(value if value is not None else "").casefold().split())

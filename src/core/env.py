@@ -1,16 +1,6 @@
-"""
-Settings from env files, and `${VAR}` placeholders in YAML.
+"""Load env files and fill `${VAR}` placeholders in YAML.
 
-Where values come from, strongest first:
-  1. variables already set in your shell (CI sets them this way) — never overridden
-  2. env/.env.<agent>   optional, one agent's values; loaded when that agent is loaded
-  3. env/.env           shared values: CORTEX, Athena, every agent's URL ...
-     (.env in the repo root is still read if env/.env doesn't exist — the old location)
-
-env/.env.example lists every variable. `make setup` copies it to env/.env.
-
-Importing this module loads env/.env once, so every command sees the shared values, and then
-applies the HTTPS certificate settings (src/core/tls.py).
+Precedence: shell variables, then env/.env.<agent>, then env/.env. Importing this loads env/.env and TLS settings.
 """
 
 from __future__ import annotations
@@ -25,7 +15,7 @@ from dotenv import dotenv_values
 from src.core import paths, tls
 from src.core.exceptions import ConfigError
 
-# Taken before any env file is read: whatever is in here came from the shell and always wins.
+# Taken before any env file is read, so shell variables always win.
 _SHELL_VARS = set(os.environ)
 
 # ${NAME} or ${NAME:-default}
@@ -33,12 +23,12 @@ _PLACEHOLDER = re.compile(r"\$\{(\w+)(?::-([^}]*))?\}")
 
 
 def load_env_file(path: Path) -> bool:
-    """Copy one env file into os.environ (shell variables are left alone). False if the file doesn't exist."""
+    """Copy one env file into os.environ, leaving shell variables alone. Returns False if the file is missing."""
     if not path.is_file():
         return False
     for key, value in dotenv_values(path).items():
         if value is not None and value.lstrip().startswith("#"):
-            # `KEY=      # a comment` — python-dotenv keeps the comment as the value. It means "empty".
+            # python-dotenv keeps `KEY=   # comment` as the value; treat it as empty.
             value = ""
         if key not in _SHELL_VARS and value is not None:
             os.environ[key] = value
@@ -46,28 +36,22 @@ def load_env_file(path: Path) -> bool:
 
 
 def load_shared_env() -> None:
-    """env/.env, or the old root .env when env/.env doesn't exist yet."""
+    """Load env/.env, or the old root .env when env/.env doesn't exist."""
     if not load_env_file(paths.ENV_DIR / ".env"):
         load_env_file(paths.ROOT / ".env")
 
 
 def load_agent_env(agent_name: str) -> None:
-    """
-    env/.env.<agent>, if there is one. Its values override env/.env. A sub-agent such as
-    knowledge_agent/pipeline reads env/.env.knowledge_agent, then env/.env.knowledge_agent.pipeline.
-    """
+    """Load env/.env.<agent> if present, overriding env/.env.
+    A sub-agent like a/b loads env/.env.a, then env/.env.a.b."""
     parts = agent_name.split("/")
     for depth in range(1, len(parts) + 1):
         load_env_file(paths.ENV_DIR / f".env.{'.'.join(parts[:depth])}")
 
 
 def expand(value: Any) -> Any:
-    """
-    Fill ${VAR} / ${VAR:-default} in every string of a YAML structure (dicts and lists included).
-
-    Like the shell, the default is used when VAR is unset *or empty*, and an unset VAR with no
-    default becomes "" — so a missing URL shows up as a clear error where it is used.
-    """
+    """Fill ${VAR} / ${VAR:-default} in every string of a nested YAML structure.
+    The default applies when VAR is unset or empty; unset with no default becomes ""."""
     if isinstance(value, str):
         return _PLACEHOLDER.sub(lambda m: os.environ.get(m.group(1)) or m.group(2) or "", value)
     if isinstance(value, list):
@@ -78,7 +62,7 @@ def expand(value: Any) -> Any:
 
 
 def require(name: str, error: type[Exception] = ConfigError) -> str:
-    """The value of a variable that must be set, or `error` telling the user where to set it."""
+    """Return a required variable's value; raises `error` (ConfigError by default) if it is not set."""
     value = os.environ.get(name, "").strip()
     if not value:
         raise error(f"{name} is not set — add it to env/.env (see env/.env.example)")
@@ -86,4 +70,4 @@ def require(name: str, error: type[Exception] = ConfigError) -> str:
 
 
 load_shared_env()
-tls.configure()      # HTTPS certificate settings (VERIFY_TLS / CA_BUNDLE) — see src/core/tls.py
+tls.configure()

@@ -1,18 +1,6 @@
 """
-Optional, and rarely needed: rename to parser.py only for logic that fields.yaml and the checks:
-in agent.yaml can't express (maths across fields, calling another service, ...).
-Reading values from the trace belongs in fields.yaml. The standard fields are:
-    question        = the case input sent to the agent
-    answer          = the agent's final answer
-    contexts        = trace["context"] if the agent returns one
-    expected_answer = case expected.expected_answer
-
-Add a parse() to expose more fields from the trace (judges can point at them in agent.yaml),
-and a checks() for deterministic checks specific to this agent.
-
-  parse(trace, case)   -> dict of extra fields (may also override the standard ones)
-  checks(fields, case) -> list of check(...) results
-
+Optional custom parser: rename to parser.py only for logic fields.yaml and agent.yaml checks can't express.
+Standard fields (question, answer, contexts, expected_answer) already exist; trace values belong in fields.yaml.
 Trace helpers (state, find_event, event_json, tool_calls) are in src/utils/adk_trace.py.
 """
 
@@ -21,6 +9,7 @@ from src.utils.adk_trace import state, tool_calls  # noqa: F401 — more helpers
 
 
 def parse(trace, case):
+    """Return extra fields from the trace (may override the standard ones)."""
     return {
         # "rewritten_query": state(trace, "rewritten_query", ""),
         # "tools_called": [c["name"] for c in tool_calls(trace)],
@@ -28,6 +17,7 @@ def parse(trace, case):
 
 
 def checks(fields, case):
+    """Return a list of check(...) results specific to this agent."""
     return [
         # check("mentions_customer", "customer" in fields["answer"].lower(), "no mention of the customer"),
     ]

@@ -1,32 +1,6 @@
 """
-LLM judges: score one metric for one test case.
-
-This file has three parts, top to bottom:
-
-  1. run_judge() + pick_engine()   what every metric goes through: choose the engine, run it,
-                                   turn the score into pass / fail / skip / error
-  2. score_with_deepeval()         DeepEval: library metrics + custom rubrics (GEval)
-  3. score_with_pegasus()          Pegasus: the team's standard RAG metrics
-
-Which engine scores a metric — the whole rule:
-  custom rubric / criteria                             -> DeepEval (GEval)
-  library metric with `pegasus:`, Pegasus installed
-    and CORTEX credentials Pegasus can use             -> Pegasus
-  otherwise                                            -> DeepEval (with a one-time warning if it
-                                                          was meant to be Pegasus)
-  `engine: deepeval|pegasus` on a metric in agent.yaml forces one (rarely needed).
-
-Outcomes:
-  a needed field is empty for this case -> SKIP  (never a silent pass or fail)
-  the judge crashed / timed out         -> ERROR (never a low score)
-  otherwise                             -> PASS if score >= threshold, else FAIL
-
-Which metrics exist, their Pegasus / DeepEval class names and the fields they need are in
-metric_library.yaml — add or remove metrics there, not here. Both engines use the CORTEX model
-(src/clients/cortex_client.py). DeepEval and Pegasus are imported inside their functions: they are
-slow to import, and Pegasus may not be installed on every machine.
-
-Used by: src/runners/suite_runner.py.
+LLM judges: score one metric for one case with Pegasus (when installed and credentialed) or DeepEval.
+Empty needed field -> SKIP; judge crash -> ERROR; else PASS if score >= threshold, else FAIL.
 """
 
 from __future__ import annotations
@@ -53,14 +27,10 @@ DEFAULT_THRESHOLD = 0.7
 # =============================================================================================
 
 def run_judge(name: str, spec: dict[str, Any], fields: dict[str, Any]) -> Result:
-    """
-    Score metric `name` (its settings `spec` from agent.yaml) on one case's `fields`.
-
-    Never raises: any problem becomes an ERROR result, so one bad judge can't stop a run.
-    """
+    """Score metric `name` on one case's fields and return its Result. Never raises: problems become ERROR."""
     metric = definition(name, spec)
     threshold = float(metric.get("threshold", DEFAULT_THRESHOLD))
-    # metric.get(f, f): the field the metric reads, re-mapped if agent.yaml says e.g. `answer: rewritten_query`.
+    # agent.yaml can re-map a field, e.g. `answer: rewritten_query`.
     values = {f: fields.get(metric.get(f, f)) for f in metric["needs"]}
     result = Result(name=name, kind="judge", status=SKIP, threshold=threshold)
 
@@ -80,7 +50,7 @@ def run_judge(name: str, spec: dict[str, Any], fields: dict[str, Any]) -> Result
         return result
 
     if score is None or math.isnan(float(score)):
-        # Pegasus returns NaN instead of raising when its LLM call failed: that's an ERROR, not a FAIL.
+        # Pegasus returns NaN instead of raising when its LLM call fails.
         result.status = ERROR
         result.reason = f"no score (the judge's LLM call failed — see the log above) {reason or ''}".strip()
         return result
@@ -91,7 +61,7 @@ def run_judge(name: str, spec: dict[str, Any], fields: dict[str, Any]) -> Result
 
 
 def pick_engine(metric: dict[str, Any]) -> str:
-    """'pegasus' or 'deepeval' for a metric definition — see the rule at the top of this file."""
+    """Return 'pegasus' or 'deepeval': `engine:` if set, Pegasus when usable, else DeepEval."""
     if metric.get("engine"):
         return metric["engine"]
     if metric.get("pegasus") and pegasus_installed() and pegasus_has_credentials():
@@ -107,7 +77,7 @@ def pick_engine(metric: dict[str, Any]) -> str:
 
 
 def pegasus_has_credentials() -> bool:
-    """Pegasus signs its own CORTEX calls: an API key / client id + secret, or the DevKit sign-in."""
+    """True when Pegasus has CORTEX credentials it can sign its own calls with."""
     return cortex_client.pegasus_can_authenticate()
 
 
@@ -119,18 +89,17 @@ def pegasus_installed() -> bool:
 
 @functools.cache
 def _warn_once(message: str) -> None:
+    """Print a warning once per process."""
     print(f"WARNING: {message}")
 
 
 # =============================================================================================
-# 2. DeepEval
-#    library metric with `deepeval: <Class>`  -> that class from deepeval.metrics
-#    custom rubric / criteria                 -> GEval, judging only the fields the metric needs
+# 2. DeepEval: a deepeval.metrics class, or GEval for custom criteria
 # =============================================================================================
 
 def score_with_deepeval(name: str, metric: dict[str, Any], values: dict[str, Any],
                         threshold: float) -> tuple[float, str]:
-    """(score 0..1, reason) for one case. `values` holds the standard fields the metric needs."""
+    """Return (score 0..1, reason) from DeepEval for the metric's needed field values."""
     import deepeval.metrics as dm
     from deepeval.test_case import LLMTestCase
 
@@ -153,7 +122,7 @@ def score_with_deepeval(name: str, metric: dict[str, Any], values: dict[str, Any
 
 
 def _geval_param(field_name: str) -> Any:
-    """Our field name -> DeepEval's test-case parameter (the enum was renamed in DeepEval 4)."""
+    """Map our field name to DeepEval's test-case parameter (the enum was renamed in DeepEval 4)."""
     try:
         from deepeval.test_case import SingleTurnParams as P
     except ImportError:  # deepeval < 4
@@ -167,25 +136,12 @@ def _geval_param(field_name: str) -> Any:
 
 
 # =============================================================================================
-# 3. Pegasus (internal package — install it separately, see the README)
-#    Library metrics name a class in pegasus.metrics.rag (`pegasus: Faithfulness`), or in another
-#    module with `module:` (e.g. agentic). Pegasus can compute a RAG metric three ways; choose per
-#    metric in agent.yaml with
-#        method: pegasus (default) | ragas | deepeval
+# 3. Pegasus (internal package, installed separately)
 # =============================================================================================
 
 def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold: float) -> tuple[float, str]:
-    """
-    (score 0..1, reason) for one case — called the same way as the Knowledge Agent's own Pegasus
-    guardrails: a one-row DataFrame, Metric(llm=..., method=...).evaluate(frame)["score"].
-    The threshold is applied by run_judge, not by Pegasus.
-
-    RAG metrics (pegasus.metrics.rag) get the columns question / answer / retrieved_contexts /
-    reference_answer. A metric from another module names its own columns in metric_library.yaml
-    (`columns:`), e.g. ResponseAlignment: query / agent_response / background.
-    A metric with `call: keywords` (the safety metrics, e.g. Hallucination) gets the same values as
-    separate arguments instead of a DataFrame: evaluate(query=..., text=..., context=[...]).
-    """
+    """Return (score 0..1, reason) from Pegasus, passing a one-row DataFrame (or keywords with `call: keywords`).
+    The threshold is applied by run_judge, not Pegasus."""
     import importlib
 
     import pandas as pd
@@ -202,11 +158,11 @@ def score_with_pegasus(metric: dict[str, Any], values: dict[str, Any], threshold
             "retrieved_contexts": [str(c) for c in values.get("contexts") or []],
         }
         if values.get("expected_answer"):
-            row["reference_answer"] = values["expected_answer"]   # correctness / context metrics use it
+            row["reference_answer"] = values["expected_answer"]
     data = row if metric.get("call") == "keywords" else pd.DataFrame([row])
 
     kwargs: dict[str, Any] = {"llm": cortex_client.pegasus_llm(), **(metric.get("options") or {})}
-    if module_name == "rag" or "method" in metric:   # only the RAG metrics take method= (pegasus|ragas|deepeval)
+    if module_name == "rag" or "method" in metric:   # only RAG metrics take method= (pegasus|ragas|deepeval)
         kwargs["method"] = metric.get("method", "pegasus")
     judge_class = getattr(importlib.import_module(f"pegasus.metrics.{module_name}"), metric["pegasus"])
     out = _evaluate(judge_class(**kwargs), data, metric["pegasus"])
@@ -220,11 +176,7 @@ _NO_TEMPERATURE: set[str] = set()      # Pegasus metrics whose evaluate() doesn'
 
 
 def _evaluate(judge: Any, data: Any, name: str) -> Any:
-    """
-    judge.evaluate(frame, temperature=...) — or evaluate(**data, temperature=...) when data is a dict
-    (`call: keywords`). Pegasus passes temperature to the LLM (metric_library.yaml judge_temperature).
-    A metric whose evaluate() doesn't accept it runs at the model's default, with a warning.
-    """
+    """Call judge.evaluate() with the judge temperature; if it doesn't accept one, warn and run without."""
     def evaluate(**extra: Any) -> Any:
         return judge.evaluate(**data, **extra) if isinstance(data, dict) else judge.evaluate(data, **extra)
 
@@ -244,10 +196,7 @@ REASON_KEYS = ("reasoning", "reasons", "reason", "explanation", "score_details",
 
 
 def _pegasus_reason(out: Any) -> str:
-    """
-    The judge's explanation. RAG metrics return it at the top level (e.g. out["reasoning"]); agentic
-    metrics per sample, in out["individual_results"][0]["explanation"], next to the raw 1-10 score.
-    """
+    """Return the judge's explanation, from the top level or the first individual result."""
     reason = next((first(out[k]) for k in REASON_KEYS if _has(out, k) and first(out[k])), "")
     if reason and _has(out, "raw_score") and first(out["raw_score"]) is not None:   # safety metrics: 1-10
         reason = f"{reason} (raw score {first(out['raw_score'])}/10)"
@@ -261,12 +210,12 @@ def _pegasus_reason(out: Any) -> str:
 
 
 def _as_input(field: str, value: Any) -> Any:
-    """One Pegasus input: the page texts stay a list of strings (`contexts`), everything else is text."""
+    """Format one Pegasus input: contexts as a list of strings, anything else as text."""
     return [str(c) for c in value] if field == "contexts" else _as_text(value)
 
 
 def _as_text(value: Any) -> str:
-    """Judges get text: a JSON value (e.g. the agent's whole structured output) as indented JSON."""
+    """Render a value as text for a judge; dicts and lists become indented JSON."""
     if value is None:
         return ""
     if isinstance(value, (dict, list)):
@@ -275,6 +224,7 @@ def _as_text(value: Any) -> str:
 
 
 def _has(out: Any, key: str) -> bool:
+    """True if `key in out` works and holds."""
     try:
         return key in out
     except TypeError:

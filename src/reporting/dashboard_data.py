@@ -1,9 +1,4 @@
-"""
-Reading the saved runs for the dashboard: outputs/runs/<run id>/results.json, and how each run is named
-in the sidebar menu.
-
-Used by: dashboard.py and dashboard_run.py.
-"""
+"""Load saved runs (outputs/runs/<run id>/results.json) for the dashboard and label them for the sidebar."""
 
 import json
 
@@ -15,23 +10,24 @@ from src.core.results import PASS, Run, load_run
 
 
 def all_run_ids() -> list[str]:
-    """The id of every saved run, newest first (run ids start with the date and time)."""
+    """Return every saved run id, newest first (ids start with the date and time)."""
     return sorted((p.parent.name for p in (paths.OUTPUTS_DIR / "runs").glob("*/results.json")), reverse=True)
 
 
 @st.cache_data(show_spinner=False)
-def _load(path: str, mtime: float) -> Run:          # mtime: re-read when the file changes
+def _load(path: str, mtime: float) -> Run:
+    """Load a run from disk; mtime is in the cache key so a changed file is re-read."""
     return load_run(path)
 
 
 def load(run_id: str) -> Run:
-    """One saved run. Cached, and read again when its file changes."""
+    """Return one saved run, cached and re-read when its file changes."""
     path = paths.OUTPUTS_DIR / "runs" / run_id / "results.json"
     return _load(str(path), path.stat().st_mtime)
 
 
 def run_label(run_id: str) -> str:
-    """How a run appears in the sidebar's "Run" menu: when, how many passed, which build."""
+    """Return a run's label in the sidebar's "Run" menu: when, how many passed, which build."""
     run = load(run_id)
     stamp = pd.to_datetime(run.started_at).strftime("%d %b %H:%M") if run.started_at else run_id[:15]
     passed = sum(c.status == PASS for c in run.cases)
@@ -46,6 +42,6 @@ def run_label(run_id: str) -> str:
 
 
 def _verdict_outcome(run_id: str) -> dict | None:
-    """verdict.json of a run saved by `make verdict` (None for any other run)."""
+    """Return the run's verdict.json, or None if it wasn't saved by `make verdict`."""
     path = paths.OUTPUTS_DIR / "runs" / run_id / "verdict.json"
     return json.loads(path.read_text()) if path.is_file() else None

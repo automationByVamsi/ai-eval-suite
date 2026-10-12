@@ -16,7 +16,7 @@ from src.synthesizer.settings import load_settings
 def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     written = generate_goldens("knowledge_agent")
     assert len(written) == 14                                  # 5 answer types x 2 pages + privacy 2 + decline 2
-    assert "advisor" in fake_generator["styles"][0].scenario.lower()  # the style's scenario
+    assert "advisor" in fake_generator["styles"][0].scenario.lower()
     assert "colleague" in fake_generator["styles"][0].scenario        # instructions.md folded in
     assert "advisor would use" in fake_generator["styles"][0].task    # additional_guidance folded in
 

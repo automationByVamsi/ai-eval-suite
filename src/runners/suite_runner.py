@@ -1,24 +1,6 @@
 """
-Run a suite: every test case, `REPS` times each. Read it top to bottom — it is written like a test case.
-
-    run_suite      the loop: for every case, for every repetition -> run_case
-    run_case       one test case:
-                     ACT     get_trace                  call the agent (or replay the saved trace, OFFLINE=1)
-                             read_fields                what the agent said and did, read from its trace
-                     ASSERT  run_deterministic_checks   rules with a clear yes / no (checks.yaml)
-                             run_llm_judges             the suite's LLM judges (agent.yaml metrics)
-
-Where things go:
-  the trace     outputs/traces/<agent>/<suite>/<case_id>.json            (the latest, used by OFFLINE=1)
-                outputs/runs/<run_id>/traces/<case_id>__rep<n>.json       (a copy kept with this run)
-  the results   outputs/runs/<run_id>/results.json
-
-When a case can't be run (agent unreachable, the trace format changed, parser.py crashed), the step
-raises CaseCouldNotRun with a clear message, and run_case records it as the case's ERROR — never a pass,
-never a fail, never a crash of the whole run.
-
-Used by: the CLI (make run / baseline / verdict). Agent-specific behaviour belongs in the agent's folder
-(agent.yaml, fields.yaml, checks.yaml, client.py, parser.py) — not here.
+Run a suite: for every case and rep, get the trace (ACT), then run checks and LLM judges (ASSERT).
+A case that can't run raises CaseCouldNotRun and is recorded as an ERROR, never a pass/fail or a crash.
 """
 
 from __future__ import annotations
@@ -46,12 +28,12 @@ from src.runners.test_cases import load_cases
 
 
 class CaseCouldNotRun(Exception):
-    """A test case could not be evaluated. The message says why; the case is recorded as an ERROR."""
+    """A test case could not be evaluated; the message says why and the case is recorded as an ERROR."""
 
 
 @dataclass
 class SuiteContext:
-    """Everything that stays the same for every case of one suite run."""
+    """Settings shared by every case of one suite run."""
 
     agent: Agent
     suite: Suite
@@ -67,14 +49,8 @@ class SuiteContext:
 def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: int = 1,
               build: str = "", judges: bool = True, case_ids: list[str] | None = None,
               metrics: list[str] | None = None) -> Run:
-    """
-    Run every case of one suite `reps` times, then save the run.
-
-    offline:  replay saved traces instead of calling the agent
-    judges:   False runs the deterministic checks only (no CORTEX calls)
-    case_ids: only these test_case_ids
-    metrics:  only these judges this time (METRICS=correctness), instead of the suite's own list
-    """
+    """Run every case of one suite `reps` times, save and return the Run.
+    `case_ids` / `metrics` narrow the cases / judges; judges=False runs checks only."""
     agent = load_agent(agent_name)
     suite = agent.suite(suite_name)
     if metrics:
@@ -106,7 +82,7 @@ def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: 
 # --- one test case ----------------------------------------------------------------------------------
 
 def run_case(ctx: SuiteContext, case: dict[str, Any], rep: int) -> CaseResult:
-    """One test case: ask the agent, read its trace, then check and judge the answer. Never raises."""
+    """Run one case: get the trace, read fields, check and judge. Never raises."""
     result = CaseResult(case_id=case["test_case_id"], rep=rep, description=str(case.get("description") or ""),
                         input=dict(case.get("input") or {}), expected=dict(case.get("expected") or {}))
     try:
@@ -119,7 +95,6 @@ def run_case(ctx: SuiteContext, case: dict[str, Any], rep: int) -> CaseResult:
         result.error = str(problem)
         return result
 
-    # What was asked and answered (shown on the console and the dashboard).
     result.question = str(fields.get("question") or "")
     result.answer = str(fields.get("answer") or "")
     result.expected_answer = str(fields.get("expected_answer") or "")
@@ -134,10 +109,8 @@ def run_case(ctx: SuiteContext, case: dict[str, Any], rep: int) -> CaseResult:
 # --- the steps ----------------------------------------------------------------------------------------
 
 def get_trace(ctx: SuiteContext, case: dict[str, Any], rep: int) -> dict[str, Any]:
-    """
-    The agent's trace for this case: call the agent (its client.py, else Google ADK) and save the trace,
-    or with OFFLINE=1 read the last saved one. Any problem -> CaseCouldNotRun("agent: ...").
-    """
+    """Call the agent (client.py, else Google ADK) and save the trace, or replay the saved one offline.
+    Raises CaseCouldNotRun on any problem."""
     latest = _latest_trace_path(ctx, case)
     rep_file = ctx.run.folder / "traces" / f"{case['test_case_id']}__rep{rep + 1}.json"
     start = time.perf_counter()
@@ -150,8 +123,7 @@ def get_trace(ctx: SuiteContext, case: dict[str, Any], rep: int) -> dict[str, An
         return trace
     except Exception as exc:  # noqa: BLE001 — an unreachable agent is an ERROR, not a skip
         if case.get("expected", {}).get("expected_error") and not ctx.offline:
-            # The case expects the agent to refuse with an error (e.g. InsufficientContextError):
-            # the error is its answer, checked by the expected_errors checks.
+            # The case expects an error: the error is the answer, checked by the expected_errors checks.
             trace = {"agentOutput": "", "agent_error": str(exc), "raw_events": [],
                      "latency_ms": round((time.perf_counter() - start) * 1000, 1)}
             _save_trace(trace, latest, rep_file)
@@ -160,21 +132,15 @@ def get_trace(ctx: SuiteContext, case: dict[str, Any], rep: int) -> dict[str, An
 
 
 def read_fields(ctx: SuiteContext, case: dict[str, Any], trace: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """
-    What the checks and judges look at, in three layers (a later layer wins):
-      1. the standard fields   question, answer, contexts, expected_answer, input_<key> (what the case sent)
-      2. fields.yaml           every field of the agent (lookups only when this suite needs them)
-      3. parser.py parse()     if the agent has one
-    Returns (fields, lookup problems). A required field that found nothing, or a crash in parser.py,
-    -> CaseCouldNotRun.
-    """
+    """Return (fields, lookup problems): standard fields, then fields.yaml, then parser.py (later wins).
+    Raises CaseCouldNotRun if a required field is missing or parser.py crashes."""
     agent = ctx.agent
     fields = {
         "question": case["input"][agent.input_field],
         "answer": trace.get("agentOutput") or "",
         "contexts": list(trace.get("context") or []),
         "expected_answer": case.get("expected", {}).get("expected_answer", ""),
-        # what the test case sent, e.g. input_business_area (checks can validate the test data itself)
+        # lets checks validate the test data itself
         **{f"input_{key}": value for key, value in (case.get("input") or {}).items()},
     }
     lookup_errors: list[str] = []
@@ -196,14 +162,10 @@ def read_fields(ctx: SuiteContext, case: dict[str, Any], trace: dict[str, Any]) 
 
 def run_deterministic_checks(ctx: SuiteContext, case: dict[str, Any], fields: dict[str, Any],
                              lookup_errors: list[str]) -> list[Result]:
-    """
-    The checks this suite selects (`checks:` under the suite — all by default), in this order:
-    the built-in ones (answer_non_empty, expected.keywords), checks.yaml, a failed lookup (as an ERROR),
-    and parser.py checks() when the suite runs all checks.
-    """
+    """Run the suite's selected checks: built-in, checks.yaml, a failed-lookup ERROR, then parser.py checks()."""
     results = _standard_checks(fields, case, ctx.suite.checks)
     results += run_checks(ctx.agent.checks_for(ctx.suite), fields, case)
-    if lookup_errors:      # e.g. Athena was unreachable: the judges that needed that value can't be trusted
+    if lookup_errors:      # judges that needed the value can't be trusted
         results.append(Result(
             "lookup", "check", "error", group="setup",
             reason=f"A lookup failed (agents/{ctx.agent.name}/lookups.py), so {_readers(ctx, lookup_errors)} "
@@ -217,7 +179,7 @@ def run_deterministic_checks(ctx: SuiteContext, case: dict[str, Any], fields: di
 
 
 def run_llm_judges(ctx: SuiteContext, fields: dict[str, Any]) -> list[Result]:
-    """Each LLM judge the suite lists (none with JUDGES=0). A judge that can't run is an ERROR, not a score."""
+    """Run the suite's LLM judges (none with JUDGES=0); a judge that can't run is an ERROR."""
     if not ctx.judges:
         return []
     return [run_judge(name, ctx.agent.metrics[name], fields) for name in ctx.suite.metrics]
@@ -226,13 +188,13 @@ def run_llm_judges(ctx: SuiteContext, fields: dict[str, Any]) -> list[Result]:
 # --- helpers ------------------------------------------------------------------------------------------
 
 def _standard_checks(fields: dict[str, Any], case: dict[str, Any], selected: list[str] | None) -> list[Result]:
-    """Checks every agent gets (group "basic"): a non-empty answer, and each of expected.keywords in it."""
+    """Built-in "basic" checks: non-empty answer, and each expected keyword in it."""
     def wanted(name: str) -> bool:
         return selected is None or "basic" in selected or name in selected
 
     answer = str(fields.get("answer") or "")
     checks = []
-    if wanted("answer_non_empty") and not case["expected"].get("expected_error"):   # an error is its answer
+    if wanted("answer_non_empty") and not case["expected"].get("expected_error"):   # the error is the answer
         checks.append(check("answer_non_empty", bool(answer.strip()), "agent returned an empty answer", "basic"))
     if wanted("keywords"):
         for keyword in case["expected"].get("keywords") or []:
@@ -242,7 +204,7 @@ def _standard_checks(fields: dict[str, Any], case: dict[str, Any], selected: lis
 
 
 def _judge_fields(ctx: SuiteContext) -> dict[str, set[str]]:
-    """{field: the suite's judges that read it}, with agent.yaml re-mappings (answer: rewritten_query)."""
+    """Return {field: judges that read it}, honouring agent.yaml field re-mappings."""
     readers: dict[str, set[str]] = {}
     for name in ctx.suite.metrics if ctx.judges else []:
         metric = definition(name, ctx.agent.metrics[name])
@@ -252,7 +214,7 @@ def _judge_fields(ctx: SuiteContext) -> dict[str, set[str]]:
 
 
 def _fields_needed(ctx: SuiteContext) -> set[str]:
-    """Every field this suite's judges and checks read: only those `lookup:` fields are computed."""
+    """Return every field this suite's judges and checks read (only those lookups are computed)."""
     needed = set(_judge_fields(ctx))
     for spec in ctx.agent.checks_for(ctx.suite).values():
         needed |= fields_read(spec)
@@ -262,7 +224,7 @@ def _fields_needed(ctx: SuiteContext) -> set[str]:
 
 
 def _readers(ctx: SuiteContext, lookup_errors: list[str]) -> str:
-    """Which judges needed the value that could not be looked up (errors read "<field>: <problem>")."""
+    """Name the judges that needed a failed lookup (errors read "<field>: <problem>")."""
     readers = _judge_fields(ctx)
     names = sorted({j for e in lookup_errors for j in readers.get(e.split(":", 1)[0], set())})
     return " and ".join(names) if names else "this suite's checks"
@@ -272,7 +234,7 @@ DETAIL_TEXT_LIMIT = 4000
 
 
 def _for_display(fields: dict[str, Any]) -> dict[str, Any]:
-    """The extracted fields, saved with the case for the dashboard. Long texts are cut."""
+    """Return the fields to save for the dashboard, with long texts and lists cut."""
     def cut(value: Any) -> Any:
         if isinstance(value, str) and len(value) > DETAIL_TEXT_LIMIT:
             return value[:DETAIL_TEXT_LIMIT] + f"… [{len(value) - DETAIL_TEXT_LIMIT} more characters]"
@@ -287,11 +249,8 @@ def _for_display(fields: dict[str, Any]) -> dict[str, Any]:
 
 
 def _message(agent: Agent, case: dict[str, Any]) -> str:
-    """
-    The text sent to the agent: input[input_field]; or message_template filled from input; or, with
-    `message: {format: json, ...}` in agent.yaml, the inputs as a JSON object (only the ones this
-    case has — a case with just the main input still sends it as plain text, as before).
-    """
+    """Build the text sent to the agent: JSON of the inputs (message format: json), the template, or the input.
+    A JSON-format case with only the main input still sends it as plain text."""
     inputs = case["input"]
     if agent.message_fields:
         payload = {key: inputs[name] for key, name in agent.message_fields.items() if not is_empty(inputs.get(name))}
@@ -303,17 +262,16 @@ def _message(agent: Agent, case: dict[str, Any]) -> str:
 
 
 def _latest_trace_path(ctx: SuiteContext, case: dict[str, Any]) -> Path:
-    """outputs/traces/<agent>/<suite>/<case_id>.json — the case's latest trace (what OFFLINE=1 replays).
-    A suite with `traces: golden` shares the golden suite's traces."""
+    """Return the path of the case's latest trace (what OFFLINE=1 replays); `traces:` can share another suite's."""
     return paths.OUTPUTS_DIR / "traces" / ctx.agent.name / ctx.suite.traces / f"{case['test_case_id']}.json"
 
 
 def _saved_trace(latest: Path) -> dict[str, Any]:
-    """The last saved trace of a case, for OFFLINE=1."""
+    """Read the case's last saved trace, for OFFLINE=1."""
     if not latest.is_file():
         raise FileNotFoundError(f"no saved trace at {latest} — run once without OFFLINE=1")
     trace = json.loads(latest.read_text())
-    # Traces saved by the v1 framework were wrapped as {"test_case": ..., "raw_output": {...}}.
+    # v1 traces were wrapped as {"test_case": ..., "raw_output": {...}}.
     if isinstance(trace.get("raw_output"), dict) and "test_case" in trace:
         trace = trace["raw_output"]
     return trace
@@ -328,7 +286,7 @@ def _save_trace(trace: dict[str, Any], latest: Path, run_copy: Path) -> None:
 
 
 def _load_agent_module(agent: Agent, filename: str) -> ModuleType | None:
-    """Import agents/<name>/parser.py or client.py, if the agent has one."""
+    """Import the agent's parser.py or client.py; None if it has none."""
     path = agent.folder / filename
     if not path.is_file():
         return None

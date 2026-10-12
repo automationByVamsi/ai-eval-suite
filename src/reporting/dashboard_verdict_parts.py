@@ -1,10 +1,4 @@
-"""
-The pieces of the verdict view that aren't Streamlit calls: small HTML snippets (headline cards, the
-"how the cases moved" bar, the targets table, one build's side of a comparison) and the chart that
-compares the baseline with the new build. Kept apart from dashboard_verdict.py, like dashboard_parts.py.
-
-Used by: dashboard_verdict.py only.
-"""
+"""Non-Streamlit pieces of the verdict view: HTML snippets and the baseline-vs-build dumbbell chart."""
 
 import altair as alt
 import pandas as pd
@@ -24,11 +18,11 @@ ITEM_KIND = {"regression": "bad-soft", "missing": "warn-soft", "improved": "good
 
 
 def delta_html(before: float | None, after: float | None, points: bool = True, digits: int = 0) -> str:
-    """'▲ 4 pts' (green) / '▼ 0.03' (red) / 'no change' — higher is better for every rate and score here."""
+    """Return a change as HTML: '▲ 4 pts' (green), '▼ 0.03' (red) or 'no change'. Higher is always better."""
     if before is None or after is None:
         return '<span class="delta flat">no baseline</span>'
     diff = after - before
-    if abs(diff) < 0.005:                                   # below what the number shows: no change
+    if abs(diff) < 0.005:                                   # too small to show
         return '<span class="delta flat">no change</span>'
     pts = round(abs(diff) * 100)
     shown = f"{pts} pt{'s' * (pts != 1)}" if points else f"{abs(diff):.{digits or 2}f}"
@@ -39,13 +33,13 @@ NO_JUDGES = '<span class="delta flat">no LLM judges in this suite</span>'
 
 
 def vkpi(label_: str, value: str, sub_html: str, kind: str = "plain") -> str:
-    """One headline-number card. `sub_html` is already HTML (it holds the baseline and the delta)."""
+    """Return a KPI card as HTML; `sub_html` is already HTML (baseline and delta), so it isn't escaped."""
     return (f'<div class="kpi {kind}"><div class="kpi-label">{ui.esc(label_)}</div>'
             f'<div class="kpi-value">{ui.esc(value)}</div><div class="kpi-sub">{sub_html}</div></div>')
 
 
 def change_bar_html(changes: dict) -> str:
-    """One stacked bar: how many test cases regressed / improved / ... with a labelled legend."""
+    """Return a stacked bar of case changes (regressed, improved, ...) with a legend, as HTML."""
     counts = {k: sum(c.change == k for c in changes.values()) for k in vv.CHANGES}
     total = max(sum(counts.values()), 1)
     segments = "".join(f'<div class="seg" style="flex:{n};background:var({CHANGE_STYLE[k][2]})" '
@@ -57,7 +51,7 @@ def change_bar_html(changes: dict) -> str:
 
 
 def targets_compare_html(current_rows: list, baseline_rows: list) -> str:
-    """Release targets: target, baseline build, this build, met / missed."""
+    """Return the release targets table (target, baseline, this build, met / missed) as HTML."""
     before = {r["name"]: r for r in baseline_rows}
     out = ['<table class="grid vt"><tr><th>Release target</th><th>Target</th><th>Baseline</th><th>This build</th>'
            '<th></th></tr>']
@@ -79,7 +73,7 @@ def targets_compare_html(current_rows: list, baseline_rows: list) -> str:
 
 
 def dumbbell(rows: list, value: str, title: str, fmt: str):
-    """Baseline (hollow) -> this build (filled), one line per judge / check; colour = better / worse / same."""
+    """Return an Altair dumbbell chart, baseline -> this build per judge / check, or None with no data."""
     data = []
     for r in rows:
         b, n = r[f"baseline_{value}"], r[f"current_{value}"]
@@ -115,7 +109,7 @@ def dumbbell(rows: list, value: str, title: str, fmt: str):
 
 
 def _legend_item(colour: str, text: str, ring: bool = False) -> str:
-    """One entry of the chart legend: a coloured dot (or a ring for the baseline) and its text."""
+    """Return one chart legend entry as HTML: a coloured dot (or a ring) and its text."""
     dot = '<span class="dot ring"></span>' if ring else f'<span class="dot" style="background:{colour}"></span>'
     return f'<span class="legend-item">{dot}{text}</span>'
 
@@ -126,13 +120,13 @@ DUMBBELL_LEGEND = ('<div class="legend" style="margin:2px 0 6px">' + _legend_ite
 
 
 def rate_moved(row: dict, value: str) -> bool:
-    """True when a judge / check changed between the builds (or ran in only one of them)."""
+    """Return True when a judge / check changed between builds (or ran in only one)."""
     b, n = row[f"baseline_{value}"], row[f"current_{value}"]
     return b is None or n is None or abs(n - b) >= 0.005
 
 
 def compact_build_html(case: CaseResult | None, reps: list) -> str:
-    """One build's side of a comparison: status, judges with scores, failed checks."""
+    """Return one build's side of a comparison as HTML: status, judge scores, failed checks."""
     if case is None:
         return '<div class="note">Not in this build.</div>'
     judges, groups = ui.split(case)

@@ -1,16 +1,5 @@
-"""
-fields.yaml, demonstrated: what happens when a field is right, wrong, renamed, required or mistyped.
-
-Every scenario below is a small fields.yaml written inline, run on a SAVED trace
-(outputs/traces/knowledge_agent/sanity/TC_002.json): no agent call, no judges, no network.
-The real agents/knowledge_agent/fields.yaml is never touched.
-
-Run it and read the printout (-s shows the prints):
-
-    uv run --frozen pytest tests/test_fields_demo.py -s -v
-
-To try your own idea: copy a scenario, change the YAML, run again.
-"""
+"""fields.yaml by example: right, wrong, renamed, required and mistyped fields, run on a saved trace.
+Run with `pytest tests/test_fields_demo.py -s` to see the printout."""
 
 import json
 
@@ -25,7 +14,7 @@ TRACE = json.loads((ROOT / "outputs/traces/knowledge_agent/sanity/TC_002.json").
 
 
 def run_fields(title: str, fields_yaml: str) -> tuple[dict, list]:
-    """Read the YAML exactly like the framework does, extract every field, print the result."""
+    """Load the YAML like the framework does, extract every field from TRACE and print the result."""
     fields = validate(yaml.safe_load(fields_yaml)["fields"], "demo fields.yaml")
     values, missing = extract(TRACE, fields, offline=True)
     print(f"\n--- {title} ---")
@@ -37,7 +26,7 @@ def run_fields(title: str, fields_yaml: str) -> tuple[dict, list]:
 
 
 def test_1_correct_paths():
-    """The happy path: each line is a JMESPath query on the trace document (final, state, nodes, ...)."""
+    """Each line is a JMESPath query on the trace document (final, state, nodes, ...)."""
     values, missing = run_fields("1. correct paths", """
 fields:
   answer:          final.answer.summary
@@ -55,7 +44,7 @@ fields:
 
 
 def test_2_the_field_name_is_yours_to_choose():
-    """The name on the left is just a label for checks and judges: rename it freely."""
+    """The name on the left is just a label for checks and judges."""
     values, _ = run_fields("2. any field name works", """
 fields:
   my_dummy_answer_name: final.answer.summary
@@ -66,7 +55,7 @@ fields:
 
 
 def test_3_a_wrong_path_gives_none_never_a_crash():
-    """A typo in a path, or a key the agent stopped logging: the value is None (NOT FOUND)."""
+    """A typo in a path, or a key the agent stopped logging, gives None (NOT FOUND)."""
     values, missing = run_fields("3. wrong paths -> NOT FOUND", """
 fields:
   typo_in_key:      final.answer.sumary
@@ -79,7 +68,7 @@ fields:
 
 
 def test_4_required_turns_a_missing_field_into_an_error():
-    """required: true -> a run ERRORs with "has the trace format changed?" instead of silently skipping."""
+    """With required: true a run errors ("has the trace format changed?") instead of skipping."""
     _, missing = run_fields("4. required field missing", """
 fields:
   answer: {path: final.answer.text, required: true}
@@ -88,7 +77,7 @@ fields:
 
 
 def test_5_a_list_of_paths_survives_a_trace_change():
-    """Several paths: the first one that finds something wins (old format first or new first)."""
+    """With several paths, the first one that finds something wins."""
     values, _ = run_fields("5. fallback paths", """
 fields:
   answer: {path: [final.answer.text, final.answer.summary]}
@@ -97,7 +86,7 @@ fields:
 
 
 def test_6_options_and_jmespath_functions():
-    """The few options (join, where + pick), and what plain JMESPath already does ([0], contains, | [-1])."""
+    """The join and where + pick options, and plain JMESPath ([0], contains, | [-1])."""
     values, _ = run_fields("6. join / where + pick / JMESPath", """
 fields:
   rewritten_query:    {path: state.rewritten_query, join: " | "}
@@ -121,7 +110,7 @@ fields:
     ("'final.answer.]summary'", "invalid path"),                              # broken path
 ])
 def test_7_mistakes_in_the_yaml_stop_before_any_run(bad_line, error):
-    """Config mistakes are caught when the agent loads — not halfway through a 2-hour run."""
+    """Config mistakes are caught when the agent loads, not halfway through a run."""
     with pytest.raises(ConfigError, match=error) as caught:
         run_fields("7. bad yaml", f"fields:\n  answer: {bad_line}\n")
     print(f"\n--- 7. {bad_line}\n  ConfigError: {caught.value}")

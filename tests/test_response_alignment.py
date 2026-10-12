@@ -1,5 +1,5 @@
-"""Response alignment (Pegasus agentic ResponseAlignment) and what it needs: every answer shape read
-from the trace, question_type sent to the agent, and the agentic column mapping."""
+"""Pegasus ResponseAlignment and what it needs: every answer shape read from the trace,
+question_type sent to the agent, and its own column mapping."""
 
 import copy
 import json
@@ -17,7 +17,7 @@ WHAT = json.loads((ROOT / "tests/fixtures/ka_trace_what.json").read_text())   # 
 
 
 def _with_answer(question_type, answer):
-    """The `what` trace with its final output's answer replaced (how / yes_no shapes)."""
+    """The `what` trace with its final answer replaced by another question type's shape."""
     trace = copy.deepcopy(WHAT)
     final = trace["raw_events"][-1]["output"]
     final["question_type"], final["answer"] = question_type, answer
@@ -25,12 +25,13 @@ def _with_answer(question_type, answer):
 
 
 def _fields(trace):
+    """Extract the knowledge_agent fields from `trace`, failing if any required one is missing."""
     values, missing = extract(trace, load_agent("knowledge_agent").fields, offline=True, fetch=set())
     assert missing == []
     return values
 
 
-# --- every answer shape is read (no more ERROR for how / what / yes_no) -------------------------
+# --- every answer shape is read (how / what / yes_no) -------------------------------------------
 
 def test_what_answer_definitions():
     values = _fields(WHAT)
@@ -68,6 +69,7 @@ def test_question_type_is_sent_as_json_and_plain_questions_stay_plain():
 # --- the Pegasus call: agentic module, its own columns, no method= ------------------------------
 
 def _fake_pegasus(monkeypatch, calls):
+    """Fake Pegasus ResponseAlignment and AnswerRelevancy judges; each call is recorded in `calls`."""
     class Judge:
         def __init__(self, **kwargs):
             calls.append({"class": type(self).__name__, "kwargs": kwargs})

@@ -1,48 +1,13 @@
-# ============================================================================================
-#  METRIC LIBRARY — the built-in judges every agent can use by name in its agent.yaml
-# ============================================================================================
+# Built-in judges any agent can use by name in its agent.yaml (read by src/metrics/library.py).
+# Engine: Pegasus when `pegasus:` is set and Pegasus is installed, else DeepEval (`deepeval:` or `criteria:`).
+# A judge is SKIPPED for a case missing any of its `needs:` fields. Agent-specific judges: `rubric:` instead.
 #
-#  Which engine runs a metric (the only rule):
-#    - `pegasus:` is set and the Pegasus package is installed  -> Pegasus
-#    - otherwise                                                -> DeepEval (`deepeval:` or `criteria:`)
-#
-#  Keys
-#    needs      fields the judge reads: question, answer, contexts, expected_answer.
-#               If a case has no value for one of them, the judge is SKIPPED for that case.
-#    pegasus    class name in pegasus.metrics.rag (or in pegasus.metrics.<module>, see module)
-#    module     the Pegasus module when it isn't rag, e.g. agentic
-#    columns    for a non-rag Pegasus metric: our field -> Pegasus' column name, e.g.
-#               {question: query, answer: agent_response, background: background}
-#    call       keywords: evaluate() takes the columns as separate arguments, not a one-row
-#               DataFrame (the Pegasus safety metrics, e.g. Hallucination)
-#    deepeval   class name in deepeval.metrics (the fallback, or the only engine)
-#    criteria   DeepEval GEval with this text as the rubric (instead of a deepeval class)
-#    question / answer / contexts / expected_answer: <field>
-#               read that standard field from another parser field (see summarization)
-#
-#  judge_temperature (top of the file, not a metric): the temperature every judge's LLM runs at,
-#  Pegasus and DeepEval alike. 0 = the same answer gets the same score every time (as far as the
-#  model allows). It is saved with each run; make verdict warns when the baseline used another one.
-#  Change it only on purpose: scores at different temperatures are not comparable.
-#
-#  Add a Pegasus metric:     add an entry with `pegasus:` + `needs:` (+ `deepeval:` if DeepEval
-#                            has an equivalent, so machines without Pegasus can still run it).
-#  Remove a metric:          delete its entry, and remove it from any agents/*/agent.yaml.
-#  Agent-specific judges:    don't add them here — give them a `rubric:` in that agent's agent.yaml.
-#
-#  Per agent (in agents/<agent>/agent.yaml, not here), a metric can also set:
-#    threshold: 0.8              pass mark, 0..1 (default 0.7)
-#    engine: deepeval|pegasus    force one engine
-#    method: pegasus|ragas|deepeval   which of Pegasus' own methods computes it (default pegasus;
-#                                      RAG metrics only)
-#    background: <text>          Pegasus' background column (metrics whose columns: include it)
-#    options: {...}              extra arguments for the Pegasus class, e.g. use_ground_truth: true,
-#                                json_path: <custom criteria file, relative to the agent folder>
-#
-#  Read by: src/metrics/library.py (checked when an agent loads, so a typo fails straight away).
-# ============================================================================================
+# Keys: needs (fields read) | pegasus (class in pegasus.metrics.rag or .<module>) | module (if not rag)
+#   columns (our field -> Pegasus column) | call: keywords (pass columns as arguments, not a DataFrame)
+#   deepeval (class in deepeval.metrics) | criteria (GEval rubric text) | question/answer/...: <field> (remap)
+# Per agent in agent.yaml: threshold (default 0.7), engine, method, background, options.
 
-judge_temperature: 0.0          # every judge (Pegasus and DeepEval); see the note above
+judge_temperature: 0.0          # every judge's LLM; scores at different temperatures are not comparable
 
 relevance:
   needs: [question, answer]
@@ -77,31 +42,30 @@ contextual_relevancy:
 
 summarization:                      # is `answer` a good summary of the source text?
   needs: [question, answer]
-  question: source_document         # the agent's parser.py must provide the source text as source_document
+  question: source_document         # parser.py must provide source_document
   deepeval: SummarizationMetric
 
-# --- Safety (pegasus.metrics.safety) ----------------------------------------------------------
+# --- Safety (pegasus.metrics.safety): 1-10 scale normalised to 0..1, higher = better ----------
 
-hallucination:                      # does the answer invent, contradict or misattribute anything in the pages it used?
+hallucination:                      # does the answer invent or contradict anything in the pages used?
   needs: [question, answer, contexts]
-  pegasus: Hallucination            # the Safety one (Pegasus-native, higher = better), not ethics.Hallucination
-  module: safety                    # 1-10 scale (9-10 none, 7-8 minimal, 5-6 moderate), normalised to 0..1
+  pegasus: Hallucination            # the safety one, not ethics.Hallucination
+  module: safety                    # 9-10 none, 7-8 minimal, 5-6 moderate
   columns: {question: query, answer: text, contexts: context}
-  call: keywords                    # evaluate(query=..., text=..., context=[...]), not a DataFrame
-                                    # no deepeval: DeepEval's HallucinationMetric scores the other way round
+  call: keywords
+                                    # no deepeval: its HallucinationMetric scores the other way round
 
-privacy_leakage:                    # does the answer expose personal data (names, account numbers, DOB, health ...)?
-  needs: [answer]                   # judges the answer text only (24 PII categories, direct and indirect)
-  pegasus: PrivacyLeakage           # 1-10 scale (9-10 no PII, 7-8 minimal risk, 5-6 moderate), normalised to 0..1,
-  module: safety                    # higher = better (less PII)
-  columns: {answer: text, background: background}   # background: set per agent (what is / isn't PII there)
-  call: keywords                    # evaluate(text=..., background=...)
-
+privacy_leakage:                    # does the answer expose personal data?
+  needs: [answer]
+  pegasus: PrivacyLeakage           # 9-10 no PII, 7-8 minimal risk, 5-6 moderate
+  module: safety
+  columns: {answer: text, background: background}   # background: set per agent
+  call: keywords
 
 # --- Agentic (pegasus.metrics.agentic) -------------------------------------------------------
 
-response_alignment:                 # does the response fit what the user asked for (query + background)?
+response_alignment:                 # does the response fit what the user asked for?
   needs: [question, answer]
-  pegasus: ResponseAlignment        # 1-10 scale, normalised by Pegasus to 0..1
+  pegasus: ResponseAlignment        # 1-10 scale, normalised to 0..1
   module: agentic
   columns: {question: query, answer: agent_response, background: background, expected_answer: expected_response}

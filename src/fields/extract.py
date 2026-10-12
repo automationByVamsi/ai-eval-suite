@@ -1,34 +1,25 @@
 """
 Read named fields out of an agent trace, as listed in agents/<agent>/fields.yaml.
+Each field is a JMESPath query (e.g. `answer_type: final.question_type`) on one document built by `view()`:
+  final     the agent's final output
+  state     session state (all stateDelta merged; latest wins)
+  nodes     {node name: [each output of that node]}
+  models    {agent name: [each model reply, parsed when JSON]}
+  messages  [every text in the trace, in order]
+  timing    {workflow step: seconds}
+  trace     the saved trace file itself
 
-Step 1. The trace is turned into ONE simple JSON document (see `view()` below):
+Options:
+  path: [a, b]        first path that finds something wins
+  where: {k: field}   keep items whose key k is in an earlier field's value
+  pick: key           take that key from each item
+  unique: true        drop repeated values
+  join: "\\n"          join a list into one text
+  default: <value>    used when nothing was found
+  required: true      nothing found -> the case is an ERROR
+  lookup: fn, ids: f  call fn(id) from agents/<agent>/lookups.py for each id in field f
 
-    final     the agent's final output (what the caller receives)
-    state     the agent's session state (every event's stateDelta merged; the latest value wins)
-    nodes     {node name: [the output of each event from that node]}
-    models    {agent name: [each model reply of that agent, as JSON when it is JSON]}
-    messages  [every text written in the trace, in order]
-    timing    {workflow step: seconds}
-    trace     the saved trace file itself (latency_ms, agentOutput, ...)
-
-Step 2. Every field is a JMESPath query on that document (try it on https://jmespath.org):
-
-    fields:
-      answer_type:     final.question_type
-      anchor_page_ids: state.evidence_set.anchor_page_ids
-      cited_titles:    final.evidence[].title
-
-Options, when a field needs more than a path:
-    path: [a, b]         a list of paths: the first one that finds something wins
-    where: {k: field}    keep the items whose key k is in an earlier field's value
-    pick: key            then take that key from each item
-    unique: true         drop repeated values
-    join: "\\n"           a list -> one text
-    default: <value>     used when nothing was found
-    required: true       nothing found -> the case is an ERROR ("has the trace format changed?")
-    lookup: fn, ids: f   not in the trace: call fn(id) in agents/<agent>/lookups.py for each id in field f
-
-Preview every field on a saved trace:  make fields AGENT=<agent> CASE=<case_id>
+Preview: make fields AGENT=<agent> CASE=<case_id>
 """
 
 from __future__ import annotations
@@ -47,7 +38,7 @@ KEYS = {"path", "where", "pick", "unique", "join", "default", "required", "looku
 
 
 def validate(fields: dict[str, Any], where: str, folder: Path | None = None) -> dict[str, dict[str, Any]]:
-    """Check fields.yaml when the agent loads, so a typo fails at once. A plain string is a path."""
+    """Validate fields.yaml at agent load. Returns {field: spec}; a plain string is a path."""
     checked: dict[str, dict[str, Any]] = {}
     for name, spec in (fields or {}).items():
         spec = {"path": spec} if isinstance(spec, str) else spec
@@ -59,7 +50,7 @@ def validate(fields: dict[str, Any], where: str, folder: Path | None = None) -> 
 
 
 def _problem(spec: Any, earlier: dict[str, Any], folder: Path | None, where: str) -> str:
-    """What is wrong with one field ('' when it is fine)."""
+    """Return what is wrong with one field spec, or '' when it is fine."""
     if not isinstance(spec, dict):
         return "must be a path, or a mapping like {path: final.answer, required: true}"
     if "from" in spec:
@@ -70,7 +61,7 @@ def _problem(spec: Any, earlier: dict[str, Any], folder: Path | None, where: str
         if spec.get("ids") not in earlier:
             return "needs ids: <a field above it with the ids>"
         from src.fields import lookup
-        lookup.check(folder, spec["lookup"], where)          # lookups.py has that function
+        lookup.check(folder, spec["lookup"], where)
         return ""
     if not spec.get("path"):
         return "needs path:"
@@ -85,11 +76,8 @@ def _problem(spec: Any, earlier: dict[str, Any], folder: Path | None, where: str
 
 def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: bool = False,
             fetch: set[str] | None = None, local: bool = False) -> tuple[dict[str, Any], list[str]]:
-    """
-    ({field: value}, [required fields that found nothing]). Never raises on odd trace content.
-    Lookup fields: only those in `fetch` (None: all); offline reuses saved copies; local never calls anything.
-    Lookup problems are listed under values["_fetch_errors"] (the runner reports them as an ERROR).
-    """
+    """Return ({field: value}, [missing required fields]); never raises on odd trace content.
+    Only lookups in `fetch` run (None: all); their problems go in values["_fetch_errors"]."""
     document = view(trace)
     values: dict[str, Any] = {}
     missing: list[str] = []
@@ -109,7 +97,7 @@ def extract(trace: dict[str, Any], fields: dict[str, dict[str, Any]], offline: b
 
 
 def _find(document: dict[str, Any], spec: dict[str, Any], earlier: dict[str, Any]) -> Any:
-    """The field's path(s), then where: / pick: / unique: when the field has them."""
+    """Resolve the field's path(s), then apply where: / pick: / unique:."""
     found = [_search(path, document) for path in _as_list(spec["path"])]
     value = next((v for v in found if not is_empty(v)), next((v for v in found if v is not None), None))
     if spec.get("where"):
@@ -125,6 +113,7 @@ def _find(document: dict[str, Any], spec: dict[str, Any], earlier: dict[str, Any
 
 
 def _search(path: str, document: dict[str, Any]) -> Any:
+    """Run one JMESPath query; None when it errors at runtime."""
     try:
         return jmespath.search(str(path), document)
     except jmespath.exceptions.JMESPathError:       # e.g. join() on something that isn't text
@@ -132,6 +121,7 @@ def _search(path: str, document: dict[str, Any]) -> Any:
 
 
 def _lookup(name: str, spec: dict[str, Any], values: dict[str, Any], offline: bool, local: bool) -> list[str]:
+    """Look up a lookup field's texts, recording problems under values["_fetch_errors"]."""
     from src.fields import lookup
     texts, problems = lookup.texts(spec["_folder"], spec["lookup"], _as_list(values.get(spec["ids"])), offline, local)
     if problems:
@@ -142,7 +132,7 @@ def _lookup(name: str, spec: dict[str, Any], values: dict[str, Any], offline: bo
 # --- the trace as one document ----------------------------------------------------------------
 
 def view(trace: dict[str, Any]) -> dict[str, Any]:
-    """The trace as one JSON document: final, state, nodes, models, messages, timing, trace (see top)."""
+    """Build the one JSON document that field paths query (keys listed at the top)."""
     trace = trace or {}
     events = [e for e in trace.get("raw_events") or [] if isinstance(e, dict)]
     document = {"final": _final(events, trace), "state": {}, "nodes": {}, "models": {}, "messages": [],
@@ -160,7 +150,7 @@ def view(trace: dict[str, Any]) -> dict[str, Any]:
 
 
 def _final(events: list[dict[str, Any]], trace: dict[str, Any]) -> Any:
-    """The output of the top-level workflow (else agentOutput, when that is a JSON object)."""
+    """Return the top-level workflow's output, else agentOutput when it is a JSON object."""
     for event in reversed(events):
         targets = (event.get("nodeInfo") or {}).get("outputFor") or []
         if "output" in event and any("/" not in str(t) for t in targets):
@@ -170,7 +160,7 @@ def _final(events: list[dict[str, Any]], trace: dict[str, Any]) -> Any:
 
 
 def _unwrap(output: Any) -> Any:
-    """Newer traces wrap the answer: {response_type, answer: {answer, evidence, ...}} -> the inner object."""
+    """Flatten newer traces' {response_type, answer: {...}} wrapper into the inner object."""
     inner = output.get("answer") if isinstance(output, dict) and "response_type" in output else None
     if isinstance(inner, dict) and "answer" in inner:
         return {"response_type": output["response_type"], **inner}
@@ -178,7 +168,7 @@ def _unwrap(output: Any) -> Any:
 
 
 def _timing(events: list[dict[str, Any]]) -> dict[str, float]:
-    """{top-level step: seconds from the end of the previous step to the end of this one}."""
+    """Return {top-level step: seconds since the previous step ended}."""
     start, ends = None, {}
     for event in events:
         stamp, parts = event.get("timestamp"), str((event.get("nodeInfo") or {}).get("path") or "").split("/")
@@ -193,14 +183,14 @@ def _timing(events: list[dict[str, Any]]) -> dict[str, float]:
 
 
 def _node_name(event: dict[str, Any]) -> str:
-    """'a@1/b@1/_anchor_branch_worker@2' -> '_anchor_branch_worker'."""
+    """Return the event's node name: 'a@1/b@1/worker@2' -> 'worker'."""
     return re.sub(r"@\d+$", "", str((event.get("nodeInfo") or {}).get("path") or "").split("/")[-1])
 
 
 # --- small helpers ----------------------------------------------------------------------------
 
 def _json(text: Any) -> Any:
-    """Parsed JSON when `text` is JSON (code fences allowed), else `text` unchanged."""
+    """Parse `text` as JSON (code fences allowed); return it unchanged if it is not JSON."""
     try:
         return json.loads(strip_code_fence(text)) if isinstance(text, str) else text
     except json.JSONDecodeError:
@@ -208,12 +198,15 @@ def _json(text: Any) -> Any:
 
 
 def _has(container: Any, value: Any) -> bool:
+    """True if value is in the list, or equals the single value."""
     return value in container if isinstance(container, list) else value == container
 
 
 def _as_list(value: Any) -> list[Any]:
+    """Return the value as a list ([] for None)."""
     return value if isinstance(value, list) else [] if value is None else [value]
 
 
 def is_empty(value: Any) -> bool:
+    """True for None, '', [] and {}."""
     return value is None or value == "" or value == [] or value == {}

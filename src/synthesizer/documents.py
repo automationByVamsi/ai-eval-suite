@@ -1,14 +1,6 @@
 """
-Which documents to generate from, and the document cache.
-
-Selection:
-  - `ids_file:` in the source settings lists ids per group, e.g. page_ids.json:
-        [{"domain": "Recoveries Commercial Bank", "page_ids": ["36626", "39696"]}]
-    GROUP= keeps some groups; IDS= picks ids directly.
-  - With no ids_file the source returns everything it has (e.g. every file in a folder).
-
-Cache: agents/<agent>/synth/cache/<id>.json. `make sources` (re)fetches; `make goldens` uses the
-cache and fetches only what's missing, so regenerating doesn't hit Athena again.
+Select the documents to generate from (GROUP= / IDS= / ids_file) and cache them in synth/cache/.
+`make goldens` fetches only documents missing from the cache.
 """
 
 from __future__ import annotations
@@ -26,7 +18,7 @@ UNGROUPED = "Unassigned"
 
 def select(settings: dict[str, Any], groups: list[str] | None, ids: list[str] | None
            ) -> tuple[list[str] | None, dict[str, str]]:
-    """(ids to use — None means "all the source has", group of each id from ids_file)."""
+    """Return (ids to use, or None for everything the source has; group of each id from ids_file)."""
     group_of: dict[str, str] = {}
     ids_file = settings["source"].get("ids_file")
     if ids_file:
@@ -51,7 +43,7 @@ def select(settings: dict[str, Any], groups: list[str] | None, ids: list[str] | 
 
 def fetch(settings: dict[str, Any], wanted: list[str] | None, group_of: dict[str, str],
           groups: list[str] | None) -> list[dict[str, Any]]:
-    """Ask the source for documents, check them, and give each its group."""
+    """Fetch documents from the source, validate them, and assign each its group."""
     source = load_source(settings["source"]["type"])
     documents = []
     for raw in source.fetch(settings["source"], wanted, settings["folder"]):
@@ -64,10 +56,10 @@ def fetch(settings: dict[str, Any], wanted: list[str] | None, group_of: dict[str
 
 def documents_for_generation(settings: dict[str, Any], groups: list[str] | None,
                              ids: list[str] | None) -> list[dict[str, Any]]:
-    """The selected documents: from the cache, fetching the ones that aren't cached yet."""
+    """Return the selected documents from the cache, fetching any that aren't cached yet."""
     wanted, group_of = select(settings, groups, ids)
     if wanted is None:
-        # A source without ids (e.g. a folder of files): always read the current files.
+        # Sources without ids (e.g. a folder of files) are always read fresh.
         documents = fetch(settings, None, group_of, groups)
     else:
         cache = settings["folder"] / "cache"
@@ -90,6 +82,7 @@ def documents_for_generation(settings: dict[str, Any], groups: list[str] | None,
 
 
 def save_to_cache(settings: dict[str, Any], document: dict[str, Any]) -> Path:
+    """Write one document to synth/cache/ and return its path."""
     path = _cache_path(settings, document["id"])
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n")
@@ -98,4 +91,5 @@ def save_to_cache(settings: dict[str, Any], document: dict[str, Any]) -> Path:
 
 
 def _cache_path(settings: dict[str, Any], doc_id: str) -> Path:
+    """Return the cache file path for a document id."""
     return settings["folder"] / "cache" / f"{safe_filename(doc_id)}.json"

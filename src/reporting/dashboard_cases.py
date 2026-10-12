@@ -1,9 +1,6 @@
-"""
-The test-case list of the dashboard: one expander per case, with what was asked and answered on the left
-and the LLM judges and deterministic checks on the right.
+"""Dashboard test-case list: one expander per case, question and answer on the left, judges and checks on the right.
 
-Used by: dashboard_run.py (the "Test cases" tab) and dashboard_verdict.py (the "This build" and
-"Baseline build" tabs).
+Used by the run page and both build tabs of the verdict page.
 """
 
 import altair as alt
@@ -14,11 +11,11 @@ from src.core.results import ERROR, FAIL, PASS, SKIP, CaseResult, Run
 from src.reporting import dashboard_parts as ui
 from src.reporting.dashboard_style import html
 
-PAGE_SIZE = 25          # cases / rows shown per page
+PAGE_SIZE = 25          # cases shown per page
 
 
 def _matches(case: CaseResult, status_filter: list | None, search: str) -> bool:
-    """True when the case passes the sidebar filters: its status is ticked and the search text is in it."""
+    """Return True when the case's status is ticked in the sidebar and it contains the search text."""
     wanted = {s.lower() for s in (status_filter or [])}
     if case.status not in wanted:
         return False
@@ -27,7 +24,7 @@ def _matches(case: CaseResult, status_filter: list | None, search: str) -> bool:
 
 
 def _case_header(case: CaseResult, reps: int) -> tuple[str, str]:
-    """The one-line title of a case's accordion, and its icon: status, id, question, judge / check tallies."""
+    """Return a case's expander title (status, id, question, tallies) and its icon."""
     judges, groups = ui.split(case)
     checks = [r for g in groups.values() for r in g]
     color = {PASS: "green", FAIL: "red", ERROR: "orange"}[case.status]
@@ -48,7 +45,7 @@ def _case_header(case: CaseResult, reps: int) -> tuple[str, str]:
 
 
 def show_answer_column(case: CaseResult, col) -> None:
-    """Left column of a case: the question, the agent's answer, the expected answer and the pages behind it."""
+    """Draw a case's left column: question, agent answer, expected answer and evidence pages."""
     d = case.details or {}
     with col.container(border=True):
         html('<div class="card-label">Question</div>')
@@ -101,7 +98,7 @@ def show_answer_column(case: CaseResult, col) -> None:
 
 
 def show_results_column(case: CaseResult, col, suite_checks: list | None) -> None:
-    """Right column of a case: the LLM judges, then the deterministic checks (kept apart)."""
+    """Draw a case's right column: LLM judges, then deterministic checks."""
     judges, groups = ui.split(case)
     with col.container(border=True):
         counts = ui.tally(judges)
@@ -126,7 +123,7 @@ def show_results_column(case: CaseResult, col, suite_checks: list | None) -> Non
 
 
 def show_debug_tabs(case: CaseResult) -> None:
-    """The tabs under a case for people debugging it: fields, stage timings, the test case, the raw result."""
+    """Draw the debug tabs under a case: fields, stage timings, test case and raw result."""
     fields_tab, timing_tab, case_tab, raw_tab = st.tabs([
         ":material/data_object: Pipeline fields", ":material/timer: Stage timings",
         ":material/description: Test case", ":material/code: Raw result"])
@@ -161,10 +158,8 @@ def show_debug_tabs(case: CaseResult) -> None:
 
 
 def show_case_list(r: Run, key: str, status_filter: list | None, search: str) -> None:
-    """
-    Every test case of a run (filtered by the sidebar), problems first, one expander each.
-    key: makes the page number box unique when two lists are on one page (verdict view).
-    """
+    """Draw a run's filtered cases, problems first, one expander each.
+    key keeps the page-number box unique when two lists share a page."""
     shown = [c for c in r.cases if _matches(c, status_filter, search)]
     shown.sort(key=lambda c: {ERROR: 0, FAIL: 1, PASS: 2}[c.status])
     top = st.columns([3, 1])

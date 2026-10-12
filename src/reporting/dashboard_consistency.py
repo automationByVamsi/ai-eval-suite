@@ -1,9 +1,6 @@
-"""
-The "Consistency" tab of the run page. It only appears for runs where every case was asked more than once
-(REPS > 1). For each case it shows whether the repeated runs agreed, which pages each run used, and what
-each run answered.
+"""The run page's Consistency tab (REPS > 1): per case, whether repeated runs agreed, their pages and answers.
 
-Used by: dashboard_run.py. The numbers come from release.consistency().
+The numbers come from release.consistency().
 """
 
 import streamlit as st
@@ -15,9 +12,9 @@ from src.reporting.dashboard_style import html
 
 
 def show_consistency_tab(run: Run, consistency_rows: list[dict]) -> None:
-    """The whole tab: a one-line rule, then one accordion per case."""
+    """Draw the Consistency tab: the rule in one line, then one expander per case."""
     spec = run.consistency or {}
-    reps_by_case: dict[str, list[CaseResult]] = {}      # case id -> its runs
+    reps_by_case: dict[str, list[CaseResult]] = {}
     for c in run.cases:
         reps_by_case.setdefault(c.case_id, []).append(c)
 
@@ -28,7 +25,7 @@ def show_consistency_tab(run: Run, consistency_rows: list[dict]) -> None:
 
 
 def _consistency_rule(spec: dict) -> str:
-    """The rule in words, from agent.yaml `consistency:`."""
+    """Return the consistency rule from agent.yaml `consistency:` as a sentence."""
     parts = []
     if spec.get("same"):
         parts.append(f"the {release.field_label(spec['same'])} are the same in every run")
@@ -38,12 +35,12 @@ def _consistency_rule(spec: dict) -> str:
 
 
 def _friendly(reason: str) -> str:
-    """'case has no expected_answer' -> 'no reference answer' (other reasons as they are)."""
+    """Reword 'case has no expected_answer' as 'no reference answer'; return other reasons unchanged."""
     return "no reference answer" if "expected_answer" in reason else reason
 
 
 def show_case(row: dict, reps: list[CaseResult], spec: dict) -> None:
-    """One case: an accordion that is open when the case was inconsistent."""
+    """Draw one case's expander, open when the case was inconsistent."""
     ok = row["consistent"]
     title = (f":{'green' if ok else 'red'}[**{'CONSISTENT' if ok else 'INCONSISTENT'}**]  ·  "
              f"**{row['case']}**  ·  {_case_headline(row, ok)}")
@@ -55,20 +52,19 @@ def show_case(row: dict, reps: list[CaseResult], spec: dict) -> None:
 
 
 def _case_headline(row: dict, ok: bool) -> str:
-    """The short sentence after the case name, e.g. 'same pages in every run'."""
+    """Return the short summary shown after the case name, e.g. 'same pages in every run'."""
     if ok:
         headline = (f"same {release.field_label(row['same'])} in every run" if row["same"]
                     else "same result in every run")
     else:
         headline = row["why"]
-    # judges that could not give a verdict are added to the end
     headline += "".join(f" · {ui.label(n).lower()} not judged ({_friendly(why)})"
                         for n, why in row["not_judged"].items())
     return headline
 
 
 def show_stats_line(row: dict, spec: dict) -> None:
-    """The row of small chips: how much the runs had in common, how often each judge passed."""
+    """Draw the chips showing how much the runs had in common and how often each judge passed."""
     chips = []
     if row["same"]:
         overlap = row["overlap"]
@@ -86,7 +82,7 @@ def show_stats_line(row: dict, spec: dict) -> None:
 
 
 def show_pages_grid(reps: list[CaseResult]) -> None:
-    """A grid of pages (rows) against runs (columns), if the agent reported any pages."""
+    """Draw a grid of pages (rows) by runs (columns), if the agent reported any pages."""
     grid = ui.pages_by_run(reps)
     if not grid:
         return
@@ -98,7 +94,7 @@ def show_pages_grid(reps: list[CaseResult]) -> None:
 
 
 def show_each_run(reps: list[CaseResult]) -> None:
-    """One small tab per run, holding that run's answer and scores."""
+    """Draw one tab per run with that run's answer and scores."""
     html('<div class="card-label" style="margin-top:14px">The answer in each run</div>')
     for tab, case in zip(st.tabs([f"Run {c.rep + 1}" for c in reps]), reps, strict=True):
         with tab:
@@ -106,7 +102,7 @@ def show_each_run(reps: list[CaseResult]) -> None:
 
 
 def show_repetition(case: CaseResult) -> None:
-    """One run of a repeated case: its answer, confidence, latency and scores."""
+    """Draw one run of a repeated case: answer, confidence, latency and judge scores."""
     d = case.details or {}
     meta = [ui.chip(case.status.upper(), {PASS: "good-soft", FAIL: "bad-soft", ERROR: "warn-soft"}[case.status])]
     if d.get("confidence"):
@@ -115,7 +111,7 @@ def show_repetition(case: CaseResult) -> None:
                             {"HIGH": "good-soft", "MEDIUM": "warn-soft", "LOW": "bad-soft"}.get(conf, "plain")))
     if case.latency_ms:
         meta.append(ui.chip(f"{case.latency_ms / 1000:.1f}s"))
-    for r in ui.split(case)[0]:                         # the LLM judges
+    for r in ui.split(case)[0]:                         # LLM judges only
         if r.score is not None:
             kind = "good-soft" if r.status == PASS else "bad-soft"
             meta.append(ui.chip(f"{ui.label(r.name).lower()} {r.score:.2f}", kind, title=r.reason))

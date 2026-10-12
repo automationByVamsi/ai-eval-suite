@@ -1,17 +1,6 @@
 """
-Read and validate an agent's synthesizer settings: agents/<agent>/synth/.
-
-    synth.yaml        source, styles, evolutions, quality filter, output template
-                      (agents/knowledge_agent/synth/synth.yaml is the commented example)
-    instructions.md   rules every generated question and answer must follow
-    styles/*.md       one file per question style, made of these sections:
-                        ## scenario / ## task / ## additional_guidance /
-                        ## input_format / ## expected_output_format
-    cache/            fetched documents (make sources)
-    runs/             one manifest per make goldens run
-
-Every mistake is reported before anything is generated — a typo in a style heading or
-evolution weights that don't add up to 1.0 would otherwise silently change the test data.
+Read and validate an agent's synthesizer settings (synth/synth.yaml, instructions.md, styles/*.md).
+Errors are raised before generation, since a typo would otherwise silently change the test data.
 """
 
 from __future__ import annotations
@@ -29,13 +18,12 @@ STYLE_SECTIONS = ("scenario", "task", "additional_guidance", "input_format", "ex
 SETTINGS_KEYS = {"source", "per_source", "include_expected_answer", "instructions", "styles",
                  "evolutions", "quality_filter", "output"}
 OUTPUT_KEYS = {"folder", "id", "case"}
-# question_type: sent to the agent ({question_type}); max_cases: stop this style after N cases, taking pages
-# from every group in turn; output: this style's own folder / id / case fields (merged over `output:`).
+# max_cases caps a style, taking documents from every group in turn; output is merged over `output:`.
 STYLE_KEYS = {"file", "per_source", "question_type", "max_cases", "output"}
 
 
 def load_settings(agent: Agent) -> dict[str, Any]:
-    """synth.yaml as a dict, validated, plus "folder": the agent's synth/ folder."""
+    """Return synth.yaml as a validated dict, plus "folder": the agent's synth/ folder."""
     folder = agent.folder / "synth"
     path = folder / "synth.yaml"
     if not path.is_file():
@@ -75,12 +63,8 @@ def load_settings(agent: Agent) -> dict[str, Any]:
 
 
 def style_sections(path: Path) -> dict[str, str]:
-    """
-    A style file split into its ## sections: {"task": "...", "scenario": "...", ...}.
-
-    An unknown heading is an error; otherwise "## additional guidance" (space instead of _)
-    would silently merge into the previous section.
-    """
+    """Split a style file into its ## sections, e.g. {"task": "...", "scenario": "..."}.
+    Unknown headings raise, so a typo can't silently merge into the previous section."""
     sections: dict[str, str] = {}
     current = None
     for line in path.read_text().splitlines():
@@ -96,7 +80,7 @@ def style_sections(path: Path) -> dict[str, str]:
 
 
 def check_evolutions(evolutions: dict[str, Any], path: Path) -> None:
-    """`evolutions:` = rounds + DeepEval evolution weights, which must be known, >= 0 and add up to 1."""
+    """Check `evolutions:` (rounds + DeepEval weights): names known, weights >= 0 and summing to 1."""
     from deepeval.synthesizer.types import Evolution
 
     weights = {k: v for k, v in evolutions.items() if k != "rounds"}

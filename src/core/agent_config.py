@@ -1,24 +1,6 @@
-"""
-Load one agent's configuration: agents/<name>/agent.yaml.
+"""Load and validate one agent's config: agents/<name>/agent.yaml plus its checks.yaml and fields.yaml.
 
-Everything about an agent lives in its own folder:
-
-    agents/<name>/
-      agent.yaml       how to reach it, which metrics it uses, which suites run which metrics and checks
-      checks.yaml      optional: the deterministic checks, in groups (see src/fields/checks.py)
-      fields.yaml      optional: the fields evaluation reads from the trace (see src/fields/extract.py)
-      lookups.py       optional: functions that look values up outside the trace by id (src/fields/lookup.py)
-      parser.py        optional: Python for what fields.yaml / checks.yaml can't express
-      client.py        optional: only for agents that are not Google ADK (see agents/_template)
-      rubrics/*.md     optional: custom judge criteria
-      testdata/<suite>/*.json
-      synth/           optional: synthesizer settings (make goldens)
-      importers/*.yaml optional: spreadsheet column mappings (make import-cases)
-      <part>/agent.yaml optional: another part of the same system, tested on its own as AGENT=<name>/<part>
-                       (e.g. knowledge_agent/pipeline — a part of the agent's system tested on its own)
-
-Used by: the runner, the synthesizer and the CLI. To add or change an agent you edit its folder,
-never this file. This file only changes when agent.yaml gets a new top-level key.
+Raises ConfigError on mistakes before anything runs.
 """
 
 from __future__ import annotations
@@ -38,67 +20,59 @@ from src.metrics.library import validate_metric
 
 @dataclass
 class Suite:
-    """One entry under `suites:` — which test data to run and which judges to run on it."""
+    """One entry under `suites:`: which test data to run and which judges and checks to run on it."""
 
     name: str
     testdata: Path                # folder of test case JSON files (sub-folders included)
-    metrics: list[str]            # judge metrics to run; names defined under the agent's `metrics:`
+    metrics: list[str]
     only: dict[str, Any]          # optional filter, e.g. {"metadata.approval_status": "APPROVED"}
-    checks: list[str] | None = None   # deterministic checks to run: None = all, [] = none, else names/groups
+    checks: list[str] | None = None   # None = all, [] = none, else names/groups
     targets: dict[str, float] = field(default_factory=dict)   # release targets: pass rate per judge / check
-    traces: str = ""              # whose saved traces OFFLINE=1 replays (default: this suite's own),
-                                  # e.g. diagnose: traces: golden — re-judge golden runs without calling the agent
+    traces: str = ""              # whose saved traces OFFLINE=1 replays (default: this suite's own)
 
 
 @dataclass
 class Agent:
-    """An agent's agent.yaml, validated, with ${VAR} values filled in from the env files."""
+    """An agent's validated agent.yaml, with ${VAR} values filled in from the env files."""
 
     name: str
     folder: Path
     connection: dict[str, Any]              # passed as-is to the ADK client (or the agent's client.py)
     input_field: str                        # key in a test case's "input" that is sent to the agent
     message_template: str | None            # optional: wrap the input, e.g. "Look up {question}"
-    metrics: dict[str, dict[str, Any]]      # metric name -> settings (threshold, rubric, ...)
+    metrics: dict[str, dict[str, Any]]
     suites: dict[str, Suite]
-    fields: dict[str, dict[str, Any]] = field(default_factory=dict)   # fields.yaml: what to read from traces
-    checks: dict[str, dict[str, Any]] = field(default_factory=dict)   # checks.yaml
-    message_fields: dict[str, str] = field(default_factory=dict)      # message: send input as JSON (see below)
-    consistency: dict[str, Any] = field(default_factory=dict)         # consistency: rules for REPS > 1
+    fields: dict[str, dict[str, Any]] = field(default_factory=dict)
+    checks: dict[str, dict[str, Any]] = field(default_factory=dict)
+    message_fields: dict[str, str] = field(default_factory=dict)      # send input as JSON; see _message_fields
+    consistency: dict[str, Any] = field(default_factory=dict)         # rules for REPS > 1
     review_columns: dict[str, str] = field(default_factory=dict)      # SME review sheet: {heading: field}
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
-        """The agent's checks that this suite runs (a group name selects its whole group)."""
+        """Return the agent's checks this suite runs; a group name selects its whole group."""
         if suite.checks is None:
             return dict(self.checks)
         wanted = set(suite.checks)
         return {n: s for n, s in self.checks.items() if n in wanted or s.get("group") in wanted}
 
     def suite(self, name: str) -> Suite:
-        """A suite by name, or a ConfigError that lists the ones that exist."""
+        """Return a suite by name; raises ConfigError listing the ones that exist."""
         if name not in self.suites:
             raise ConfigError(f"Agent '{self.name}' has no suite '{name}'. Suites: {sorted(self.suites)}")
         return self.suites[name]
 
 
 def list_agents() -> list[str]:
-    """
-    Every folder under agents/ with an agent.yaml, and every sub-folder of an agent that has its own
-    (e.g. agents/knowledge_agent/pipeline -> 'knowledge_agent/pipeline'). Folders starting with _
-    (the template) are skipped.
-    """
+    """Return every agent folder with an agent.yaml, plus sub-parts like 'knowledge_agent/pipeline'.
+    Folders starting with _ (the template) are skipped."""
     agents = [p for p in paths.AGENTS_DIR.iterdir() if (p / "agent.yaml").is_file() and not p.name.startswith("_")]
     nested = [f"{p.name}/{sub.name}" for p in agents for sub in p.iterdir() if (sub / "agent.yaml").is_file()]
     return sorted([p.name for p in agents] + nested)
 
 
 def load_agent(name: str) -> Agent:
-    """
-    Read and validate agents/<name>/agent.yaml.
-
-    Mistakes (unknown metric keys, a suite using an undefined metric, a missing rubric file)
-    raise ConfigError here, before anything runs — not halfway through a suite.
-    """
+    """Read and validate agents/<name>/agent.yaml and return an Agent.
+    Raises ConfigError on any mistake, before anything runs."""
     folder = paths.AGENTS_DIR / name
     path = folder / "agent.yaml"
     if not path.is_file():
@@ -113,13 +87,13 @@ def load_agent(name: str) -> Agent:
     for metric_name, spec in (raw.get("metrics") or {}).items():
         spec = dict(spec or {})
         if "rubric" in spec:
-            # Rubric paths are written relative to the agent folder; store the full path.
+            # Rubric paths are relative to the agent folder.
             rubric = folder / spec["rubric"]
             if not rubric.is_file():
                 raise ConfigError(f"{path}: rubric for '{metric_name}' not found: {rubric}")
             spec["rubric"] = str(rubric)
         json_path = (spec.get("options") or {}).get("json_path")
-        if json_path:                      # Pegasus custom criteria file, written relative to the agent folder
+        if json_path:                      # Pegasus criteria file, relative to the agent folder
             criteria = folder / json_path
             if not criteria.is_file():
                 raise ConfigError(f"{path}: options.json_path for '{metric_name}' not found: {criteria}")
@@ -181,12 +155,8 @@ def load_agent(name: str) -> Agent:
 
 
 def _load_checks(raw: dict, folder: Path) -> dict[str, dict[str, Any]]:
-    """
-    The agent's deterministic checks, from checks.yaml next to agent.yaml (optional, like fields.yaml).
-
-    One place only: a `checks:` section at the top of agent.yaml is refused rather than merged or ignored.
-    (A suite's own `checks: all | none | [...]` only picks which of these run — that stays in agent.yaml.)
-    """
+    """Return the agent's deterministic checks from its optional checks.yaml.
+    Raises ConfigError if agent.yaml has a top-level `checks:` section (it belongs in checks.yaml)."""
     if raw.get("checks"):
         raise ConfigError(f"{folder / 'agent.yaml'}: the `checks:` section belongs in {folder / 'checks.yaml'} "
                           f"(move it there unchanged; suites keep their `checks:` selection in agent.yaml)")
@@ -196,16 +166,16 @@ def _load_checks(raw: dict, folder: Path) -> dict[str, dict[str, Any]]:
     return yaml_checks.validate(env.expand(yaml.safe_load(file.read_text()) or {}).get("checks") or {}, str(file))
 
 
-# The checks every agent gets (runner._standard_checks), selectable by name or as the group "basic".
+# Checks every agent gets, selectable by name or as the group "basic".
 BASIC_CHECKS = ("basic", "answer_non_empty", "keywords")
 
 
-# Targets that aren't a judge or check pass rate (see src/reporting/release.py).
+# Targets that aren't a judge or check pass rate.
 SPECIAL_TARGETS = ("error_rate", "case_pass_rate", "consistency")
 
 
 def _targets(spec: Any, where: str) -> dict[str, float]:
-    """`targets: {correctness: 0.90, error_rate: 0.05}`: numbers between 0 and 1."""
+    """Validate a suite's `targets:` map of names to numbers between 0 and 1."""
     if not spec:
         return {}
     if not isinstance(spec, dict) or not all(isinstance(v, (int, float)) and 0 <= v <= 1 for v in spec.values()):
@@ -214,10 +184,7 @@ def _targets(spec: Any, where: str) -> dict[str, float]:
 
 
 def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> dict[str, str]:
-    """
-    Extra columns of make review-sheet, from fields.yaml: {heading: field}, or a list of fields
-    (the field name is then the heading).
-    """
+    """Return the review sheet's extra columns as {heading: field}; a plain list uses field names as headings."""
     columns = dict(spec) if isinstance(spec, dict) else {name: name for name in ([spec] if isinstance(spec, str)
                                                                                  else spec or [])}
     unknown = [f for f in columns.values() if f not in fields]
@@ -227,13 +194,7 @@ def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> dict[str, 
 
 
 def _consistency(spec: Any, where: str) -> dict[str, Any]:
-    """
-    `consistency:` (agent level) — what "the same" means when a case is repeated (REPS > 1):
-        same: anchor_page_ids       a fields.yaml field that must match across repetitions (e.g. the main pages)
-        min_overlap: 1.0            how much it must match: 1.0 = identical in every repetition
-        all_pass: [correctness]     results that must pass in every repetition (default: every judge)
-        report: [cited_page_ids]    fields whose overlap is shown, but doesn't decide consistency
-    """
+    """Validate `consistency:` (same, min_overlap, all_pass, report): what "the same" means for REPS > 1."""
     if not spec:
         return {}
     unknown = set(spec) - {"same", "min_overlap", "all_pass", "report"} if isinstance(spec, dict) else set()
@@ -244,12 +205,8 @@ def _consistency(spec: Any, where: str) -> dict[str, Any]:
 
 
 def _message_fields(spec: Any, where: str) -> dict[str, str]:
-    """
-    `message: {format: json, fields: {<key the agent expects>: <key in the test case input>}}`
-    sends the input as a JSON object inside the message text, e.g. for the Knowledge Agent
-        {"query": "How do I ...?", "question_type": "how"}
-    Inputs a case doesn't have are left out; a case with only the main input still sends plain text.
-    """
+    """Return `message: {format: json, fields: {agent_key: input_key}}` as {agent_key: input_key}.
+    The runner then sends the input as a JSON object inside the message text."""
     if not spec:
         return {}
     if not isinstance(spec, dict) or spec.get("format") != "json" or not isinstance(spec.get("fields"), dict):
@@ -258,7 +215,7 @@ def _message_fields(spec: Any, where: str) -> dict[str, str]:
 
 
 def _suite_checks(value: Any, where: str) -> list[str] | None:
-    """A suite's `checks:` -> None (all), [] (none) or the listed names."""
+    """Turn a suite's `checks:` into None (all), [] (none) or the listed names."""
     if value in ("all", None):
         return None
     if value in ("none", [], False):

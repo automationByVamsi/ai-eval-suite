@@ -1,19 +1,5 @@
-"""
-The release view of the dashboard. A run saved by `make verdict` opens this instead of the ordinary
-run page: the new build against the baseline build.
-
-    banner      PASS / FAIL, which two builds, and the one-line reason
-    headline numbers
-    tabs        Summary     how the test cases moved, release targets, judge / check charts, what changed
-                Comparison  every test case with both builds' answers side by side (filters at the top)
-                This build  the new build's test cases
-                Baseline    the baseline build's test cases
-
-The numbers come from verdict_view.py (no Streamlit there). The HTML snippets and the chart are in
-dashboard_verdict_parts.py.
-
-Used by: dashboard.py.
-"""
+"""Dashboard release view for a `make verdict` run: new build vs baseline build, with a PASS / FAIL banner,
+KPIs and the Summary, Comparison, This build and Baseline tabs."""
 
 import pandas as pd
 import streamlit as st
@@ -40,10 +26,9 @@ from src.reporting.dashboard_verdict_parts import (
 
 
 def show_verdict_page(v: "vv.Verdict", status_filter: list | None, search: str) -> None:
-    """Draw the whole release view for one verdict. status_filter and search come from the sidebar."""
+    """Draw the whole release view for one verdict, using the sidebar's status filter and search."""
     current, base = v.run, v.baseline_run
 
-    # The numbers the page is built from.
     changes = vv.case_changes(v.outcome.get("rows") or [])         # per test case: regressed / improved / ...
     now_stats = ui.run_stats(current)
     was_stats = ui.run_stats(base) if base else None               # None for old baselines kept as numbers only
@@ -77,11 +62,10 @@ def show_verdict_page(v: "vv.Verdict", status_filter: list | None, search: str) 
 # --- the banner and the headline numbers ---------------------------------------------------------------
 
 def show_banner(v: "vv.Verdict", reason: str) -> None:
-    """The top banner: which build against which baseline, the reason in one line, and a big PASS / FAIL."""
+    """Draw the top banner: build vs baseline, the one-line reason, and a big PASS / FAIL."""
     current, outcome = v.run, v.outcome
     good = v.passed
     when = pd.to_datetime(outcome.get("decided_at") or current.started_at)
-    # Small grey tags under the title; a tag with empty text is left out.
     chips = "".join(ui.chip(x, k) for x, k in [
         (current.suite, "accent"), (f"{current.reps} rep{'s' * (current.reps > 1)} per case", "plain"),
         ("offline replay" if current.offline else "live agent", "plain"),
@@ -98,7 +82,7 @@ def show_banner(v: "vv.Verdict", reason: str) -> None:
 
 
 def show_verdict_kpis(changes: dict, now_stats: dict, was_stats: dict | None) -> None:
-    """Five headline numbers. Each shows the baseline's value and how it changed (was_stats is None: no baseline)."""
+    """Draw five KPI cards, each with the baseline value and the change (was_stats is None without a baseline)."""
     regressed = sum(c.change == "regressed" for c in changes.values())
     improved = sum(c.change == "improved" for c in changes.values())
     cases_now = now_stats["passed"] / max(now_stats["cases"], 1)
@@ -127,7 +111,7 @@ def show_verdict_kpis(changes: dict, now_stats: dict, was_stats: dict | None) ->
 # --- Summary tab ---------------------------------------------------------------------------------------
 
 def show_summary_tab(v: "vv.Verdict", changes: dict, target_rows: list, base_targets: list, questions: dict) -> None:
-    """Top to bottom: how the cases moved, release targets, judge and check charts, what changed, notes."""
+    """Draw the Summary tab: case movement, targets, judge / check charts, what changed and notes."""
     with st.container(border=True):
         html('<div class="card-label">How the test cases moved<span class="count">per test case, all '
              'judges and checks together</span></div>')
@@ -140,7 +124,7 @@ def show_summary_tab(v: "vv.Verdict", changes: dict, target_rows: list, base_tar
 
 
 def show_targets_card(target_rows: list, base_targets: list) -> None:
-    """The release targets of the suite: each target, the baseline's value, this build's value, met / missed."""
+    """Draw the release targets card: target, baseline value, this build's value, met / missed."""
     missed = sum(r["met"] is False for r in target_rows)
     with st.container(border=True):
         status = ui.chip("all targets met", "good") if missed == 0 else ui.chip(f"{missed} target(s) missed", "bad")
@@ -149,7 +133,7 @@ def show_targets_card(target_rows: list, base_targets: list) -> None:
 
 
 def show_metric_charts(base: Run | None, current: Run) -> None:
-    """Two cards side by side: the LLM judges' mean scores, and the checks' pass rates (baseline -> this build)."""
+    """Draw judge mean scores and check pass rates, baseline -> this build, side by side."""
     metrics = vv.metric_changes(base, current)
     left, right = st.columns(2, gap="medium")
     with left.container(border=True):
@@ -165,12 +149,12 @@ def show_metric_charts(base: Run | None, current: Run) -> None:
         html('<div class="card-label">Deterministic checks<span class="count">pass rate · baseline → this '
              'build</span></div>')
         checks = [m for m in metrics if m["kind"] == "check"]
-        moved = [m for m in checks if rate_moved(m, "rate")]       # only the checks that changed get a line
+        moved = [m for m in checks if rate_moved(m, "rate")]
         chart = dumbbell(moved, "rate", "pass rate", ".0%")
         if chart is not None:
             html(DUMBBELL_LEGEND)
             st.altair_chart(chart, width="stretch")
-        still = [m for m in checks if not rate_moved(m, "rate")]   # the rest are listed in one sentence
+        still = [m for m in checks if not rate_moved(m, "rate")]
         if still:
             rates = sorted({ui.pct(m["current_rate"]) for m in still})
             html(f'<div class="note" style="margin-top:6px">{len(still)} other check'
@@ -181,7 +165,7 @@ def show_metric_charts(base: Run | None, current: Run) -> None:
 
 
 def show_what_changed(changes: dict, outcome: dict, questions: dict) -> None:
-    """One row per test case that moved beyond the tolerance, worst first."""
+    """Draw one row per test case that moved beyond the tolerance, worst first."""
     changed = [c for c in changes.values() if c.change != "unchanged"]
     changed.sort(key=lambda c: vv.CHANGES.index(c.change))
     st.markdown('<div class="section-title">What changed</div><div class="section-note">Every test case whose '
@@ -206,7 +190,7 @@ def show_what_changed(changes: dict, outcome: dict, questions: dict) -> None:
 
 
 def show_notes(outcome: dict) -> None:
-    """Warnings the comparison attached (e.g. judge temperature changed) and a hint for old baselines."""
+    """Draw the comparison's warnings (e.g. judge temperature changed) and a hint for old baselines."""
     notes = sorted({r["note"] for r in outcome.get("rows") or [] if r.get("note")})
     for note in notes:
         st.warning(note, icon=":material/warning:")
@@ -218,7 +202,7 @@ def show_notes(outcome: dict) -> None:
 # --- Comparison tab ------------------------------------------------------------------------------------
 
 def show_comparison_tab(v: "vv.Verdict", changes: dict, questions: dict) -> None:
-    """Filters, a table of every test case, then one expander per case with both builds side by side."""
+    """Draw the Comparison tab: filters, a case table, then one side-by-side expander per case."""
     picked_keys, wanted_results, text = _comparison_filters(changes)
     by_id_now, by_id_base = _reps_by_case(v.run), _reps_by_case(v.baseline_run)
 
@@ -246,7 +230,7 @@ def show_comparison_tab(v: "vv.Verdict", changes: dict, questions: dict) -> None
 
 
 def _comparison_filters(changes: dict) -> tuple[set, list, str]:
-    """The three filters above the table. Returns (change kinds to keep, judges / checks wanted, search text)."""
+    """Draw the comparison filters; return (change kinds to keep, judges / checks wanted, search text)."""
     names = sorted({n for c in changes.values() for n in c.results})
     f1, f2, f3 = st.columns([2.2, 1.6, 1.4])
     picked = f1.pills("Change", [CHANGE_STYLE[k][0] for k in vv.CHANGES], selection_mode="multi",
@@ -260,7 +244,7 @@ def _comparison_filters(changes: dict) -> tuple[set, list, str]:
 
 
 def _keep_case(c, picked_keys: set, wanted_results: list, text: str, questions: dict) -> bool:
-    """True when a test case passes all three filters."""
+    """Return True when a test case passes all three comparison filters."""
     if c.change not in picked_keys:
         return False
     if wanted_results and not any(i["name"] in wanted_results for i in c.items if i["status"] != "ok"):
@@ -270,7 +254,7 @@ def _keep_case(c, picked_keys: set, wanted_results: list, text: str, questions: 
 
 
 def show_changed_case(c, questions: dict, base_reps: list, now_reps: list, v: "vv.Verdict", expanded: bool) -> None:
-    """One expander: what changed, the question, then the baseline build and the new build side by side."""
+    """Draw one case's expander: what changed, the question, then both builds side by side."""
     label_, _, _, colour, icon = CHANGE_STYLE[c.change]
     moved = " · ".join(vv.describe(i) for i in c.items if i["status"] != "ok")
     title = (f":{colour}[**{label_.upper()}**]  ·  **{c.case_id}**  ·  "
@@ -288,7 +272,7 @@ def show_changed_case(c, questions: dict, base_reps: list, now_reps: list, v: "v
 
 
 def show_build_side(case: CaseResult | None, reps: list, col, title: str) -> None:
-    """One build's side of a comparison: its status and scores, the answer, and the pages used."""
+    """Draw one build's side of a comparison: status and scores, answer, and pages used."""
     with col.container(border=True):
         html(f'<div class="card-label">{ui.esc(title)}</div>')
         html(compact_build_html(case, reps))
@@ -305,7 +289,7 @@ def show_build_side(case: CaseResult | None, reps: list, col, title: str) -> Non
 
 
 def _reps_by_case(r: Run | None) -> dict[str, list[CaseResult]]:
-    """{case id: its repetitions in order}. Empty when there is no run."""
+    """Return {case id: its repetitions in order}; empty when there is no run."""
     out: dict[str, list[CaseResult]] = {}
     for c in (r.cases if r else []):
         out.setdefault(c.case_id, []).append(c)
@@ -313,7 +297,7 @@ def _reps_by_case(r: Run | None) -> dict[str, list[CaseResult]]:
 
 
 def _status_text(reps: list | None) -> str:
-    """'PASS' for one run of a case, '3/5 passed' for several, '–' when the case isn't in this build."""
+    """Return 'PASS' for one rep, '3/5 passed' for several, or '–' when the case isn't in this build."""
     if not reps:
         return "–"
     if len(reps) == 1:

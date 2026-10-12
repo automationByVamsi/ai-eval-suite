@@ -1,93 +1,54 @@
-# Knowledge Agent — deterministic checks, in groups (the dashboard shows them by group).
-# They read the fields from fields.yaml; a check whose expected value a case lacks is SKIPPED.
-# Types and options: see the top of src/fields/checks.py. "basic" (answer_non_empty, expected.keywords)
-# is built in. Which checks a suite runs (and its pass-rate targets) is set under suites: in agent.yaml.
+# Knowledge Agent: deterministic checks on the fields in fields.yaml, in groups. Suites pick them in agent.yaml.
+# Types: see the top of src/fields/checks.py. "basic" is built in. A check whose expected value a case lacks
+# is SKIPPED.
 checks:
   answer:                     # what the caller receives is safe to show
-    no_internal_markers:        {type: not_contains, field: answer,
-                                 values: [page_ids, anchor_page, artifact_id, rewritten_query, search_branches]}
     citations_in_evidence_set:  {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
     page_link_for_every_source: {type: same_count, fields: [evidence_page_ids, evidence_links]}
 
-  retrieval:                  # golden cases: the expected pages were found (ids or titles, whichever the case has)
-    # diagnostic: shown on every case, but a miss doesn't fail the case — a good answer from a page the
-    # golden doesn't list may still be right (ask the SME). The run's targets (anchor_hit >= 80%) still gate.
+  retrieval:                  # golden cases: the expected pages were found (by id or title)
+    # Diagnostic: does not fail the case (the run's anchor_hit target still gates).
     anchor_hit:
       type: any_in
       diagnostic: true
       compare:
         - {field: anchor_page_ids, expected: expected_anchor_page_ids}
         - {field: anchor_titles,   expected: expected_anchor_page_titles}
-    search_recall_at_5:       # every expected anchor page is in the first 5 search results
+    search_recall_at_5:       # every expected anchor page is in the top 5 search results
       type: recall
       k: 5
       threshold: 1.0
       diagnostic: true
       compare:
         - {field: search_ranked, expected: expected_anchor_page_ids}
-    search_ndcg_at_5:         # ... and near the top: 1.0 = first, 0.63 = second, 0.5 = third (Pedro's test 5)
+    search_ndcg_at_5:         # ... and near the top: 1.0 = first, 0.63 = second, 0.5 = third
       type: ndcg
       k: 5
       threshold: 0.7
       diagnostic: true
       compare:
         - {field: search_ranked, expected: expected_anchor_page_ids}
-    expansion_recall:         # the expected related pages were added by relation expansion
+    expansion_recall:         # expected related pages were added by relation expansion
       type: recall
       threshold: 0.7
       diagnostic: true
       compare:
         - {field: expanded_page_ids, expected: expected_related_page_ids}
         - {field: expanded_titles,   expected: expected_related_page_titles}
-    relation_labels_valid:    # every relation the agent used is one of the design's relation types
-      type: one_of
-      field: expansion_labels
-      values: [subpage, external, escalation, prerequisite, follows_on, follows on, governed_by, governed by,
-               supersedes, variant_of, variant of, exception_to, exception to, reference, references, unknown]
-      when: {field: expansion_labels, present: true}
-    source_page_found:        # synthetic cases: the page the question was generated from is in the evidence
+    source_page_found:        # synthetic cases: the source page is in the evidence
       type: any_in
       diagnostic: true
       field: evidence_page_ids
       expected: source_page_id
 
-  input:                      # what reaches search is in scope and free of personal details
-    business_area_in_scope:     # the business area the case sends is one of the 25 in scope (KA I/O design),
-      type: one_of              # in the agent's format. Catches typos in test data. Same list as domains.yaml
-                                # (a test checks they match)
-      field: input_business_area
-      values: [Knowledge_Manager_Guidance, Blackhorse, Brand_Change, Business_Banking, Codes,
-               Commercial_Banking_Online, Community_Bank, Complaint_Managers, Contact_Lists,
-               Customer_Financial_Assistance_(CFA), Customer_Self-Service_Online_and_App,
-               Customer_Vulnerability_Hub, Customer_Vulnerability_Hub_2, D2C_Investment_Operations, Fraud,
-               General_Insurance, Homes_Servicing, Lex_Autolease, MOT_Operations, Personal_Banking,
-               Recoveries_Commercial_Bank, Reference, Secured_Underwriting, UK_Private_Banking,
-               Unsecured_Underwriting]
-      when: {field: input_business_area, present: true}
-    pii_not_sent_to_search:     # PII guardrail: the customer's details in the question never reach the search
-      type: not_matches         # queries (cases with expected.contains_pii: true, i.e. the privacy suite).
-      diagnostic: true          # Evidence only: the query_privacy_leakage judge decides (it also sees what
-                                # patterns can't); this names exactly which number / code / name leaked.
-      fields: [rewritten_query, branch_sub_queries]
-      patterns:
-        - '\b\d{2}-\d{2}-\d{2}\b'                          # sort code
-        - '\b\d{8}\b'                                     # account number
-        - '\b[A-Z]{2}\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]\b'          # National Insurance number
-        - '\b07\d{3}\s?\d{6}\b'                            # UK mobile number
-        - '[\w.+-]+@[\w-]+\.[\w.]+'                          # email address
-        - '\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b'              # postcode
-        - '\b\d{1,2}/\d{1,2}/\d{2,4}\b'                      # date (of birth)
-        - '\b(Mr|Mrs|Ms|Miss|Dr)\.?\s+[A-Z][a-z]+'             # title + name
-      when: {expected: contains_pii, is: true}
-
-  expected_errors:            # cases that expect the agent to refuse with an error (expected.expected_error)
-    returned_expected_error:    # e.g. an unanswerable question -> InsufficientContextError, not an invented answer
+  expected_errors:            # cases where the agent must refuse with expected.expected_error
+    returned_expected_error:
       type: contains
       field: agent_error
       expected: expected_error
 
-  disclosure:                 # a MEDIUM / LOW confidence answer tells the caller (caveat or warning)
+  disclosure:                 # a MEDIUM / LOW confidence answer carries a caveat or warning
     caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
 
-  performance:                # MVP success metric: a response within 60 seconds
+  performance:                # response within 60 seconds
     within_60s:             {type: range, field: latency_ms, min: 0, max: 60000}

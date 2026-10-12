@@ -1,15 +1,6 @@
-"""
-Results dashboard: `make dashboard` (runs `streamlit run src/reporting/dashboard.py`).
+"""Streamlit dashboard entry point (`make dashboard`): page setup, the sidebar, and which page to open.
 
-Read-only: it reads outputs/runs/*/results.json and baselines/ — nothing else.
-
-This file is only the front door. It does three things:
-  1. sets up the page (title, colours),
-  2. draws the sidebar (pick an agent, a suite and a run; filter the test cases),
-  3. opens the right page for the chosen run.
-
-The pages themselves live in their own files — every file and its job is listed in
-src/reporting/__init__.py.
+Read-only: it reads outputs/runs/*/results.json and baselines/.
 """
 
 import sys
@@ -27,7 +18,7 @@ from src.reporting.dashboard_style import apply_theme, html  # noqa: E402
 from src.reporting.dashboard_verdict import show_verdict_page  # noqa: E402
 
 st.set_page_config(page_title="Agent evals", page_icon=":material/fact_check:", layout="wide")
-apply_theme()                   # the colours and CSS (dashboard_style.py)
+apply_theme()
 
 # --- no runs yet: say what to do, then stop -------------------------------------------------------
 
@@ -43,7 +34,7 @@ if not run_ids:
 with st.sidebar:
     st.markdown("### :material/fact_check: Agent evals")
 
-    # Group the runs by (agent, suite) so the three menus below only offer choices that exist.
+    # Group runs by (agent, suite) so the menus only offer choices that exist.
     by_pair: dict[tuple[str, str], list[str]] = {}
     for rid in run_ids:
         r = load(rid)

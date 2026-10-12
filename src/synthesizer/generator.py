@@ -1,16 +1,6 @@
 """
-The synthesizer commands.
-
-  make sources AGENT=.. [GROUP=..] [IDS=..]               fetch_sources():   (re)fetch documents into synth/cache/
-  make goldens AGENT=.. [GROUP=..] [IDS=..] [REPLACE=1]   generate_goldens(): generate test cases
-
-generate_goldens(), for every style x document:
-  1. DeepEval's Synthesizer writes question(s) + reference answer(s), with the CORTEX model
-     (style sections + instructions.md as its styling, evolutions + quality filter from synth.yaml)
-  2. each golden is checked: not empty, no placeholder text like [INSERT ...], not a duplicate
-  3. the output template turns it into this agent's test case JSON
-Files are written only after all generation succeeded, so a crash never leaves half a data set.
-A manifest in synth/runs/ records what was generated, skipped (and why) and what failed.
+Synthesizer commands: `make sources` (fetch_sources) and `make goldens` (generate_goldens).
+Cases are written only after all generation finishes; a manifest in synth/runs/ records the run.
 """
 
 from __future__ import annotations
@@ -30,12 +20,12 @@ from src.synthesizer.output_template import MissingGenerated, default_output, re
 from src.synthesizer.settings import load_settings, style_sections
 from src.utils.text import normalised
 
-# Text a model writes when it didn't have the information: such cases are dropped.
+# Filler a model writes when it lacked the information; such cases are dropped.
 PLACEHOLDER_TEXT = re.compile(r"\[INSERT[^\]]*\]|(?<!\w)N/A(?!\w)|(?<!\w)TBD(?!\w)|\.\.\.", re.IGNORECASE)
 
 
 def fetch_sources(agent_name: str, groups: list[str] | None = None, ids: list[str] | None = None) -> list[Path]:
-    """(Re-)fetch the selected documents from the source and save them in synth/cache/."""
+    """Fetch the selected documents from the source and save them in synth/cache/."""
     settings = load_settings(load_agent(agent_name))
     wanted, group_of = select(settings, groups, ids)
     return [save_to_cache(settings, d) for d in fetch(settings, wanted, group_of, groups)]
@@ -43,7 +33,7 @@ def fetch_sources(agent_name: str, groups: list[str] | None = None, ids: list[st
 
 def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list[str] | None = None,
                      replace: bool = False, styles: list[str] | None = None) -> list[Path]:
-    """Generate test cases for the selected documents and write them with the output template."""
+    """Generate test cases for every style x selected document and write them via the output template."""
     from deepeval.synthesizer import Synthesizer  # imported here: DeepEval is slow to import
     from deepeval.synthesizer.config import StylingConfig
 
@@ -72,7 +62,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
         chosen = {name: chosen[name] for name in styles}
     for style_name, style in chosen.items():
         sections = style_sections(settings["folder"] / style["file"])
-        # DeepEval's StylingConfig has four fields; our extra sections are folded into them.
+        # StylingConfig has only four fields, so the extra sections are folded into them.
         task = "\n\n".join(s for s in [sections.get("task"), sections.get("additional_guidance")] if s)
         scenario = "\n\n".join(s for s in [sections.get("scenario"), instructions] if s)
         synthesizer = Synthesizer(
@@ -133,7 +123,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
 
 
 def merged(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """`base` with `override` laid over it; nested mappings (e.g. case.expected) are merged key by key."""
+    """Return `base` with `override` laid over it; nested dicts are merged key by key."""
     result = dict(base)
     for key, value in override.items():
         result[key] = merged(result[key], value) if isinstance(value, dict) and isinstance(result.get(key), dict) \
@@ -142,7 +132,7 @@ def merged(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
 
 
 def spread(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The documents with their groups taken in turn (A1, B1, C1, A2, B2, ...), so a capped style varies."""
+    """Interleave documents by group (A1, B1, C1, A2, ...) so a capped style covers every group."""
     by_group: dict[str, list[dict[str, Any]]] = {}
     for document in documents:
         by_group.setdefault(document["group"], []).append(document)
@@ -151,10 +141,7 @@ def spread(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _write_cases(planned: dict[Path, dict], replace: bool, styles: set[str]) -> None:
-    """
-    Write the new cases. With REPLACE=1, first remove the earlier cases of the styles just generated
-    from the folders they go into (cases of other styles in the same domain folder stay).
-    """
+    """Write the new cases; with REPLACE=1, first delete old cases of the same styles in those folders."""
     if replace:
         for folder in {p.parent for p in planned}:
             for old in folder.glob("*.json"):
@@ -170,7 +157,7 @@ def _write_cases(planned: dict[Path, dict], replace: bool, styles: set[str]) -> 
 
 
 def _deepeval_configs(settings: dict[str, Any], llm: Any) -> tuple[Any, Any]:
-    """DeepEval's EvolutionConfig and FiltrationConfig from `evolutions:` and `quality_filter:`."""
+    """Build DeepEval's EvolutionConfig and FiltrationConfig from `evolutions:` and `quality_filter:`."""
     from deepeval.synthesizer.config import EvolutionConfig, FiltrationConfig
     from deepeval.synthesizer.types import Evolution
 
@@ -189,7 +176,7 @@ def _deepeval_configs(settings: dict[str, Any], llm: Any) -> tuple[Any, Any]:
 
 
 def _problem(golden: Any, include_expected: bool, seen: set[str]) -> str:
-    """Why a generated golden can't be used, or "" when it's fine."""
+    """Return why a generated golden can't be used, or "" when it's fine."""
     question, answer = (golden.input or "").strip(), (golden.expected_output or "").strip()
     if not question:
         return "empty generated input"

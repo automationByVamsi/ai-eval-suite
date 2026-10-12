@@ -1,16 +1,6 @@
-"""
-`make doctor`: check this machine is ready to run evaluations, and say how to fix what isn't.
+"""`make doctor`: check this machine is ready to run evaluations and say how to fix what isn't.
 
-It checks, in order:
-  1. which Python / virtual environment the framework is running in
-  2. which env files were found
-  3. whether DeepEval and Pegasus can be imported (Pegasus must be in *this* environment)
-  4. the HTTPS certificate settings (VERIFY_TLS / CA_BUNDLE)
-  5. the CORTEX settings for the chosen CORTEX_AUTH (api_key or devkit), then one tiny call to
-     CORTEX to prove the judge model is reachable
-  6. one real Pegasus metric (answer relevancy on a two-line example), when Pegasus is installed
-
-Secrets are never printed — only whether they are set.
+Checks Python env, env files, judge libraries, certificates and CORTEX; never prints secrets.
 """
 
 from __future__ import annotations
@@ -26,7 +16,7 @@ OK, WARN, FAIL = "OK  ", "WARN", "FAIL"
 
 
 def run_doctor(ping: bool = True) -> int:
-    """Print the report. Returns 0 when nothing FAILed, 1 otherwise."""
+    """Print the readiness report; returns 0 when nothing FAILed, 1 otherwise."""
     problems = 0
 
     def line(status: str, what: str, detail: str = "") -> None:
@@ -36,13 +26,12 @@ def run_doctor(ping: bool = True) -> int:
 
     print("\nai-eval-suite doctor\n" + "-" * 72)
 
-    # 1. Python environment — Pegasus has to be installed into this one.
+    # Pegasus has to be installed into this Python environment.
     line(OK, "python", sys.executable)
     active = os.environ.get("VIRTUAL_ENV", "")
     line(OK if active else WARN, "virtual env",
          active or "none active — make uses the project's .venv (created by make setup)")
 
-    # 2. Env files
     found = [p for p in (paths.ENV_DIR / ".env", paths.ROOT / ".env") if p.is_file()]
     agent_files = sorted(paths.ENV_DIR.glob(".env.*")) if paths.ENV_DIR.is_dir() else []
     agent_files = [p for p in agent_files if p.name != ".env.example"]
@@ -50,7 +39,6 @@ def run_doctor(ping: bool = True) -> int:
          ", ".join(_short(p) for p in found + agent_files)
          or "none — run make setup, then fill in env/.env")
 
-    # 3. Judge libraries
     line(OK if _installed("deepeval") else FAIL, "deepeval", _version("deepeval") or "not installed — run make setup")
     if _installed("pegasus"):
         spec = importlib.util.find_spec("pegasus")
@@ -61,7 +49,6 @@ def run_doctor(ping: bool = True) -> int:
              "                              Fix: put your SAR token in env/.env (SAR_TOKEN_NAME / "
              "SAR_TOKEN_PASS_CODE), then run make setup.")
 
-    # 4. Certificates
     if tls.ca_bundle():
         exists = os.path.isfile(tls.ca_bundle())
         missing = "" if exists else "  (file not found)"
@@ -70,7 +57,7 @@ def run_doctor(ping: bool = True) -> int:
         line(OK, "certificates", "checked (VERIFY_TLS=true)" if tls.verify_enabled()
              else "not checked (VERIFY_TLS=false — fine behind the office proxy)")
 
-    # 5. CORTEX — api_key mode needs host + id + key; devkit mode needs the package and `make cortex-login`.
+    # api_key mode needs host + id + key; devkit mode needs the package and `make cortex-login`.
     mode = (os.environ.get("CORTEX_AUTH") or "api_key").strip().lower()
     line(OK if mode in ("api_key", "devkit") else FAIL, "CORTEX_AUTH", mode)
     line(OK, "CORTEX_MODEL", os.environ.get("CORTEX_MODEL", "vertex_ai/gemini-2.5-pro (default)"))
@@ -114,7 +101,7 @@ def run_doctor(ping: bool = True) -> int:
                 hint = "  -> run make cortex-login"
             line(FAIL, "CORTEX call", f"{type(exc).__name__}: {str(exc)[:300]}{hint}")
 
-    # 6. One real Pegasus metric on a tiny example — proves Pegasus + its CORTEX sign-in end to end.
+    # One real Pegasus metric proves Pegasus and its CORTEX sign-in end to end.
     if ping and ready and _installed("pegasus"):
         from src.clients import cortex_client
         from src.metrics import judges
@@ -134,7 +121,7 @@ def run_doctor(ping: bool = True) -> int:
 
 
 def _short(path) -> str:  # noqa: ANN001
-    """A path relative to the repo when it's inside it, else the full path."""
+    """Return the path relative to the repo when inside it, else the full path."""
     try:
         return str(path.relative_to(paths.ROOT))
     except ValueError:
@@ -142,10 +129,12 @@ def _short(path) -> str:  # noqa: ANN001
 
 
 def _installed(module: str) -> bool:
+    """True if the module can be imported."""
     return importlib.util.find_spec(module) is not None
 
 
 def _version(distribution: str) -> str:
+    """Return the installed distribution's version, or "" if it isn't installed."""
     try:
         return importlib.metadata.version(distribution)
     except importlib.metadata.PackageNotFoundError:
@@ -153,7 +142,7 @@ def _version(distribution: str) -> str:
 
 
 def _version_of_module(module: str) -> str:
-    """Pegasus' distribution name isn't known here, so ask the module itself."""
+    """Return a module's __version__ (Pegasus' distribution name isn't known, so ask the module)."""
     try:
         return str(getattr(__import__(module), "__version__", "") or "installed")
     except Exception:  # noqa: BLE001

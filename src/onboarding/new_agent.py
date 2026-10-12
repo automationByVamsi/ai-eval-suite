@@ -1,12 +1,4 @@
-"""
-`make new-agent NAME=my_agent [INPUT_FIELD=question]`
-
-Copies agents/_template/ to agents/<name>/ and fills in:
-  - the agent name and its env variable names (MY_AGENT_BASE_URL -> <NAME>_BASE_URL, ...)
-  - the input field in agent.yaml and in the sample test case
-  - the agent's variables at the end of env/.env.example
-then prints the next steps. To change what every new agent starts with, edit agents/_template/.
-"""
+"""`make new-agent`: copy agents/_template/ to agents/<name>/ with the name, env variables and input field filled in."""
 
 from __future__ import annotations
 
@@ -19,7 +11,8 @@ from src.core.exceptions import ConfigError
 
 
 def create_agent(name: str, input_field: str = "question") -> None:
-    """Create agents/<name>/ from the template. Refuses an existing folder or a non-snake_case name."""
+    """Create agents/<name>/ from the template and print next steps.
+    Raises ConfigError for an existing folder or a non-snake_case name."""
     if not re.fullmatch(r"[a-z][a-z0-9_]*", name):
         raise ConfigError(f"Agent name must be snake_case, like my_agent (got {name!r})")
     target = paths.AGENTS_DIR / name
@@ -27,7 +20,7 @@ def create_agent(name: str, input_field: str = "question") -> None:
         raise ConfigError(f"{target} already exists")
 
     shutil.copytree(paths.AGENTS_DIR / "_template", target)
-    prefix = name.upper()      # env variables: <PREFIX>_BASE_URL, <PREFIX>_APP_NAME, ...
+    prefix = name.upper()
 
     config = target / "agent.yaml"
     text = config.read_text().replace("MY_AGENT", prefix).replace("my_agent", name)

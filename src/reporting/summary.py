@@ -1,18 +1,6 @@
-"""
-Rates across a whole run (or several runs): how often each check and judge passed.
+"""Pass rate, mean score and unstable cases for every check and judge across one or more runs.
 
-    anchor_hit   check   18/24 = 75%   (6 fail, 4 skip)
-    faithfulness judge   20/22 = 91%   mean 0.86   (2 error)
-
-  rate     passes / (passes + fails). Skips (the case has no expected value for it) and errors (it
-           could not run) are left out of the rate and counted separately, so they never pull the
-           rate up or down.
-  mean     the average score, for judges and scored checks (precision, recall).
-  per case with repetitions (REPS=n, or several runs together), e.g. anchor_hit KA_GLD_COMPLAINT_MANAGERS_044
-           hit 3/5 — shown for cases whose outcome changed between repetitions (the unstable ones).
-
-Used by: the console report after every run (print_run), results.json ("summary"), and
-`make summary` (several saved runs together).
+Rate is passes / (passes + fails); skips and errors are counted separately and never move it.
 """
 
 from __future__ import annotations
@@ -24,7 +12,7 @@ from src.core.results import ERROR, FAIL, PASS, SKIP, Run
 
 
 def summarise(runs: list[Run]) -> list[dict[str, Any]]:
-    """One row per check / judge name, across every case and repetition of the given runs."""
+    """Return one row per check / judge across every case and rep of the runs, judges first."""
     rows: dict[tuple[str, str], dict[str, Any]] = {}
     per_case: dict[tuple[str, str], dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     for run in runs:
@@ -49,16 +37,12 @@ def summarise(runs: list[Run]) -> list[dict[str, Any]]:
         summary.append({**row, "rate": round(row[PASS] / judged, 4) if judged else None,
                         "mean_score": round(sum(scores) / len(scores), 4) if scores else None,
                         "cases": len(per_case[key]), "unstable": unstable})
-    # Judges first, then checks; within each, the order they first appeared.
+    # Stable sort: judges first, otherwise first-seen order.
     return sorted(summary, key=lambda r: r["kind"] != "judge")
 
 
 def time_split(runs: list[Run]) -> dict[str, float]:
-    """
-    Where the time goes, averaged over every case: each numeric field ending in _seconds
-    (e.g. retrieval_seconds, validation_seconds, generation_seconds from fields.yaml) -> its mean.
-    {} when the agent has no such fields.
-    """
+    """Return the mean of each numeric `*_seconds` field across all cases, keyed without the suffix ({} if none)."""
     values: dict[str, list[float]] = defaultdict(list)
     for run in runs:
         for case in run.cases:
@@ -69,7 +53,7 @@ def time_split(runs: list[Run]) -> dict[str, float]:
 
 
 def print_summary(rows: list[dict[str, Any]], title: str) -> None:
-    """The rates table (rows that never ran — all skipped — are listed on one line at the end)."""
+    """Print the rates table; rows skipped in every case are listed on one line at the end."""
     print(f"\n{title}")
     print("-" * 72)
     never = []

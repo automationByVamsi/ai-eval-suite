@@ -7,7 +7,7 @@ from typing import Any
 
 
 def strip_code_fence(text: str) -> str:
-    """Remove a surrounding ```json ... ``` fence. Gemini often wraps JSON answers in one."""
+    """Remove a surrounding ```json ... ``` fence (Gemini often wraps JSON answers in one)."""
     text = (text or "").strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
@@ -15,17 +15,17 @@ def strip_code_fence(text: str) -> str:
 
 
 def slug(text: str) -> str:
-    """'Recoveries Commercial Bank' -> 'recoveries_commercial_bank' (for folder and id names)."""
+    """Return a lowercase underscore slug for folder and id names, e.g. 'Commercial Bank' -> 'commercial_bank'."""
     return re.sub(r"[^a-z0-9]+", "_", (text or "").lower()).strip("_") or "unassigned"
 
 
 def safe_filename(text: str) -> str:
-    """Anything -> a string that is safe as a file name (keeps letters, digits, _ . -)."""
+    """Return text made safe as a file name (keeps letters, digits, _ . -)."""
     return re.sub(r"[^\w.-]+", "_", str(text)).strip("_")
 
 
 def normalised(text: str) -> str:
-    """Lower-case with single spaces — used to spot duplicate questions."""
+    """Return text lowercased with single spaces, for spotting duplicates."""
     return " ".join((text or "").lower().split())
 
 
@@ -37,7 +37,7 @@ def is_empty(value: Any) -> bool:
 
 
 def first(value: Any) -> Any:
-    """First element of a list / tuple / pandas column; other values are returned unchanged."""
+    """Return the first element of a list, tuple or pandas column; other values unchanged."""
     if hasattr(value, "tolist"):
         value = value.tolist()
     if isinstance(value, (list, tuple)):

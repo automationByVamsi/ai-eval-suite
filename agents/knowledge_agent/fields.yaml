@@ -1,25 +1,14 @@
-# Knowledge Agent — the fields evaluation reads from each trace.
-#
-# Each field is a JMESPath query (try it on https://jmespath.org) on one document built from the trace:
-#   final     the final output the caller receives        state     the agent's session state
-#   nodes     {node name: [its outputs]}                  models    {agent name: [its model replies]}
-#   messages  [every text in the trace]                   timing    {step: seconds}
-#   trace     the saved trace file itself
-# Options (path list, where/pick, unique, join, default, required, lookup): see src/fields/extract.py.
-#
-# See what every field gives for a saved trace (no agent or judge called):
-#     make fields AGENT=knowledge_agent CASE=TC_002
-# When the trace format changes: run that, see which fields came back empty, fix their paths here.
-# Written for the trace format of Oct 2026 (knowledge_agent_workflow@1/... node paths).
+# Knowledge Agent: fields read from each trace, as JMESPath queries (options: src/fields/extract.py).
+# Roots: final, state, nodes, models, messages, timing, trace.
+# Preview: make fields AGENT=knowledge_agent CASE=TC_002 (if the trace format changes, fix the empty fields).
 
 fields:
   # --- Final output (what the caller receives) ---------------------------------------------
-  # The answer's shape depends on question_type: general / why -> summary, how -> steps,
-  # what -> definitions, yes_no -> answer + explanation. The first path that finds something wins.
+  # Answer shape depends on question_type; the first path that finds something wins.
   answer:            {path: [final.answer.summary, final.answer.explanation, "final.answer.steps[].description",
                              "final.answer.definitions[].meaning"], join: "\n", required: true}
   yes_no_verdict:    final.answer.answer                 # yes | no (yes_no answers only)
-  agent_response:    final                               # the whole final output (for response_alignment)
+  agent_response:    final                               # whole final output (for response_alignment)
   cited_page_ids:    {path: [final.answer.page_ids, "final.answer.steps[].page_id",
                              "final.answer.definitions[].page_id"], unique: true}
   question_type:     final.question_type
@@ -29,28 +18,25 @@ fields:
   disclosures:       {path: [final.caveats, final.user_warnings]}     # caveats, or else user warnings
   evidence_page_ids: "final.evidence[].page_id"
   evidence_titles:   "final.evidence[].title"
-  evidence_links:    "final.evidence[].uri_ui"           # one link per evidence page
-  # When the agent refuses with an error (InvalidInputError, InsufficientContextError, GuardrailError, ...):
-  # the error text, wherever it is — the call's error (saved by the runner), an error in the final output,
-  # or an ADK error event. Empty when the agent answered.
+  evidence_links:    "final.evidence[].uri_ui"
+  # The error text when the agent refuses, wherever it is; empty when the agent answered.
   agent_error:       {path: [trace.agent_error, final.error_type, final.error.error_type, final.error.type, final.error,
                              "trace.raw_events[?errorMessage].[errorCode, errorMessage][]"], join: " "}
 
   # --- 1. Input normalisation -----------------------------------------------------------------
-  agent_query:       state.query                         # the question as the agent received it
+  agent_query:       state.query
   business_area:     state.business_area
 
   # --- 2. Query rewrite -----------------------------------------------------------------------
   query_type:        state.query_type                    # simple | complex
   rewritten_queries: state.rewritten_query               # list of sub-queries
-  rewritten_query:   {path: state.rewritten_query, join: "\n"}   # the same, one per line (for judges)
+  rewritten_query:   {path: state.rewritten_query, join: "\n"}   # same, one per line (for judges)
 
   # --- 3. Athena search: one branch per sub-query ------------------------------------------------
   branch_sub_queries: "state.search_branches.*.sub_query"
   branch_count:       {path: "length(state.search_branches.*.sub_query)", default: 0}
   search_candidates:  {path: "state.search_branches.*.filtered_page_ids[]", unique: true}
-  # The same, one ranked list per sub-query. Each list is best match first: the agent sorts Athena's
-  # results by score (highest first) and the applicability filter only removes pages (KA store.py).
+  # One ranked list per sub-query, best match first.
   search_ranked:      "state.search_branches.*.filtered_page_ids"
   metadata_missing:   "state.search_branches.*.has_missing_candidate_metadata"   # one per branch
 
@@ -70,12 +56,12 @@ fields:
   expansion_rationales: "nodes._relation_branch_worker[*].rationale"
   expansion_skipped:    "nodes._relation_branch_worker[?contains(rationale, 'Skipped relation expansion')].rationale"
 
-  # --- 6. Status messages the workflow writes (page retrieval, validation, synthesis) ------------
+  # --- 6. Status messages the workflow writes ---------------------------------------------------
   page_retrieval_message: "messages[?contains(@, 'Page retrieval complete')] | [-1]"   # ... dropped_count=N
   validation_message:     "messages[?contains(@, 'Validation complete')] | [-1]"       # ... content_length=N
   synthesis_message:      "messages[?contains(@, 'Synthesis complete')] | [-1]"        # ... output_guardrail=X
 
-  # --- 7. Validation (the agent's own scores: diagnostics, not quality judges) ------------------
+  # --- 7. Validation (the agent's own scores: diagnostics, not judges) --------------------------
   relevance_score:      state.context_relevance
   applicability_score:  state.context_applicability
   sufficiency_score:    state.context_sufficiency
@@ -89,30 +75,22 @@ fields:
   # --- Timing -----------------------------------------------------------------------------------
   latency_ms:          trace.latency_ms
   stage_seconds:       timing
-  # The time split (Pedro's test 9: retrieval vs generation latency), in seconds:
-  #   retrieval  = search + fetch metadata + anchor identification + relation expansion + fetch pages
-  #   validation = the agent checking its evidence (neither finding pages nor writing the answer)
-  #   generation = synthesis (writing the answer)
-  # Empty when the trace has no stage timings (then the checks below are skipped).
+  # Seconds per phase: retrieval (search -> fetch pages), validation, generation (synthesis).
+  # Empty when the trace has no stage timings.
   retrieval_seconds:   "timing && sum([not_null(timing.search_node, `0`), not_null(timing.fetch_metadata_node, `0`), not_null(timing.anchor_identification_workflow, `0`), not_null(timing.relation_expansion_workflow, `0`), not_null(timing.fetch_page_workflow, `0`)])"
   validation_seconds:  "timing && not_null(timing.validation_workflow, `0`)"
   generation_seconds:  "timing && not_null(timing.synthesis_workflow, `0`)"
 
-  # --- Pages, with title and link (for the SME review sheet: review_columns in agent.yaml) ---------
-  # The final output's evidence lists every page the agent used (anchor + related): page_id, title, uri_ui.
-  anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}     # the anchor page(s) chosen
-  related_pages: {path: final.evidence, where: {page_id: expanded_page_ids}}   # pages added by relation expansion
-  cited_pages:   {path: final.evidence, where: {page_id: cited_page_ids}}      # pages the answer itself cites
-  evidence_pages: final.evidence                                                # every page the agent used
+  # --- Pages with title and link (for review_columns in agent.yaml) -----------------------------
+  anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}
+  related_pages: {path: final.evidence, where: {page_id: expanded_page_ids}}   # added by relation expansion
+  cited_pages:   {path: final.evidence, where: {page_id: cited_page_ids}}      # cited in the answer
+  evidence_pages: final.evidence                                                # every page used
 
-  # --- Looked up outside the trace (agents/knowledge_agent/lookups.py) ----------------------
-  # The trace has only page ids; the judges need the page text. get_page_content_from_athena
-  # fetches each page from Athena and cleans the HTML (once per page per run, saved under
-  # outputs/lookups/; OFFLINE=1 reuses the saved copies). Only computed when a suite's judge
-  # or check reads the field. When the developers log page text in the trace, read it from
-  # there instead, e.g.  contexts: "nodes.fetch_page_workflow[*].pages[].content"
+  # --- Looked up outside the trace (lookups.py) -------------------------------------------------
+  # Page text from Athena, only when a suite needs it; cached in outputs/lookups/ (OFFLINE=1 reuses it).
   contexts:            {lookup: get_page_content_from_athena, ids: evidence_page_ids}
   anchor_page_content: {lookup: get_page_content_from_athena, ids: anchor_page_ids, join: "\n\n"}
 
-  # --- Not in the trace today (asked of the developers) -----------------------------------------
+  # --- Not in the trace yet ---------------------------------------------------------------------
   # decision / suggested_next_step:  FINISH | FAIL and the retry hint from the validation router

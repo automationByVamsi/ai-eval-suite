@@ -1,45 +1,7 @@
 """
-`make import-cases`: turn a spreadsheet of test cases into one JSON file per case.
-
-    make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx"
-                      [SHEET=Sheet1] [MAPPING=cjm_golden] [DRY_RUN=1]
-
-Generic: this file knows nothing about any agent. What a spreadsheet's columns mean and what the
-test case JSON looks like is set per agent, in a mapping file:
-
-    agents/<agent>/importers/<mapping>.yaml     (see agents/knowledge_agent/importers/cjm_golden.yaml)
-
-      sheet, header_row     where the table is
-      columns               our name for a column -> its header text in the sheet
-      required              rows without these are skipped (and listed)
-      empty_values          cell text that means "no value", e.g. NA
-      labelled              one cell holding labelled parts -> one value per label, e.g.
-                              "Anchor: 26942  Relational: 8412; 7053"  ->  anchor_page_ids, related_page_ids
-                            (a cell with no label at all goes to the first label)
-      normalise             lower | upper | slug | code   (code: "Brand Change" -> BRAND_CHANGE)
-      allowed               the only values a column may have, e.g. what the agent accepts; any other
-                            value is left out (and counted in the summary). The sheet's value is kept
-                            as {row.<name>_in_sheet}
-      lists                 cells that hold several values: lines (one per line) | items (lines or ;) |
-                            any (lines, , ; or spaces)
-      strip                 a regex removed from each value (or each list item), e.g. a trailing "(27429)"
-      domain                which column holds the domain (matched to agents/<agent>/domains.yaml)
-      warn_if_empty         columns worth a warning when empty (e.g. no expected answer -> judge skipped)
-      output                folder, id and the case template (placeholders, see below)
-
-Placeholders in `output`:
-  {row.<name>}       a column, by our name
-  {domain} {domain_folder} {domain_name} {domain_path}  the row's domain, e.g. CUSTOMER_VULNERABILITY_HUB,
-                     customer_vulnerability_hub, Customer Vulnerability Hub, Customer_Vulnerability_Hub
-                     (src/core/domains.py; "CVH" in the sheet matches if domains.yaml lists it as an alias)
-  {source.file} {source.sheet} {source.row}             where the row came from
-  {agent.name}       {id}                               the case id (from output.id)
-  Format numbers like {row.test_id:03} -> 028. A placeholder that is the whole string keeps its type
-  (a list stays a list). Empty values are left out of the JSON, so a missing label means the
-  metric or check that needs it is SKIPPED — never guessed.
-
-The spreadsheet is the source of truth: re-importing overwrites the JSON files it produced.
-JSON files already in the output folder that no row produced are listed, never deleted.
+`make import-cases`: turn a spreadsheet into one test case JSON file per row, using the agent's
+mapping in agents/<agent>/importers/<mapping>.yaml (example: knowledge_agent/importers/cjm_golden.yaml).
+Re-importing overwrites the files it produced; other JSON files in the output folder are listed, never deleted.
 """
 
 from __future__ import annotations
@@ -67,7 +29,7 @@ _KEYS = {"sheet", "header_row", "columns", "required", "empty_values", "labelled
 
 def import_cases(agent_name: str, file: str, *, mapping: str | None = None, sheet: str | None = None,
                  dry_run: bool = False) -> dict[str, Any]:
-    """Read the spreadsheet, write the case files, print a summary. Returns the summary (for tests)."""
+    """Read the spreadsheet, write the case files, print a summary and return it."""
     agent = load_agent(agent_name)
     config_path = _mapping_file(agent.folder, mapping)
     config = _load_mapping(config_path)
@@ -131,6 +93,7 @@ def import_cases(agent_name: str, file: str, *, mapping: str | None = None, shee
 # --- mapping file ------------------------------------------------------------------------------
 
 def _mapping_file(agent_folder: Path, name: str | None) -> Path:
+    """Return the mapping file to use: the named one, or the agent's only mapping."""
     folder = agent_folder / "importers"
     available = sorted(p.stem for p in folder.glob("*.yaml")) if folder.is_dir() else []
     if name:
@@ -147,6 +110,7 @@ def _mapping_file(agent_folder: Path, name: str | None) -> Path:
 
 
 def _load_mapping(path: Path) -> dict[str, Any]:
+    """Load a mapping YAML and check its keys and required parts."""
     config = yaml.safe_load(path.read_text()) or {}
     unknown = set(config) - _KEYS
     if unknown:
@@ -161,7 +125,7 @@ def _load_mapping(path: Path) -> dict[str, Any]:
 
 
 def _match_columns(columns: dict[str, str], rows: list[dict[str, Any]], file: str) -> dict[str, str]:
-    """our name -> the exact header in the sheet. Matching ignores case and extra spaces."""
+    """Map our column names to the exact sheet headers, ignoring case and extra spaces."""
     present = [h for h in (rows[0] if rows else {}) if h != "_row"]
     by_key = {_header_key(h): h for h in present}
     missing = [f"{name} ('{header}')" for name, header in columns.items() if _header_key(header) not in by_key]
@@ -172,6 +136,7 @@ def _match_columns(columns: dict[str, str], rows: list[dict[str, Any]], file: st
 
 
 def _header_key(text: str) -> str:
+    """Return a header lowercased with whitespace collapsed, for matching."""
     return " ".join(str(text).lower().split())
 
 
@@ -179,8 +144,8 @@ def _header_key(text: str) -> str:
 
 def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, Any],
                 warnings: Counter[str] | None = None) -> dict[str, Any]:
-    """Our name -> the cleaned cell value: 'no value' markers blanked, labelled parts split out, then
-    normalised, then split into lists, then `strip` applied."""
+    """Return our name -> cleaned cell value, applying empty_values, labelled, normalise, allowed,
+    lists and strip in that order."""
     empty = {str(v).strip().lower() for v in config.get("empty_values", [])}
     values = {}
     for name, header in headers.items():
@@ -208,11 +173,8 @@ def _row_values(raw: dict[str, Any], headers: dict[str, str], config: dict[str, 
 
 
 def _labelled(value: Any, labels: dict[str, str]) -> dict[str, str]:
-    """
-    "Anchor: 26942  Relational: 8412; 7053" with {Anchor: anchor_page_ids, Relational: related_page_ids}
-    -> {"anchor_page_ids": "26942", "related_page_ids": "8412; 7053"}. Labels match case-insensitively,
-    the colon is optional. A cell without any label goes to the first label (older sheets: ids only).
-    """
+    """Split a cell like "Anchor: 26942  Relational: 8412" into one value per label (case-insensitive).
+    A cell with no label goes entirely to the first label."""
     if not isinstance(labels, dict) or not labels:
         raise ConfigError("labelled: give each label the name its part gets, e.g. {Anchor: anchor_page_ids}")
     out = {target: "" for target in labels.values()}
@@ -231,7 +193,7 @@ def _labelled(value: Any, labels: dict[str, str]) -> dict[str, str]:
 
 
 def _strip(value: Any, pattern: str) -> Any:
-    """Remove `pattern` from a value, or from each item of a list (e.g. a trailing page id in brackets)."""
+    """Remove `pattern` from a value, or from each item of a list."""
     regex = re.compile(pattern)
     if isinstance(value, list):
         return [cleaned for v in value if (cleaned := regex.sub("", str(v)).strip())]
@@ -239,6 +201,7 @@ def _strip(value: Any, pattern: str) -> Any:
 
 
 def _normalise(text: str, how: str) -> str:
+    """Normalise text as lower, upper, slug or code ("Brand Change" -> BRAND_CHANGE)."""
     if how == "lower":
         return text.strip().lower()
     if how == "upper":
@@ -251,7 +214,7 @@ def _normalise(text: str, how: str) -> str:
 
 
 def _split(value: Any, how: str, empty: set[str]) -> list[str]:
-    """A cell holding several values -> a list of strings (numbers become text: page ids are text)."""
+    """Split a multi-value cell into a list of strings (numbers become text, since page ids are text)."""
     if _empty(value):
         return []
     if how == "lines":
@@ -267,7 +230,7 @@ def _split(value: Any, how: str, empty: set[str]) -> list[str]:
 
 def _domain(values: dict[str, Any], config: dict[str, Any], domains: dict[str, Any],
             warnings: Counter[str]) -> dict[str, str]:
-    """The row's domain values ({domain}, {domain_folder}, {domain_name}, {domain_path}) from its column."""
+    """Return the row's domain placeholders ({domain}, {domain_folder}, ...) from its domain column."""
     if not config:
         return no_domain("ALL")
     text = str(values.get(config.get("column", ""), "") or "").strip()
@@ -280,6 +243,7 @@ def _domain(values: dict[str, Any], config: dict[str, Any], domains: dict[str, A
 
 
 def _render_id(template: str, context: dict[str, Any], row: int) -> str:
+    """Render the case id for one row, raising a ConfigError that names the row on failure."""
     try:
         return str(render(template, context, _ROOTS))
     except (ValueError, TypeError) as exc:
@@ -288,7 +252,7 @@ def _render_id(template: str, context: dict[str, Any], row: int) -> str:
 
 
 def _prune(value: Any) -> Any:
-    """Drop empty strings, empty lists and None, so a missing label is absent (the judge SKIPs)."""
+    """Drop empty values recursively, so a missing label is absent and its check is skipped."""
     if isinstance(value, dict):
         pruned = {k: _prune(v) for k, v in value.items()}
         return {k: v for k, v in pruned.items() if not _empty(v)}
@@ -298,7 +262,7 @@ def _prune(value: Any) -> Any:
 
 
 def _relative(path: Path) -> str:
-    """A path relative to the repo, for printing."""
+    """Return a path relative to the repo, for printing."""
     try:
         return str(path.relative_to(paths.ROOT))
     except ValueError:
@@ -306,17 +270,19 @@ def _relative(path: Path) -> str:
 
 
 def _empty(value: Any) -> bool:
+    """Return True for None, "", [] or {}."""
     return value is None or value == "" or value == [] or value == {}
 
 
 def _static_prefix(folder_template: str) -> str:
-    """'testdata/golden/{domain_folder}' -> 'testdata/golden' (where stale files are looked for)."""
+    """Return the folder template up to its first placeholder; stale files are looked for there."""
     return folder_template.split("{", 1)[0].rstrip("/") or "."
 
 
 # --- report ------------------------------------------------------------------------------------
 
 def _print_summary(summary: dict[str, Any], agent: str, dry_run: bool) -> None:
+    """Print what was written, skipped, warned about and left stale."""
     w = summary["written"]
     total = sum(w.values())
     verb = "Would write" if dry_run else "Wrote"

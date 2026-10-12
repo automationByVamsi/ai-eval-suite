@@ -1,13 +1,6 @@
 """
-Source `athena_mcp`: knowledge-base pages from the Hive Athena MCP server.
-
-    source:
-      type: athena_mcp
-      ids_file: page_ids.json     # [{"domain": "Recoveries Commercial Bank", "page_ids": ["36626", "39696"]}]
-      timeout_s: 60               # optional
-
-For every page id: fetch the page (clients/athena_client.py), then turn its HTML into readable
-text. Connection settings (HIVE_ATHENA_*) are in env/.env — see the client.
+Source `athena_mcp`: fetch knowledge-base pages from the Hive Athena MCP server as plain text.
+Settings: ids_file (required page ids), timeout_s (optional); connection comes from HIVE_ATHENA_* in env/.env.
 """
 
 from __future__ import annotations
@@ -20,7 +13,7 @@ from src.utils.html_text import html_to_text
 
 
 def fetch(settings: dict[str, Any], ids: list[str] | None, folder: Path) -> list[dict[str, Any]]:
-    """One document per page id. Athena has no "list everything", so ids are required."""
+    """Return one document per page id; ids are required since Athena can't list all pages."""
     if not ids:
         raise ValueError("athena_mcp needs page ids — list them in ids_file or pass IDS=...")
     documents = []
@@ -34,7 +27,7 @@ def fetch(settings: dict[str, Any], ids: list[str] | None, folder: Path) -> list
 
 
 def page_to_text(page: dict[str, Any]) -> tuple[str, str]:
-    """Athena page JSON -> (title, readable text). `body` holds HTML strings and TOC objects (skipped)."""
+    """Convert Athena page JSON to (title, text); non-string body items (TOC objects) are skipped."""
     title = str(page.get("@title") or "").strip()
     body = page.get("body") or []
     parts = [body] if isinstance(body, str) else [item for item in body if isinstance(item, str)]

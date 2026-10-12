@@ -80,7 +80,7 @@ def test_a_nan_score_is_an_error_not_a_fail(monkeypatch):
 
 
 def test_devkit_mode_uses_cortex_client_instead_of_the_api_key(monkeypatch):
-    """CORTEX_AUTH=devkit: calls go through cortex.Client() (fake here); no host, client id or key needed."""
+    """With CORTEX_AUTH=devkit, calls go through cortex.Client(); no host, client id or key is needed."""
     import sys
     import types
 
@@ -186,7 +186,7 @@ def _fake_pegasus(monkeypatch, metric_calls=None):
 
 
 def test_pegasus_uses_its_own_devkit_support_like_the_knowledge_agent(monkeypatch):
-    """Same get_model call as the Knowledge Agent's guardrails: cortex_v2 + auth_mode=devkit, no key."""
+    """Same get_model call as the Knowledge Agent's guardrails: cortex_v2, auth_mode=devkit, no key."""
     from src.clients import cortex_client
     seen = _fake_pegasus(monkeypatch)
     monkeypatch.setenv("CORTEX_AUTH", "devkit")
@@ -213,7 +213,7 @@ def test_pegasus_api_key_mode_is_unchanged(monkeypatch):
 
 
 def test_pegasus_metric_is_called_like_the_knowledge_agent_guardrails(monkeypatch):
-    """Metric(llm=..., method=...) — no threshold (we apply it) — and evaluate(frame)["score"]."""
+    """Metric(llm=, method=) with no threshold (we apply it), then evaluate(frame)["score"]."""
     calls = []
     _fake_pegasus(monkeypatch, calls)
     monkeypatch.setenv("CORTEX_AUTH", "devkit")
@@ -230,7 +230,7 @@ def test_pegasus_metric_is_called_like_the_knowledge_agent_guardrails(monkeypatc
 
 
 def test_pegasus_safety_hallucination_gets_separate_arguments(monkeypatch):
-    """Safety metrics: evaluate(query=, text=, context=[...]) — no DataFrame, no method=; the page texts stay a list."""
+    """Safety metrics get evaluate(query=, text=, context=[pages]): no DataFrame and no method=."""
     import sys
     import types
     calls = []
@@ -264,7 +264,7 @@ def test_pegasus_safety_hallucination_gets_separate_arguments(monkeypatch):
 
 
 def test_pegasus_privacy_leakage_judges_the_answer_with_the_agents_background(monkeypatch):
-    """PrivacyLeakage: evaluate(text=<answer>, background=<agent.yaml background>) — no question, no pages."""
+    """PrivacyLeakage gets evaluate(text=<answer>, background=<agent.yaml background>): no question or pages."""
     import sys
     import types
 
@@ -358,12 +358,13 @@ def test_pegasus_engine_is_chosen_in_devkit_mode_without_a_key(monkeypatch):
 
 
 def _clear(library):
+    """Clear the metric library caches so the next call rereads the file."""
     for cached in (library._file, library.judge_temperature, library.library):
         cached.cache_clear()
 
 
 def test_query_privacy_leakage_judges_the_search_queries_not_the_answer(monkeypatch):
-    """The input side: the same Pegasus PrivacyLeakage, given the rewritten queries (answer: rewritten_query)."""
+    """The same PrivacyLeakage metric, given the rewritten search queries instead of the answer."""
     import sys
     import types
 

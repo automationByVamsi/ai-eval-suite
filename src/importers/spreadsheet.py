@@ -1,20 +1,6 @@
 """
-Read the rows of a spreadsheet: Excel (.xlsx) or .csv. Nothing agent-specific here.
-
-    read_rows("golden.xlsx", sheet="Sheet1", header_row=1)
-      -> [{"_row": 2, "Test ID": 28, "User Query": "What are ...", ...}, ...]
-
-Each row is a dict keyed by the header text, plus "_row" (its row number in the sheet, so a
-problem can be traced back to the spreadsheet). Empty rows are left out.
-
-Cell values:
-  text     kept as it is, line breaks included (Alt+Enter inside a cell -> "\n")
-  numbers  a whole number becomes an int (28, not 28.0); other numbers stay as text
-  empty    ""
-
-.xlsx files are read with Python's standard library (an .xlsx is a zip of XML files), so no
-extra package is needed. Formulas give their last saved value. .xls (the old format) is not
-supported: save it as .xlsx first.
+Read spreadsheet rows (.xlsx or .csv) as dicts keyed by header text, plus "_row" (the sheet row number).
+.xlsx is parsed with the standard library only; .xls is not supported.
 """
 
 from __future__ import annotations
@@ -34,7 +20,7 @@ _NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
 
 
 def read_rows(path: str | Path, sheet: str | None = None, header_row: int = 1) -> list[dict[str, Any]]:
-    """The data rows under `header_row`, as dicts keyed by header text (see the top of this file)."""
+    """Return the non-empty rows under `header_row` as dicts keyed by header text, plus "_row"."""
     path = Path(path).expanduser()
     if not path.is_file():
         raise ConfigError(f"Spreadsheet not found: {path}")
@@ -62,13 +48,13 @@ def read_rows(path: str | Path, sheet: str | None = None, header_row: int = 1) -
 
 
 def sheet_names(path: str | Path) -> list[str]:
-    """The sheet names of an .xlsx file, in workbook order."""
+    """Return the sheet names of an .xlsx file, in workbook order."""
     with zipfile.ZipFile(Path(path).expanduser()) as book:
         return [name for name, _ in _sheets(book)]
 
 
 def _clean(value: Any) -> Any:
-    """Numbers like 28.0 -> 28; text trimmed; Windows line breaks -> \\n."""
+    """Trim text, normalise line breaks to \\n, and turn whole numbers like "28.0" into int."""
     if isinstance(value, str):
         value = value.replace("\r\n", "\n").replace("\r", "\n").strip()
         if re.fullmatch(r"-?\d+(\.0+)?", value):
@@ -79,7 +65,7 @@ def _clean(value: Any) -> Any:
 # --- .xlsx -------------------------------------------------------------------------------------
 
 def _xlsx_grid(path: Path, sheet: str | None) -> dict[int, dict[int, str]]:
-    """{row number: {column index: cell text}} for one sheet (the first one if `sheet` is None)."""
+    """Return {row number: {column index: cell text}} for one sheet (the first if `sheet` is None)."""
     with zipfile.ZipFile(path) as book:
         sheets = _sheets(book)
         if not sheets:
@@ -106,7 +92,7 @@ def _xlsx_grid(path: Path, sheet: str | None) -> dict[int, dict[int, str]]:
 
 
 def _sheets(book: zipfile.ZipFile) -> list[tuple[str, str]]:
-    """[(sheet name, path of its XML inside the zip), ...]"""
+    """Return [(sheet name, path of its XML inside the zip), ...]."""
     workbook = ElementTree.fromstring(book.read("xl/workbook.xml"))
     rels = ElementTree.fromstring(book.read("xl/_rels/workbook.xml.rels"))
     targets = {rel.get("Id"): rel.get("Target", "") for rel in rels.iterfind("rel:Relationship", _NS)}
@@ -119,15 +105,16 @@ def _sheets(book: zipfile.ZipFile) -> list[tuple[str, str]]:
 
 
 def _shared_strings(book: zipfile.ZipFile) -> list[str]:
-    """Excel stores most text once, in xl/sharedStrings.xml; cells point at it by position."""
+    """Return the workbook's shared strings, which cells reference by index."""
     if "xl/sharedStrings.xml" not in book.namelist():
         return []
     root = ElementTree.fromstring(book.read("xl/sharedStrings.xml"))
-    # A string can be split into formatted runs (<r><t>..</t></r>); join all its <t> parts.
+    # A string may be split into formatted runs; join all its <t> parts.
     return ["".join(t.text or "" for t in item.iter(f"{{{_NS['m']}}}t")) for item in root.iterfind("m:si", _NS)]
 
 
 def _cell_text(cell: ElementTree.Element, shared: list[str]) -> str:
+    """Return a cell's text, resolving shared, inline and boolean values."""
     kind = cell.get("t", "n")
     if kind == "inlineStr":
         return "".join(t.text or "" for t in cell.iter(f"{{{_NS['m']}}}t"))
@@ -140,7 +127,7 @@ def _cell_text(cell: ElementTree.Element, shared: list[str]) -> str:
 
 
 def _column_index(letters: str) -> int:
-    """A -> 0, B -> 1, ..., Z -> 25, AA -> 26."""
+    """Convert column letters to a 0-based index (A -> 0, AA -> 26)."""
     index = 0
     for letter in letters:
         index = index * 26 + (ord(letter) - ord("A") + 1)

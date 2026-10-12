@@ -1,29 +1,4 @@
-"""
-Showing results. Everything here only READS saved runs; nothing here changes a result.
+"""Read-only reporting on saved runs: console output, summaries, release targets, calibration and the dashboard.
 
-Printed in the terminal:
-  console.py                 the report printed after make run / make verdict
-  summary.py                 the numbers the console and the dashboard share (pass rate per judge / check)
-
-Numbers about a run:
-  release.py                 the suite's release targets, and whether repeated runs agree (consistency)
-  verdict_view.py            the data behind the release view of a `make verdict` run
-  calibration.py             how well the LLM judges agree with human labels
-
-The Streamlit dashboard (make dashboard). Start at dashboard.py, which is only the entry point:
-  dashboard.py               page setup, the sidebar, and which page to open
-  dashboard_run.py           the page of an ordinary run (Overview, Trends, Baseline tabs)
-  dashboard_consistency.py   the Consistency tab of that page (runs with REPS > 1)
-  dashboard_verdict.py       the page of a `make verdict` run (PASS / FAIL, both builds side by side)
-  dashboard_verdict_parts.py small charts and HTML pieces used by that page
-  dashboard_cases.py         the list of test cases, used by both pages
-  dashboard_data.py          reading the saved runs
-  dashboard_style.py         colours and CSS
-  dashboard_parts.py         helpers that build HTML text (no Streamlit, so tests can check them directly)
-
-Naming in the dashboard files:
-  show_...   draws something on the page (show_run_page, show_verdict_page, show_case_list are the
-             entry points the other files call)
-  ..._html   returns a piece of HTML as text, draws nothing (in the *_parts.py files)
-  _name      a helper used only inside its own file
+Dashboard naming: show_... draws on the page; ..._html returns HTML text; _name is file-private.
 """

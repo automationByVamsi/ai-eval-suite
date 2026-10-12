@@ -1,3 +1,5 @@
+"""Prints every knowledge_agent field extracted from a saved trace (run with -s to see them)."""
+
 import json
 from pathlib import Path
 

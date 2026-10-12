@@ -1,29 +1,6 @@
-"""
-The judge model: every LLM call (DeepEval judges, Pegasus judges, the synthesizer) goes to CORTEX.
+"""LLM clients for CORTEX: CortexLLM for DeepEval judges and the synthesizer, pegasus_llm() for Pegasus judges.
 
-  DeepEval judges + synthesizer -> CortexLLM (below)
-  Pegasus judges                -> pegasus_llm(), built with Pegasus' own CORTEX adapter
-
-Two ways to reach CORTEX — pick one with CORTEX_AUTH in env/.env:
-
-  CORTEX_AUTH=api_key (default)   Call {CORTEX_HOST}/chat/completions directly with:
-                                    CORTEX_CLIENT_ID  sent as x-lbg-origin-client-id
-                                    CORTEX_API_KEY    sent as Authorization: Bearer <key>
-  CORTEX_AUTH=devkit              Use the CorteX DevKit (package cortex-devkit, `import cortex`).
-                                  No API key: run `make cortex-login` once (`cx auth login`, SSO in the
-                                  browser); cortex.Client() then signs every call. The DevKit finds the
-                                  CorteX host itself; CORTEX_ENV=int|pre|prd pins one.
-                                  The chat path is worked out from the DevKit's base address
-                                  (…/api -> /v1/chat/completions); CORTEX_DEVKIT_CHAT_PATH overrides it.
-
-Both: CORTEX_MODEL (e.g. vertex_ai/gemini-2.5-pro), CORTEX_TIMEOUT_S (60), CORTEX_RETRIES (2: retries on
-429 / 5xx / network errors). Certificate checks: VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
-
-Pegasus uses its own `cortex_api` adapter (PEGASUS_CORTEX_MODEL picks its model):
-  api_key mode  CORTEX_API_KEY (or CORTEX_CLIENT_ID + CORTEX_CLIENT_SECRET, or PEGASUS_CERT_PATH),
-                base URL CORTEX_BASE_URL (default CORTEX_HOST)
-  devkit mode   Pegasus' own DevKit support (adapter cortex_v2, auth_mode devkit, CORTEX_ENV, default prd)
-                — the same setup as the Knowledge Agent's guardrails. No key needed.
+CORTEX_AUTH in env/.env picks api_key (default) or devkit (CorteX DevKit sign-in via `make cortex-login`).
 """
 
 from __future__ import annotations
@@ -44,14 +21,13 @@ from src.utils.text import strip_code_fence
 
 RETRY_STATUS = {429, 500, 502, 503, 504}   # busy or briefly broken gateway: worth another try
 
-# DeepEval (and ragas inside Pegasus) insist an OpenAI key exists even when, as here, every call goes
-# to CORTEX. A placeholder stops them failing at start-up; it is never sent anywhere. (main did the same.)
+# DeepEval and ragas require an OpenAI key to exist; this placeholder is never sent.
 os.environ.setdefault("OPENAI_API_KEY", "sk-not-used-all-calls-go-to-cortex")
 os.environ.setdefault("DEEPEVAL_TELEMETRY_OPT_OUT", "YES")   # also for the synthesizer, which never imports judges
 
 
 def cortex_headers() -> dict[str, str]:
-    """x-lbg-origin-client-id always; Authorization: Bearer <CORTEX_API_KEY> when a key is set."""
+    """Return the CORTEX client-id header, plus a Bearer Authorization header when CORTEX_API_KEY is set."""
     headers = {"x-lbg-origin-client-id": require("CORTEX_CLIENT_ID", JudgeConfigError)}
     api_key = os.environ.get("CORTEX_API_KEY", "").strip()
     if api_key:
@@ -60,7 +36,7 @@ def cortex_headers() -> dict[str, str]:
 
 
 def auth_mode() -> str:
-    """'api_key' (default) or 'devkit', from CORTEX_AUTH in env/.env."""
+    """Return 'api_key' (default) or 'devkit' from CORTEX_AUTH; raises JudgeConfigError otherwise."""
     mode = (os.environ.get("CORTEX_AUTH") or "api_key").strip().lower()
     if mode not in ("api_key", "devkit"):
         raise JudgeConfigError(f"CORTEX_AUTH must be api_key or devkit, not {mode!r} (env/.env)")
@@ -68,9 +44,10 @@ def auth_mode() -> str:
 
 
 class CortexLLM(DeepEvalBaseLLM):
-    """A DeepEval model that sends every prompt to CORTEX. Temperature 0, so judging is repeatable."""
+    """A DeepEval model that sends every prompt to CORTEX."""
 
     def __init__(self) -> None:
+        """Set up the HTTP client and chat URL for the configured auth mode."""
         # DeepEvalBaseLLM.__init__ sets self.model = load_model(), so the model name lives in model_id.
         self.model_id = os.environ.get("CORTEX_MODEL", "vertex_ai/gemini-2.5-pro")
         self.retries = int(os.environ.get("CORTEX_RETRIES", "2"))
@@ -85,21 +62,20 @@ class CortexLLM(DeepEvalBaseLLM):
         super().__init__(self.model_id)
 
     def load_model(self) -> CortexLLM:
+        """Return self; DeepEval stores this as self.model."""
         return self
 
     def get_model_name(self) -> str:
+        """Return the CORTEX model name."""
         return self.model_id
 
     def target(self) -> str:
-        """The full URL chat requests go to (DevKit: its base address + the chat path)."""
+        """Return the full URL chat requests go to."""
         base = str(getattr(self.http, "base_url", "") or "").rstrip("/")
         return self.url if self.url.startswith("http") else f"{base}{self.url}"
 
     def generate(self, prompt: str, schema: Any = None) -> Any:
-        """
-        Send one prompt, return the text — or, when DeepEval passes a pydantic `schema`, an
-        instance of it parsed from the JSON answer.
-        """
+        """Send one prompt and return the text, or an instance of `schema` parsed from the JSON answer."""
         from src.metrics.library import judge_temperature
         body = {"model": self.model_id, "temperature": judge_temperature(),
                 "messages": [{"role": "user", "content": prompt}]}
@@ -108,20 +84,17 @@ class CortexLLM(DeepEvalBaseLLM):
         return text if schema is None else _to_schema(text, schema)
 
     async def a_generate(self, prompt: str, schema: Any = None) -> Any:
-        # Judges run with async_mode=False; this exists because DeepEval requires it.
+        """Async wrapper DeepEval requires; judges run with async_mode=False."""
         return self.generate(prompt, schema)
 
     def _post_with_retries(self, body: dict[str, Any]) -> Any:
-        """
-        POST the chat request, retrying RETRY_STATUS answers and network errors with a short back-off
-        (2s, 4s, ...). Same for both modes: the DevKit client is called exactly like an httpx client.
-        """
+        """POST the chat request, retrying RETRY_STATUS answers and network errors with a growing back-off."""
         for attempt in range(self.retries + 1):
             last_try = attempt == self.retries
             try:
                 response = self.http.post(self.url, json=body)
             except httpx.TransportError as exc:
-                if last_try:   # say WHERE it tried: a DNS error alone doesn't tell which setting is wrong
+                if last_try:   # name the URL: a DNS error alone doesn't say which setting is wrong
                     raise ConnectionError(f"could not reach CORTEX at {self.target()} ({self.mode} mode): "
                                           f"{type(exc).__name__}: {exc}") from exc
             else:
@@ -133,12 +106,10 @@ class CortexLLM(DeepEvalBaseLLM):
 
 
 def _devkit_client(timeout: float) -> Any:
-    """
-    cortex.Client() from the CorteX DevKit — an HTTP client that is already signed in (after
-    `make cortex-login` locally; automatically on GCP). Called like httpx: .post(path, json=...).
-    """
+    """Return a signed-in cortex.Client() from the CorteX DevKit; it is called like an httpx client.
+    Raises JudgeConfigError if the DevKit isn't installed."""
     try:
-        import cortex  # package cortex-devkit, from SAR — installed by make setup
+        import cortex  # package cortex-devkit, installed by make setup
     except ImportError as exc:
         raise JudgeConfigError("CORTEX_AUTH=devkit, but the CorteX DevKit isn't installed. "
                                "Run make setup (needs the SAR token in env/.env).") from exc
@@ -149,11 +120,7 @@ def _devkit_client(timeout: float) -> Any:
 
 
 def _devkit_chat_path(client: Any) -> str:
-    """
-    The chat endpoint, relative to the host the DevKit client already points at. The DevKit's base
-    address ends in /api on the LBG hosts (…/api + /v1/chat/completions); this also copes with a base
-    that already ends in /v1, or a bare host. CORTEX_DEVKIT_CHAT_PATH in env/.env overrides it.
-    """
+    """Return the chat path relative to the DevKit client's base address (/api, /v1, or a bare host)."""
     base = str(getattr(client, "base_url", "") or "").rstrip("/")
     if base.endswith("/v1"):
         return "/chat/completions"
@@ -163,10 +130,7 @@ def _devkit_chat_path(client: Any) -> str:
 
 
 def pegasus_can_authenticate() -> bool:
-    """
-    Can Pegasus sign its CORTEX calls? In devkit mode: yes, with the DevKit sign-in (see pegasus_llm).
-    In api_key mode: it needs an API key, a client id + secret, or a certificate.
-    """
+    """True if Pegasus can sign its CORTEX calls: always in devkit mode, else with a key, id + secret, or cert."""
     if auth_mode() == "devkit":
         return True
     env = {k: os.environ.get(k, "").strip() for k in
@@ -177,20 +141,13 @@ def pegasus_can_authenticate() -> bool:
 
 @functools.cache
 def deepeval_llm() -> CortexLLM:
-    """One shared CortexLLM per process (one HTTP connection pool for all judges)."""
+    """Return one shared CortexLLM per process."""
     return CortexLLM()
 
 
 def pegasus_llm() -> Any:
-    """
-    The LLM object Pegasus metrics take (`llm=`), built with Pegasus' own get_model().
-
-    devkit mode:  Pegasus' native CorteX DevKit support — the same call the Knowledge Agent's
-                  guardrails use: adapter="cortex_v2", auth_mode="devkit", cortex_env=CORTEX_ENV.
-                  No key or token: Pegasus uses your `make cortex-login` sign-in itself.
-    api_key mode: adapter="cortex_api" with CORTEX_API_KEY (CorteX 2.0), or CORTEX_CLIENT_ID +
-                  CORTEX_CLIENT_SECRET, or PEGASUS_CERT_PATH; base URL CORTEX_BASE_URL or CORTEX_HOST.
-    """
+    """Return the LLM object Pegasus metrics take (`llm=`), using the cortex_v2 or cortex_api adapter.
+    Raises JudgeConfigError when api_key mode has no usable credentials."""
     model = os.environ.get("PEGASUS_CORTEX_MODEL") or os.environ.get("CORTEX_MODEL") or "gemini-2.5-flash"
     if auth_mode() == "devkit":
         return _pegasus_model(adapter="cortex_v2", model_name=model, auth_mode="devkit",
@@ -211,12 +168,13 @@ def pegasus_llm() -> Any:
     )
 
 
-@functools.lru_cache(maxsize=2)   # built once per process, like the Knowledge Agent's _get_guardrail_llm()
+@functools.lru_cache(maxsize=2)
 def _pegasus_model(**settings: str) -> Any:
+    """Build (once per process) a Pegasus model with get_model(), leaving out unset settings."""
     from pegasus.utils.adapters import get_model  # internal package: only imported when Pegasus runs
 
     kwargs: dict[str, Any] = {"model_type": "llm", "ssl_verify": tls.verify_enabled()}
-    kwargs.update({k: v for k, v in settings.items() if v})    # leave out settings that aren't set
+    kwargs.update({k: v for k, v in settings.items() if v})
     try:
         return get_model(**kwargs)
     except TypeError:  # older Pegasus versions don't accept ssl_verify
@@ -225,7 +183,7 @@ def _pegasus_model(**settings: str) -> Any:
 
 
 def _to_schema(text: str, schema: Any) -> Any:
-    """Parse the model's JSON into DeepEval's schema; see the comments for the two fallbacks."""
+    """Parse the model's JSON into DeepEval's schema; raises TypeError so DeepEval retries without one."""
     try:
         return schema(**json.loads(text))
     except (json.JSONDecodeError, TypeError, ValueError):

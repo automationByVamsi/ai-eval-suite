@@ -19,8 +19,7 @@ from src.runners.test_cases import load_cases
 
 # --- config ---------------------------------------------------------------------------------
 
-# The Knowledge Agent sanity cases, with real traces committed in outputs/traces/ (29 Sep 2026 format).
-# TC_002 takes the full metadata path; TC_012 falls back silently (no KB metadata, nothing disclosed).
+# Sanity cases with committed traces: TC_002 takes the full metadata path, TC_012 the silent fallback.
 WITH_TRACES = ["TC_002", "TC_012"]
 
 

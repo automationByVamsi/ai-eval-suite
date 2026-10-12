@@ -1,17 +1,6 @@
 """
-Write a formatted Excel (.xlsx) file: one or more sheets, each a table with borders, a coloured header,
-wrapped text, sensible column widths, frozen headers and a filter on every column.
-
-    write_xlsx("cases.xlsx", [Sheet("golden", columns=[("Input", "Question"), ("Expected", "Expected answer")],
-                                    rows=[["How do I ...?", "Open MCP ..."]])])
-
-A column is (group, header). When columns have groups, a band row above the headers names each group
-("Input", "Expected", ...) in its own colour. Values: text, numbers, True/False; None -> empty cell.
-Cell(value, "good" | "bad" | "input") colours one cell: green, red, or yellow (a cell for someone to fill).
-Sheet(..., dropdowns={column: ["pass", "fail"]}) gives a column a drop-down list of allowed values.
-
-Like the reader (src/importers/spreadsheet.py) this needs no extra package: an .xlsx is a zip of XML
-files, written here with the standard library.
+Write formatted .xlsx files (styled headers, group bands, frozen panes, filters, dropdowns).
+Uses only the standard library: an .xlsx is a zip of XML files.
 """
 
 from __future__ import annotations
@@ -25,9 +14,9 @@ from xml.sax.saxutils import escape
 
 MAX_CELL_TEXT = 32_000            # Excel's limit is 32,767 characters per cell
 MIN_WIDTH, MAX_WIDTH = 10, 60     # column widths, in characters
-MAX_LINES = 12                    # tallest row, in lines of text (the cell scrolls beyond that)
+MAX_LINES = 12                    # tallest row, in lines of text
 
-# Band colours per group (anything else: grey). Header: dark blue with white text.
+# Band style per group; other groups are grey.
 GROUP_STYLES = {"Input": 2, "Expected": 3, "Metadata": 4}
 STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -88,7 +77,7 @@ TONES = {"good": 8, "bad": 9, "input": 10}
 
 @dataclass
 class Cell:
-    """A value with a colour: tone "good" (green), "bad" (red) or "input" (yellow: for someone to fill)."""
+    """A cell value with a tone: "good" (green), "bad" (red) or "input" (yellow, for someone to fill)."""
 
     value: Any
     tone: str = ""
@@ -96,7 +85,7 @@ class Cell:
 
 @dataclass
 class Sheet:
-    """One sheet: columns as (group, header) and the rows below them (one value per column)."""
+    """One sheet: columns as (group, header) and rows with one value per column."""
 
     name: str
     columns: list[tuple[str, str]]
@@ -124,6 +113,7 @@ def write_xlsx(path: str | Path, sheets: list[Sheet]) -> Path:
 # --- one worksheet ------------------------------------------------------------------------------------
 
 def _worksheet(sheet: Sheet) -> str:
+    """Return the worksheet XML for one sheet."""
     has_groups = any(group for group, _ in sheet.columns)
     header_row = 2 if has_groups else 1
     last_col = _col(len(sheet.columns))
@@ -167,7 +157,7 @@ def _worksheet(sheet: Sheet) -> str:
 
 
 def _cell(ref: str, value: Any, style: int) -> str:
-    """One cell: a number stays a number; everything else is text. A Cell brings its own colour."""
+    """Return one cell's XML: numbers stay numbers, everything else is text; a Cell sets its own tone."""
     if isinstance(value, Cell):
         value, style = value.value, TONES.get(value.tone, style)
     if value is None or value == "":
@@ -179,7 +169,7 @@ def _cell(ref: str, value: Any, style: int) -> str:
 
 
 def _xml_text(text: str) -> str:
-    """Text safe for the XML: no control characters, cut at Excel's limit, & < > escaped."""
+    """Make text XML-safe: drop control characters, cut at Excel's limit, and escape it."""
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
     if len(text) > MAX_CELL_TEXT:
         text = text[:MAX_CELL_TEXT] + " … [cut]"
@@ -187,7 +177,7 @@ def _xml_text(text: str) -> str:
 
 
 def _widths(sheet: Sheet) -> list[float]:
-    """Each column as wide as its longest line (header included), within MIN_WIDTH..MAX_WIDTH."""
+    """Return each column's width: its longest line (header included), within MIN_WIDTH..MAX_WIDTH."""
     widths = []
     for i, (_, header) in enumerate(sheet.columns):
         texts = [_text(row[i]) for row in sheet.rows if i < len(row)]
@@ -197,12 +187,13 @@ def _widths(sheet: Sheet) -> list[float]:
 
 
 def _text(value: Any) -> str:
+    """Return a value (or a Cell's value) as text, with None as ""."""
     value = value.value if isinstance(value, Cell) else value
     return str(value if value is not None else "")
 
 
 def _height(values: list[Any], widths: list[float]) -> int:
-    """Row height (points) to show the tallest wrapped cell, up to MAX_LINES lines."""
+    """Return the row height in points for the tallest wrapped cell, up to MAX_LINES lines."""
     lines = 1
     for value, width in zip(values, widths, strict=False):
         value = value.value if isinstance(value, Cell) else value
@@ -213,7 +204,7 @@ def _height(values: list[Any], widths: list[float]) -> int:
 
 
 def _group_merges(columns: list[tuple[str, str]]) -> list[str]:
-    """Cell ranges in the band row to merge: each run of columns in the same group."""
+    """Return the band-row ranges to merge, one per run of columns in the same group."""
     merges, start = [], 1
     for i in range(2, len(columns) + 2):
         if i > len(columns) or columns[i - 1][0] != columns[start - 1][0]:
@@ -224,7 +215,7 @@ def _group_merges(columns: list[tuple[str, str]]) -> list[str]:
 
 
 def _col(number: int) -> str:
-    """Column letter(s): 1 -> A, 27 -> AA."""
+    """Convert a 1-based column number to letters (1 -> A, 27 -> AA)."""
     letters = ""
     while number:
         number, rest = divmod(number - 1, 26)
@@ -235,7 +226,7 @@ def _col(number: int) -> str:
 # --- the workbook around the sheets -------------------------------------------------------------------
 
 def _sheet_names(names: list[str]) -> list[str]:
-    """Valid, unique sheet names: no []:*?/\\ and at most 31 characters."""
+    """Return valid, unique sheet names: no []:*?/\\ and at most 31 characters."""
     taken, result = set(), []
     for name in names:
         clean = re.sub(r"[\[\]:*?/\\]", "_", name)[:31] or "Sheet"
@@ -248,6 +239,7 @@ def _sheet_names(names: list[str]) -> list[str]:
 
 
 def _workbook(names: list[str], sheets: list[Sheet]) -> str:
+    """Return xl/workbook.xml, listing the sheets and their filter ranges."""
     sheet_xml = "".join(f'<sheet name="{escape(n, {chr(34): "&quot;"})}" sheetId="{i}" r:id="rId{i}"/>'
                         for i, n in enumerate(names, 1))
     filters = ""
@@ -263,6 +255,7 @@ def _workbook(names: list[str], sheets: list[Sheet]) -> str:
 
 
 def _workbook_rels(count: int) -> str:
+    """Return xl/_rels/workbook.xml.rels, linking the sheets and styles."""
     rels = "".join(f'<Relationship Id="rId{i}" Target="worksheets/sheet{i}.xml" Type="http://schemas.openxmlformats'
                    f'.org/officeDocument/2006/relationships/worksheet"/>' for i in range(1, count + 1))
     rels += (f'<Relationship Id="rId{count + 1}" Target="styles.xml" Type="http://schemas.openxmlformats.org/'
@@ -272,6 +265,7 @@ def _workbook_rels(count: int) -> str:
 
 
 def _content_types(count: int) -> str:
+    """Return [Content_Types].xml for the workbook parts."""
     sheets = "".join(f'<Override PartName="/xl/worksheets/sheet{i}.xml" ContentType="application/'
                      'vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' for i in range(1, count + 1))
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'

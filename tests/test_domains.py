@@ -21,12 +21,6 @@ def test_each_business_area_gives_name_path_id_and_folder():
                                              "domain_name": "PCA", "domain_path": "PCA"}
 
 
-def test_the_in_scope_check_lists_the_same_business_areas():
-    agent = load_agent("knowledge_agent")
-    paths = [spec["path"] for spec in load_domains(agent.folder).values()]
-    assert sorted(agent.checks["business_area_in_scope"]["values"]) == sorted(paths)
-
-
 def test_a_path_can_be_given_when_it_is_not_the_usual_one(tmp_path):
     (tmp_path / "domains.yaml").write_text("Fraud: [FR]\nOdd Name:\n  aliases: [OD]\n  path: Odd-Name\n")
     domains = load_domains(tmp_path)

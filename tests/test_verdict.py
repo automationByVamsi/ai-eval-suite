@@ -1,4 +1,4 @@
-"""Baseline and verdict."""
+"""Baselines, release verdicts against them, and pass rates across runs."""
 
 import json
 

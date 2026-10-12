@@ -1,28 +1,6 @@
 """
-Output template: turn one generated question/answer into the agent's test case JSON.
-
-The template is `output:` in synth.yaml (folder, id, case). Any part an agent leaves out comes
-from default_output() — the standard evaluation test case. Strings can hold placeholders:
-
-  {generated.input}             the generated question (or input)
-  {generated.expected_output}   the generated reference answer
-  {generated.input.request}     a field of the generated input, when a style asks for JSON input
-  {source.id} {source.title} {source.text} {source.metadata.revision}   the document
-  {style} {group} {group_slug}  the style name, the document's group, and group as a folder name
-  {domain_name} {domain_path} {domain} {domain_folder}
-                                the group's business area from agents/<agent>/domains.yaml, e.g.
-                                Customer Vulnerability Hub, Customer_Vulnerability_Hub (what the agent receives),
-                                CUSTOMER_VULNERABILITY_HUB (ids), customer_vulnerability_hub (folders) — the same
-                                as the spreadsheet importer, so goldens and synthetic cases line up
-  {question_type}               the style's question_type in synth.yaml ("" for a generic style)
-  {run.id} {run.date} {run.generated_at} {run.model}                  this generation run
-  {agent.name} {agent.input_field}
-  {id} {n}                      the case id, and its number (format like {n:03} -> 001)
-
-A string that is exactly one placeholder keeps the value's type (e.g. a list stays a list).
-If the generated text lacks a field the template asks for, that case is skipped (and listed
-in the run manifest) instead of being written half-empty. Empty values in `input` are left out, so a
-generic style sends no question_type at all (empty metadata values are left out too).
+Turn one generated question/answer into the agent's test case JSON using the `output:` template.
+Placeholders like {generated.input}, {source.id}, {group_slug}, {n:03} are filled; see _ROOTS for the allowed roots.
 """
 
 from __future__ import annotations
@@ -44,11 +22,11 @@ _MAX_NUMBER = 9999
 
 
 class MissingGenerated(Exception):
-    """The generated text doesn't contain a field the template asks for — the case is skipped."""
+    """Raised when the generated text lacks a field the template needs; the case is skipped."""
 
 
 def default_output(agent: Agent) -> dict[str, Any]:
-    """The standard test case shape, used for any part of `output:` an agent leaves out."""
+    """Return the standard test case template, used for any part of `output:` an agent leaves out."""
     return {
         "folder": "testdata/golden/{style}/{group_slug}",
         "id": "SYN_{style}_{group_slug}_{n:03}",
@@ -67,14 +45,8 @@ def default_output(agent: Agent) -> dict[str, Any]:
 def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style: str,
                 document: dict[str, Any], golden: Any, taken: set[Path], replace: Any,
                 question_type: str = "", domains: dict[str, Any] | None = None) -> tuple[Path, dict[str, Any]]:
-    """
-    (file path, case JSON) for one generated golden.
-
-    Numbering: {n} counts up from 1 until the id is free — not used earlier in this run and, unless
-    REPLACE=1, not already on disk. So re-running adds new cases after the existing ones.
-    `replace`: False, True (any file may be overwritten), or the styles being replaced — then only a
-    file holding a case of one of those styles may be reused (others in the same folder are kept).
-    """
+    """Return (file path, case JSON) for one golden; {n} counts up from 1 until the id is free.
+    `replace` is False, True (overwrite anything), or a set of styles whose files may be reused."""
     context = {
         "generated": {"input": golden.input, "expected_output": golden.expected_output or ""},
         "source": document, "style": style, "group": document["group"], "group_slug": slug(document["group"]),
@@ -89,7 +61,7 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
         path = folder / f"{safe_filename(case_id)}.json"
         if path not in taken and path.stem not in taken_ids and _free(path, replace):
             case = render(output["case"], {**context, "n": n, "id": case_id})
-            for part in ("input", "expected", "metadata"):  # e.g. no question_type for a generic style
+            for part in ("input", "expected", "metadata"):  # drop empty values, e.g. question_type of a generic style
                 if isinstance(case.get(part), dict):
                     case[part] = {k: v for k, v in case[part].items() if v not in ("", None, [])}
             return path, case
@@ -97,6 +69,7 @@ def render_case(agent: Agent, output: dict[str, Any], run: dict[str, Any], style
 
 
 def _free(path: Path, replace: Any) -> bool:
+    """Return True if a case may be written to `path` under the given `replace` mode."""
     if not path.exists() or replace is True:
         return True
     if not replace:
@@ -108,10 +81,8 @@ def _free(path: Path, replace: Any) -> bool:
 
 
 def render(template: Any, context: dict[str, Any], roots: tuple[str, ...] = _ROOTS) -> Any:
-    """
-    Fill {placeholders} in every string of a template (dicts and lists included).
-    `roots` are the allowed first parts of a placeholder; the spreadsheet importer passes its own.
-    """
+    """Fill {placeholders} in every string of a template; a lone placeholder keeps the value's type.
+    `roots` are the allowed first parts of a placeholder (the spreadsheet importer passes its own)."""
     if isinstance(template, dict):
         return {key: render(value, context, roots) for key, value in template.items()}
     if isinstance(template, list):
@@ -126,19 +97,19 @@ def render(template: Any, context: dict[str, Any], roots: tuple[str, ...] = _ROO
 
 
 def _or_blank(value: Any) -> Any:
-    """None or an empty list -> "" inside a longer string; 0 stays 0 (so {n:03} of 0 still works)."""
+    """Map None or [] to "" inside a longer string; 0 stays 0 so {n:03} still works."""
     return "" if value is None or value == [] else value
 
 
 def _lookup(path: str, context: dict[str, Any], roots: tuple[str, ...] = _ROOTS) -> Any:
-    """The value of one dotted placeholder, e.g. 'source.metadata.revision'."""
+    """Return the value of one dotted placeholder, e.g. 'source.metadata.revision'."""
     root, *rest = path.split(".")
     if root not in roots:
         raise ConfigError(f"Output template: unknown placeholder '{{{path}}}'. Start with one of {list(roots)}")
     value = context.get(root)
     for part in rest:
         if isinstance(value, str):
-            # The generated text was asked to be JSON, e.g. {generated.input.request}.
+            # Generated text may be JSON, e.g. {generated.input.request}.
             try:
                 value = json.loads(strip_code_fence(value))
             except json.JSONDecodeError:

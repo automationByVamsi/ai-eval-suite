@@ -1,13 +1,6 @@
 """
-Source `files`: documents are files in a folder — no code needed.
-
-    source:
-      type: files
-      folder: documents          # relative to the agent's synth/ folder (default: documents)
-
-  *.txt / *.md   id = file name, title = first line, text = the whole file
-  *.json         {"id"?, "title"?, "text" (or "content"), "group"?, "metadata"?}
-  Sub-folders become the group:  documents/Blackhorse/pricing.md  ->  group "Blackhorse"
+Source `files`: read .txt/.md/.json documents from a folder (default synth/documents).
+Sub-folder names become the document's group.
 """
 
 from __future__ import annotations
@@ -18,7 +11,7 @@ from typing import Any
 
 
 def fetch(settings: dict[str, Any], ids: list[str] | None, folder: Path) -> list[dict[str, Any]]:
-    """Every .txt / .md / .json file under the folder (names starting with _ are skipped)."""
+    """Return one document per .txt/.md/.json file under the folder, skipping names starting with _."""
     root = folder / settings.get("folder", "documents")
     if not root.is_dir():
         raise FileNotFoundError(f"Source folder not found: {root}")

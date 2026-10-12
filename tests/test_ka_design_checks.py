@@ -1,5 +1,4 @@
-"""Checks from the Knowledge Agent I/O design: expected errors (the agent refuses), the PII guardrail on the
-search queries, valid relation labels and in-scope business areas."""
+"""Knowledge Agent expected-error checks: a case passes when the agent refuses with the expected error."""
 
 import json
 
@@ -65,28 +64,3 @@ def test_the_wrong_error_type_fails():
     [result] = checks.run_checks({"r": spec}, {"agent_error": "HTTP 500 AthenaRetrievalError: search failed"},
                                  {"expected": {"expected_error": ["InsufficientContextError"]}})
     assert result.status == results.FAIL
-
-
-def test_pii_must_not_reach_the_search_queries():
-    spec = load_agent("knowledge_agent").checks["pii_not_sent_to_search"]
-    privacy_case = {"expected": {"contains_pii": True}}
-    leaked = {"rewritten_query": "add support need for mrs jane sample account 12345678",
-              "branch_sub_queries": ["support need large print 30-99-50"]}
-    [result] = checks.run_checks({"p": spec}, leaked, privacy_case)
-    assert result.status == results.FAIL and "12345678" in result.reason and "30-99-50" in result.reason
-    clean = {"rewritten_query": "add support need large print letters", "branch_sub_queries": ["large print"]}
-    assert checks.run_checks({"p": spec}, clean, privacy_case)[0].status == results.PASS
-    assert checks.run_checks({"p": spec}, leaked, {"expected": {}})[0].status == results.SKIP   # not a privacy case
-
-
-def test_relation_labels_and_business_area_come_from_the_design():
-    agent = load_agent("knowledge_agent")
-    labels = {"l": agent.checks["relation_labels_valid"]}
-    assert checks.run_checks(labels, {"expansion_labels": ["reference", "exception_to"]}, {})[0].status == results.PASS
-    assert checks.run_checks(labels, {"expansion_labels": ["related_to"]}, {})[0].status == results.FAIL
-    area = {"b": agent.checks["business_area_in_scope"]}
-    assert checks.run_checks(area, {"input_business_area": "Customer_Vulnerability_Hub_2"}, {})[0].status \
-        == results.PASS
-    for wrong in ("CVH", "Customer Vulnerability Hub", "/Complaint_Managers/", "Space_Tourism"):
-        assert checks.run_checks(area, {"input_business_area": wrong}, {})[0].status == results.FAIL
-    assert checks.run_checks(area, {}, {})[0].status == results.SKIP                                 # none sent

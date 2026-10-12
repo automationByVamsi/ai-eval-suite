@@ -1,20 +1,6 @@
-"""
-HTTPS certificate checks for every outgoing call (CORTEX, Pegasus, DeepEval, Athena, agents).
+"""HTTPS certificate settings for every outgoing call, from CA_BUNDLE and VERIFY_TLS in env/.env.
 
-Why this exists: on the office network a proxy re-signs HTTPS traffic with the bank's own
-certificate. Python doesn't trust that certificate by default, so calls fail with
-"SSL: CERTIFICATE_VERIFY_FAILED". Two ways to fix it, in env/.env:
-
-  CA_BUNDLE=/path/to/corporate-ca.pem   Best: trust the corporate certificate. Exported as
-                                        SSL_CERT_FILE / REQUESTS_CA_BUNDLE, so every library
-                                        (httpx, requests, DeepEval, Pegasus) uses it.
-  VERIFY_TLS=false                      Skip certificate checks for the whole process — what
-                                        main did (its cortex.yaml had verify_tls: false).
-                                        This is the default, so the office setup works as-is.
-  VERIFY_TLS=true                       Normal certificate checks (CI, machines without the proxy).
-
-configure() runs once at start-up (from src/core/env.py, right after env/.env is loaded).
-Clients call httpx_verify() for their own `verify=` argument.
+The office proxy re-signs HTTPS, so checks are off by default unless VERIFY_TLS=true or a CA bundle is set.
 """
 
 from __future__ import annotations
@@ -27,12 +13,12 @@ _PATCHED = False
 
 
 def ca_bundle() -> str:
-    """The corporate CA file from env/.env, or "". (CORTEX_CA_BUNDLE is the older name.)"""
+    """Return the corporate CA file path (CA_BUNDLE or legacy CORTEX_CA_BUNDLE), or ""."""
     return (os.environ.get("CA_BUNDLE") or os.environ.get("CORTEX_CA_BUNDLE") or "").strip()
 
 
 def verify_enabled() -> bool:
-    """False unless VERIFY_TLS=true (CORTEX_VERIFY_TLS is the older name). A CA bundle turns it on."""
+    """True if a CA bundle is set or VERIFY_TLS (legacy CORTEX_VERIFY_TLS) is true; False by default."""
     if ca_bundle():
         return True
     value = os.environ.get("VERIFY_TLS") or os.environ.get("CORTEX_VERIFY_TLS") or "false"
@@ -40,22 +26,18 @@ def verify_enabled() -> bool:
 
 
 def configure() -> None:
-    """Apply the settings above to the whole process. Safe to call more than once."""
+    """Apply the TLS settings to the whole process. Safe to call more than once."""
     bundle = ca_bundle()
     if bundle:
-        os.environ.setdefault("SSL_CERT_FILE", bundle)          # httpx, ssl, most libraries
+        os.environ.setdefault("SSL_CERT_FILE", bundle)
         os.environ.setdefault("REQUESTS_CA_BUNDLE", bundle)     # requests (used inside some SDKs)
     elif not verify_enabled():
         _disable_verification_everywhere()
 
 
 def httpx_verify(setting: Any = True) -> bool | ssl.SSLContext:
-    """
-    The `verify=` value for an httpx client.
-
-    `setting` is a per-client value such as `verify_tls:` in agent.yaml: true | false | /path/to/ca.pem.
-    When checks are off for the whole process (VERIFY_TLS=false), every client skips them.
-    """
+    """Return the httpx `verify=` value for a per-client setting (true | false | CA path).
+    Always False when checks are off for the whole process."""
     if not verify_enabled():
         return False
     if isinstance(setting, bool):
@@ -63,14 +45,11 @@ def httpx_verify(setting: Any = True) -> bool | ssl.SSLContext:
     text = str(setting if setting is not None else "").strip()
     if text.lower() in ("true", "false", ""):
         return text.lower() != "false"
-    return ssl.create_default_context(cafile=text)             # a CA bundle path
+    return ssl.create_default_context(cafile=text)
 
 
 def _disable_verification_everywhere() -> None:
-    """
-    Make every new SSL context skip certificate checks, including the ones DeepEval, Pegasus
-    and the OpenAI-style clients inside them create — the same patch main used.
-    """
+    """Patch ssl so every new context skips certificate checks, including those created inside SDKs."""
     global _PATCHED
     if _PATCHED:
         return

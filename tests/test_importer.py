@@ -20,8 +20,8 @@ ROWS = [
     [28, "Brand Change", "Simple", "What are the benefits of the Halifax brand change?", "Why",
      "Customers will benefit from access to a broader range of products.",
      "Brand Transformation - Changing Our Brand", "NA", 43428],
-    [30, "CVH", "Simple", "Hows does a customer remove consent for a support need?", "How",       # real sheet shape:
-     "Check which support needs they want removed.", "Consent Needed for Adding Support Needs (27429)",  # id in title,
+    [30, "CVH", "Simple", "Hows does a customer remove consent for a support need?", "How",
+     "Check which support needs they want removed.", "Consent Needed for Adding Support Needs (27429)",  # id in title
      "Card not Present Fraud (3012); Fraud Claim - Debit (3026); Fraud Investigation - Declining a Fraud Claim (3032)",
      "Anchor: 27429  Relational: 3012; 3026; 3032"],                                          # labelled ids
     [36, "CVH", "Simple", "Do I need to follow the TEXAS model when I record a support need received in writing?",
@@ -73,6 +73,7 @@ def write_xlsx(path, sheets):
 
 @pytest.fixture
 def golden_xlsx(tmp_path):
+    """A golden .xlsx built from HEADERS and ROWS, plus an extra sheet."""
     return write_xlsx(tmp_path / "KA golden.xlsx", {"Sheet1": [HEADERS, *ROWS], "Misaligned Anchor Pages": [["x"]]})
 
 
@@ -94,7 +95,7 @@ def test_cjm_golden_import(ka_copy, golden_xlsx):
     case = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044.json").read_text())
     assert case["test_case_id"] == "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044"
     assert case["input"] == {"question": ROWS[3][3], "question_type": "how",       # question_type is sent
-                             "business_area": "Customer_Vulnerability_Hub"}     # "CVH" in the sheet
+                             "business_area": "Customer_Vulnerability_Hub"}
     assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
                                                                "How to Add a support need in MCP"]
     assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text

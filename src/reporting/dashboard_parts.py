@@ -1,10 +1,6 @@
-"""
-The pieces of the results dashboard that aren't Streamlit calls: what an error means and how to fix
-it, how a case's results split into judges and checks, and the small HTML blocks (cards, meters,
-chips) the dashboard draws. No Streamlit here, so tests can check them without a browser.
+"""Non-Streamlit dashboard helpers: error explanations, judge/check splitting, run stats and HTML snippets.
 
-Used by: every dashboard view (dashboard_run, dashboard_cases, dashboard_consistency, dashboard_verdict,
-dashboard_verdict_parts) and tests/test_dashboard.py.
+No Streamlit here, so tests can check these without a browser.
 """
 
 from __future__ import annotations
@@ -18,14 +14,14 @@ from src.core.results import ERROR, FAIL, PASS, SKIP, CaseResult, Result, Run
 
 STATUS_ICON = {PASS: "✓", FAIL: "✗", ERROR: "!", SKIP: "–"}
 STATUS_WORD = {PASS: "Pass", FAIL: "Fail", ERROR: "Error", SKIP: "Skipped"}
-SETUP_NAMES = ("lookup", "evidence_fetch")      # evidence_fetch: its name in runs saved before lookups
+SETUP_NAMES = ("lookup", "evidence_fetch")      # evidence_fetch: the old name, in older runs
 GROUP_TITLES = {"basic": "Basic", "setup": "Setup", "": "Other checks"}
 
 
 # --- what went wrong, in plain words -----------------------------------------------------------
 
 def problems(case: CaseResult) -> list[dict[str, str]]:
-    """Every error in a case, explained: [{what, title, reason, hint}], the most serious first."""
+    """Return every error in a case as {what, title, reason, hint}, most serious first."""
     found = []
     if case.error:
         title, hint = explain_case_error(case.error)
@@ -38,7 +34,7 @@ def problems(case: CaseResult) -> list[dict[str, str]]:
 
 
 def explain_case_error(error: str) -> tuple[str, str]:
-    """(title, how to fix) for CaseResult.error — the case could not be evaluated at all."""
+    """Return (title, how to fix) for a case that could not be evaluated at all."""
     text = error.lower()
     if "no saved trace" in text:
         return ("No saved trace to replay",
@@ -57,7 +53,7 @@ def explain_case_error(error: str) -> tuple[str, str]:
 
 
 def explain_result_error(result: Result) -> tuple[str, str]:
-    """(title, how to fix) for a check or judge that could not run."""
+    """Return (title, how to fix) for a check or judge that could not run."""
     if result.name in SETUP_NAMES:
         return ("A value could not be looked up outside the trace",
                 "A function in the agent's lookups.py failed (the message names it and the id). Check its "
@@ -75,7 +71,7 @@ def explain_result_error(result: Result) -> tuple[str, str]:
 # --- judges vs checks --------------------------------------------------------------------------
 
 def split(case: CaseResult) -> tuple[list[Result], dict[str, list[Result]]]:
-    """(judges, {group: checks}), in the order they ran. Setup errors are reported as problems instead."""
+    """Return (judges, {group: checks}) in run order; setup results are left out (shown as problems)."""
     judges = [r for r in case.results if r.kind == "judge"]
     groups: dict[str, list[Result]] = {}
     for r in case.results:
@@ -85,10 +81,12 @@ def split(case: CaseResult) -> tuple[list[Result], dict[str, list[Result]]]:
 
 
 def is_setup(result: Result) -> bool:
+    """Return True for setup results (lookups), which aren't real checks."""
     return result.group == "setup" or result.name in SETUP_NAMES
 
 
 def tally(results: list[Result]) -> dict[str, int]:
+    """Count results by status."""
     counts = {PASS: 0, FAIL: 0, ERROR: 0, SKIP: 0}
     for r in results:
         counts[r.status] = counts.get(r.status, 0) + 1
@@ -96,13 +94,13 @@ def tally(results: list[Result]) -> dict[str, int]:
 
 
 def ran(counts: dict[str, int]) -> str:
-    """'2/3' — passed out of those that gave a verdict (skips left out)."""
+    """Return 'passed/judged' like '2/3', leaving skips out."""
     judged = counts[PASS] + counts[FAIL] + counts[ERROR]
     return f"{counts[PASS]}/{judged}" if judged else "–"
 
 
 def first_issue(case: CaseResult) -> str:
-    """The one line that best says why a case did not pass."""
+    """Return the one line that best says why a case did not pass."""
     if case.error:
         return explain_case_error(case.error)[0]
     for status in (ERROR, FAIL):
@@ -116,12 +114,14 @@ def first_issue(case: CaseResult) -> str:
 
 
 def label(name: str) -> str:
+    """Turn a judge / check name into a readable label."""
     return name.replace("_", " ").replace(":", ": ").strip().capitalize()
 
 
 # --- run-level numbers -------------------------------------------------------------------------
 
 def run_stats(run: Run) -> dict[str, Any]:
+    """Return a run's headline numbers: case counts, judge / check rates, mean score and latencies."""
     cases = run.cases
     results = [r for c in cases for r in c.results if not is_setup(r)]
     judges = tally([r for r in results if r.kind == "judge"])
@@ -142,16 +142,18 @@ def run_stats(run: Run) -> dict[str, Any]:
 
 
 def rate(counts: dict[str, int]) -> float | None:
+    """Return the pass rate over passes and fails, or None if nothing was judged."""
     judged = counts[PASS] + counts[FAIL]
     return counts[PASS] / judged if judged else None
 
 
 def pct(value: float | None) -> str:
+    """Format a fraction as a percentage, or '–' for None."""
     return "–" if value is None else f"{value:.0%}"
 
 
 def tone(value: float | None, good: float = 0.9, ok: float = 0.7) -> str:
-    """good | warn | bad | muted — the colour of a rate."""
+    """Return the colour class of a rate: good, warn, bad or muted."""
     if value is None:
         return "muted"
     return "good" if value >= good else "warn" if value >= ok else "bad"
@@ -160,20 +162,24 @@ def tone(value: float | None, good: float = 0.9, ok: float = 0.7) -> str:
 # --- HTML pieces ---------------------------------------------------------------------------------
 
 def esc(value: Any) -> str:
+    """HTML-escape a value (None becomes "")."""
     return html.escape("" if value is None else str(value))
 
 
 def chip(text: str, kind: str = "plain", title: str = "") -> str:
+    """Return a small labelled chip as HTML, with an optional hover title."""
     tip = f' title="{esc(title)}"' if title else ""
     return f'<span class="chip {kind}"{tip}>{esc(text)}</span>'
 
 
 def kpi(label_: str, value: str, sub: str = "", kind: str = "plain") -> str:
+    """Return a KPI card as HTML: label, big value and a sub-line."""
     return (f'<div class="kpi {kind}"><div class="kpi-label">{esc(label_)}</div>'
             f'<div class="kpi-value">{esc(value)}</div><div class="kpi-sub">{esc(sub)}</div></div>')
 
 
 def bar(fraction: float | None, kind: str, marker: float | None = None) -> str:
+    """Return a horizontal bar filled to fraction as HTML, with an optional marker tick."""
     width = 0 if fraction is None else max(0.0, min(1.0, fraction)) * 100
     tick = (f'<div class="bar-marker" style="left:{max(0.0, min(1.0, marker)) * 100:.1f}%"></div>'
             if marker is not None else "")
@@ -181,7 +187,7 @@ def bar(fraction: float | None, kind: str, marker: float | None = None) -> str:
 
 
 def judge_html(result: Result) -> str:
-    """One judge: name, engine, score against its threshold, and the judge's reason."""
+    """Render one judge as HTML: name, engine, score against threshold, and reason."""
     name = esc(label(result.name))
     engine = chip(result.engine, "ghost") if result.engine else ""
     reason = f'<div class="row-reason">{esc(result.reason)}</div>' if result.reason else ""
@@ -198,6 +204,7 @@ def judge_html(result: Result) -> str:
 
 
 def check_html(result: Result) -> str:
+    """Render one check as HTML: status icon, name, score and reason."""
     kind = {PASS: "good", FAIL: "bad", ERROR: "warn", SKIP: "muted"}[result.status]
     if result.status == FAIL and result.diagnostic:            # shown, but it doesn't fail the case
         kind = "warn"
@@ -211,7 +218,7 @@ def check_html(result: Result) -> str:
 
 
 def checks_html(groups: dict[str, list[Result]]) -> str:
-    """Checks by group: failures and errors in full, passes as compact chips, skips folded away."""
+    """Render checks by group: failures in full, passes as chips, skips folded away."""
     parts = []
     for group, results in groups.items():
         counts = tally(results)
@@ -233,6 +240,7 @@ def checks_html(groups: dict[str, list[Result]]) -> str:
 
 
 def problem_html(problem: dict[str, str]) -> str:
+    """Render one problem from problems() as an HTML warning box with its fix hint."""
     hint = f'<div class="problem-hint"><b>How to fix:</b> {esc(problem["hint"])}</div>' if problem["hint"] else ""
     where = "" if problem["what"] == "case" else f'<span class="chip ghost">{esc(problem["what"])}</span>'
     return (f'<div class="problem"><div class="problem-title">⚠ {esc(problem["title"])} {where}</div>'
@@ -240,7 +248,7 @@ def problem_html(problem: dict[str, str]) -> str:
 
 
 def scoreboard_html(rows: list[dict[str, Any]], kind: str, show_group: bool = True) -> str:
-    """Per judge / check across the run: pass rate bar, mean score and counts (rows from summarise)."""
+    """Render one row per judge or check (from summarise): pass-rate bar, mean score and counts."""
     out = []
     for row in rows:
         if row["kind"] != kind or row["name"] in SETUP_NAMES:
@@ -262,7 +270,7 @@ def scoreboard_html(rows: list[dict[str, Any]], kind: str, show_group: bool = Tr
 
 
 def check_scoreboard_html(rows: list[dict[str, Any]]) -> str:
-    """Checks across the run, by group: the ones that ever failed get a full row, the rest are chips."""
+    """Render run-wide checks by group: ones that ever failed get a full row, the rest are chips."""
     groups: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         if row["kind"] == "check" and row["name"] not in SETUP_NAMES:
@@ -291,7 +299,7 @@ def check_scoreboard_html(rows: list[dict[str, Any]]) -> str:
 
 
 def targets_html(rows: list[dict[str, Any]]) -> str:
-    """Release targets: actual vs target, with a bar and a met / missed / n/a chip."""
+    """Render release targets: actual vs target, a bar, and a met / missed / n/a chip."""
     out = []
     for r in rows:
         kind = {True: "good", False: "bad", None: "muted"}[r["met"]]
@@ -309,11 +317,8 @@ def targets_html(rows: list[dict[str, Any]]) -> str:
 # --- the pages behind an answer ----------------------------------------------------------------
 
 def evidence_pages(case: CaseResult) -> list[dict[str, Any]]:
-    """
-    The pages the agent used, from the conventional fields.yaml names (evidence_page_ids,
-    evidence_titles, contexts, anchor_page_ids, expanded_page_ids, cited_page_ids), each marked with
-    its role. Agents without these fields get their contexts listed as plain passages.
-    """
+    """Return the pages the agent used (from the conventional evidence_* / *_page_ids fields) with their roles.
+    Without page ids, the contexts are listed as plain passages."""
     d = case.details or {}
     ids = [str(i) for i in _list(d.get("evidence_page_ids"))]
     titles = _list(d.get("evidence_titles"))
@@ -335,7 +340,7 @@ def evidence_pages(case: CaseResult) -> list[dict[str, Any]]:
 
 
 def expected_pages_missed(case: CaseResult) -> list[str]:
-    """Expected page ids / titles that are nowhere in the evidence (a retrieval miss)."""
+    """Return expected page ids / titles missing from the evidence (retrieval misses)."""
     d = case.details or {}
     have = {_norm(x) for x in _list(d.get("evidence_page_ids")) + _list(d.get("evidence_titles"))}
     want = [x for key in ("expected_anchor_page_ids", "expected_anchor_page_titles",
@@ -345,6 +350,7 @@ def expected_pages_missed(case: CaseResult) -> list[str]:
 
 
 def page_html(page: dict[str, Any]) -> str:
+    """Render one evidence page as HTML: title, id, role chips, and its text when fetched."""
     roles = "".join(chip(r, {"anchor": "accent", "cited": "good-soft", "expected": "warn-soft"}.get(r, "ghost"))
                     for r in page["roles"])
     pid = f'<span class="muted mono">#{esc(page["id"])}</span>' if page["id"] else ""
@@ -358,11 +364,8 @@ def page_html(page: dict[str, Any]) -> str:
 # --- consistency: the same case over several runs ---------------------------------------------
 
 def pages_by_run(reps: list[CaseResult]) -> list[dict[str, Any]]:
-    """
-    One row per page used in any run: its title, and per run its roles (anchor / expanded / cited, or
-    "used" when it's only in the evidence list; "" when that run didn't use it). Pages used in every run
-    first; `differs` marks a page that is missing from a run or whose anchor role changes.
-    """
+    """Return one row per page used in any run, with its roles in each run; pages used in every run first.
+    `differs` marks a page missing from some run or whose anchor role changes."""
     order: dict[str, dict[str, Any]] = {}
     per_run: list[dict[str, list[str]]] = []
     for case in reps:
@@ -397,7 +400,7 @@ def pages_by_run(reps: list[CaseResult]) -> list[dict[str, Any]]:
 
 
 def pages_grid_html(rows: list[dict[str, Any]], reps: int) -> str:
-    """The pages x runs table: a row per page, a column per run, roles as chips; changing rows tinted."""
+    """Render the pages-by-runs table as HTML; rows that change between runs are tinted."""
     kinds = {"anchor": "accent", "cited": "good-soft", "expanded": "ghost", "used": "ghost"}
     head = "".join(f"<th>Run {n + 1}</th>" for n in range(reps))
     body = []
@@ -416,21 +419,24 @@ def pages_grid_html(rows: list[dict[str, Any]], reps: int) -> str:
 
 
 def short(value: Any, width: int = 160) -> str:
+    """Return a value as one line of text, cut to width with an ellipsis."""
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
     text = text.replace("\n", " ")
     return text if len(text) <= width else text[: width - 1] + "…"
 
 
 def as_list(value: Any) -> list[Any]:
-    """None / "" -> [], a single value -> [value], a list -> itself."""
+    """Return value as a list: None / "" -> [], a single value -> [value], a list -> itself."""
     return _list(value)
 
 
 def _list(value: Any) -> list[Any]:
+    """Return value as a list (see as_list)."""
     if value is None or value == "":
         return []
     return value if isinstance(value, list) else [value]
 
 
 def _norm(value: Any) -> str:
+    """Normalise text for matching: casefolded, whitespace collapsed."""
     return " ".join(str(value).casefold().split())

@@ -1,14 +1,6 @@
 """
-The verdict: compare a run of the new build with the saved baseline.
-
-Per case and per check/judge, each row gets a status:
-  regression  pass rate dropped by >= PASS_RATE_DROP, or mean score dropped by >= SCORE_DROP
-  missing     it was in the baseline but didn't run this time
-  improved    the opposite of a regression
-  new / ok
-
-The verdict FAILS on any regression, any missing result, or any case that errored.
-To make the verdict stricter or looser, change the two tolerances below.
+The verdict: compare a new build's run with the baseline; each row is regression / missing / improved / new / ok.
+Fails on any regression, missing result or errored case. Tolerances are PASS_RATE_DROP and SCORE_DROP.
 """
 
 from __future__ import annotations
@@ -26,14 +18,14 @@ SCORE_DROP = 0.10       # e.g. faithfulness mean 0.92 -> 0.80 is a regression, e
 
 
 def compare(run: Run) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
-    """Returns (verdict_passed, one row per check/judge, the baseline file's content)."""
+    """Return (verdict passed, one row per case check/judge, the baseline file's content)."""
     path = baseline_path(run.agent, run.suite)
     if not path.is_file():
         raise FileNotFoundError(f"No baseline at {path}. Create one with: make baseline")
     baseline = json.loads(path.read_text())
     before, now = baseline["results"], summarize(run)
 
-    # Scores at different judge temperatures (or from different engines) are not comparable: say so.
+    # Scores at different judge temperatures or from different engines are not comparable.
     temperature_note = ""
     if "judge_temperature" in baseline and baseline["judge_temperature"] != run.judge_temperature:
         temperature_note = (f"judge temperature changed {baseline['judge_temperature']} -> "
@@ -70,11 +62,7 @@ def compare(run: Run) -> tuple[bool, list[dict[str, Any]], dict[str, Any]]:
 
 def save_verdict(run: Run, passed: bool, rows: list[dict[str, Any]], baseline: dict[str, Any],
                  targets_met: bool) -> Path:
-    """
-    Keep the verdict with the run, for the dashboard: the run is marked kind=verdict, its folder gets
-    verdict.json (outcome + every compared row) and baseline_results.json (the baseline's full run as it
-    was at verdict time, so the verdict reads the same later even after a new baseline is saved).
-    """
+    """Save verdict.json and a copy of the baseline's full run in the run folder; return the verdict path."""
     run.kind = "verdict"
     run.save()
     source = baseline_run_file(run.agent, run.suite)

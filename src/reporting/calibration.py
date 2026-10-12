@@ -1,23 +1,6 @@
-"""
-Judge calibration: do the LLM judges agree with a subject-matter expert (SME)?
+"""Judge calibration: write an SME review workbook for a run, then measure how well each LLM judge agrees with it.
 
-  1. make review-sheet AGENT=knowledge_agent SUITE=golden [RUN=<run id>]
-       writes outputs/review/<run id>.xlsx, a formatted workbook to share with the SMEs / POs:
-         "How to review"  the run, what to do, and what each judge's pass mark is
-         "Review"         one row per case: query type, business area, query, the agent's answer and
-                          confidence, the expected answer, the pages (agent.yaml `review_columns:`, e.g.
-                          anchor, supporting and evidence pages, each "id | title | link"), every judge's
-                          score (green = passed, red = failed), the deterministic checks, and two
-                          yellow columns for the SME:
-                            SME verdict   pass | fail (drop-down)   is this answer good enough for a colleague?
-                            SME notes     free text
-  2. The SME fills the yellow columns (in Excel; keep it as .xlsx).
-  3. make calibrate FILE=outputs/review/<run id>.xlsx
-       per judge: how often it agrees with the SME, its false passes (judge passed an answer the SME
-       failed — the dangerous kind) and false fails, and the threshold that would agree best.
-
-Rows without an SME verdict, and judges that didn't score a row, are left out. Review sheets saved as
-.csv by older versions still work with make calibrate.
+Older .csv review sheets are still accepted by calibrate.
 """
 
 from __future__ import annotations
@@ -72,7 +55,7 @@ def review_sheet(run: Run, out: Path | None = None, columns: dict[str, str] | No
 
 
 def _how_to(run: Run, judges: list[str], thresholds: dict[str, float]) -> Sheet:
-    """The first sheet: what was run, and what the reviewer is asked to do."""
+    """Build the "How to review" sheet: what was run and what the reviewer should do."""
     rows = [["Agent", run.agent], ["Suite", run.suite], ["Build", run.build or "-"], ["Run", run.run_id],
             ["Cases", len({c.case_id for c in run.cases})],
             ["What to do", "On the Review sheet, read each query, the agent's answer and the pages it used. "
@@ -85,14 +68,14 @@ def _how_to(run: Run, judges: list[str], thresholds: dict[str, float]) -> Sheet:
 
 
 def _score(result: Any) -> Any:
-    """A judge's score, green when it passed and red when it failed; empty when it didn't score."""
+    """Return a judge's score cell (green = passed, red = failed), or "" when it didn't score."""
     if result is None or result.status not in (PASS, FAIL) or result.score is None:
         return ""
     return Cell(round(result.score, 2), "good" if result.status == PASS else "bad")
 
 
 def _checks(case: Any) -> str:
-    """'8/9 passed' and, below it, the checks that failed (diagnostic ones marked)."""
+    """Return "8/9 passed" plus a line listing the failed checks (diagnostic ones marked)."""
     checks = [r for r in case.results if r.kind == "check" and r.status in (PASS, FAIL)]
     failed = [_title(r.name) + (" (diagnostic)" if r.diagnostic else "") for r in checks if r.status == FAIL]
     text = f"{len(checks) - len(failed)}/{len(checks)} passed" if checks else ""
@@ -100,17 +83,18 @@ def _checks(case: Any) -> str:
 
 
 def _confidence(value: Any) -> Any:
+    """Return the agent's confidence as a cell, green for HIGH and red for LOW."""
     tone = {"HIGH": "good", "LOW": "bad"}.get(str(value or "").upper(), "")
     return Cell(str(value).upper(), tone) if value else ""
 
 
 def _title(name: str) -> str:
-    """'context_recall' -> 'Context recall'."""
+    """Turn a field name into a title: 'context_recall' -> 'Context recall'."""
     return name.replace("_", " ").capitalize()
 
 
 def _cell(value: Any) -> Any:
-    """A field value for one cell: one list item per line; a record as "a | b | c" (e.g. id | title | link)."""
+    """Format a field value for one cell: lists one item per line, records as "a | b | c"."""
     if isinstance(value, list):
         return "\n".join(str(_cell(v)) for v in value)
     if isinstance(value, dict):
@@ -123,7 +107,7 @@ def calibrate(sheet: Path) -> list[dict[str, Any]]:
     rows, judges = _read_review(Path(sheet))
     report = []
     for name, (score_column, threshold) in judges.items():
-        pairs = []                                   # (score, sme_ok)
+        pairs = []  # (score, sme_ok)
         for row in rows:
             sme = str(row.get("sme") or "").strip().lower()
             score = str(row.get(score_column) or "").strip()
@@ -140,8 +124,8 @@ def calibrate(sheet: Path) -> list[dict[str, Any]]:
 
 
 def _read_review(sheet: Path) -> tuple[list[dict[str, Any]], dict[str, tuple[str, float]]]:
-    """(rows with the SME verdict under "sme", {judge: (its score column, its threshold)}).
-    Reads the .xlsx review sheet, or a .csv one from older versions (name_score / name_threshold columns)."""
+    """Read a review sheet (.xlsx, or older .csv) into (rows with the SME verdict as "sme",
+    {judge: (score column, threshold)})."""
     if sheet.suffix.lower() == ".xlsx":
         rows = read_rows(sheet, sheet="Review", header_row=2)
         judges = {}
@@ -162,7 +146,7 @@ def _read_review(sheet: Path) -> tuple[list[dict[str, Any]], dict[str, tuple[str
 
 
 def why_empty(sheet: Path) -> str:
-    """Why a review sheet gave nothing to compare, in one line: no judges, no verdicts, or no overlap."""
+    """Explain in one line why a review sheet had nothing to compare."""
     rows, judges = _read_review(Path(sheet))
     marked = [r for r in rows if str(r.get("sme") or "").strip().lower() in SME_PASS | SME_FAIL]
     if not judges:
@@ -176,6 +160,7 @@ def why_empty(sheet: Path) -> str:
 
 
 def print_calibration(report: list[dict[str, Any]], sheet: Path) -> None:
+    """Print the judge-vs-SME table, or why there was nothing to compare."""
     if not report:
         print(f"\nNothing to compare in {sheet}:\n  {why_empty(sheet)}\n")
         return
@@ -191,6 +176,7 @@ def print_calibration(report: list[dict[str, Any]], sheet: Path) -> None:
 
 
 def _agreement(pairs: list[tuple[float, bool]], threshold: float) -> dict[str, Any]:
+    """Return agreement rate, false passes and false fails for (score, sme_ok) pairs at a threshold."""
     false_pass = sum(score >= threshold and not ok for score, ok in pairs)
     false_fail = sum(score < threshold and ok for score, ok in pairs)
     return {"agreement": 1 - (false_pass + false_fail) / len(pairs), "false_pass": false_pass,

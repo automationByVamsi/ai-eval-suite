@@ -1,9 +1,4 @@
-"""
-Console reports: one line per case, the reason for everything that failed, then the rate of every
-check and judge across the run (src/reporting/summary.py).
-
-Used by: the CLI after make run / baseline / verdict.
-"""
+"""Console reports printed by the CLI after make run / baseline / verdict."""
 
 from __future__ import annotations
 
@@ -17,7 +12,7 @@ RULE = "-" * 72
 
 
 def print_run(run: Run) -> None:
-    """Per case: PASS / FAIL / ERROR, then every judge (score + engine) and any failing check. Then totals."""
+    """Print each case's status, its judges and failing checks, then the run's rates and totals."""
     icon = {PASS: "PASS ", FAIL: "FAIL ", ERROR: "ERROR"}
     temperature = f"  judge temperature={run.judge_temperature}" if run.judge_temperature is not None else ""
     print(f"\n{run.agent} / {run.suite}" + (f"  build={run.build}" if run.build else "") + temperature)
@@ -30,8 +25,7 @@ def print_run(run: Run) -> None:
         if case.error:
             print(f"        {case.error}")
         for r in case.results:
-            # Judges: always shown, with score and engine (so you can see Pegasus vs DeepEval).
-            # Checks: only when they fail — passing checks would just be noise.
+            # Judges are always shown (with engine); checks only when they fail.
             if r.kind == "judge" and r.status != SKIP:
                 score = f" score={r.score:.2f}/{r.threshold}" if r.score is not None else ""
                 reason = f" {r.reason}" if r.status in (FAIL, ERROR) else ""
@@ -52,7 +46,7 @@ def print_run(run: Run) -> None:
 
 
 def print_release(run: Run) -> None:
-    """The suite's targets (met / missed) and, with REPS > 1, the cases that were not consistent."""
+    """Print the suite's targets (met / missed) and, with REPS > 1, the inconsistent cases."""
     passed, rows = gate(run)
     if rows:
         print(f"\nTargets ({'all met' if passed else 'NOT all met'})")
@@ -76,7 +70,7 @@ def print_release(run: Run) -> None:
 
 
 def print_verdict(run: Run, passed: bool, rows: list[dict[str, Any]], baseline: dict[str, Any]) -> None:
-    """Only the rows that changed (regressions, missing, improved, new, notes), then PASS / FAIL."""
+    """Print only the verdict rows that changed or have a note, then PASS / FAIL."""
     def fmt(summary: dict | None) -> str:
         if not summary:
             return "-"

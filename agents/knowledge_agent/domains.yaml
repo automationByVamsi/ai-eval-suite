@@ -1,15 +1,6 @@
-# The Knowledge Agent's business areas in scope (KA I/O design), written once. Used by `make import-cases`
-# (golden) and `make goldens` (synthetic), so every test case sends and files its business area the same way:
-#
-#   Customer Vulnerability Hub   official name   ->  {domain_name}
-#   Customer_Vulnerability_Hub   what the agent receives as business_area   ->  {domain_path}
-#   CUSTOMER_VULNERABILITY_HUB   in test case ids   ->  {domain}
-#   customer_vulnerability_hub   test data folder   ->  {domain_folder}
-#
-# After the name: other spellings to accept (in the CJM sheet's Workstream column or page_ids.json), and
-# `path:` only when the agent's value isn't the name with spaces as underscores.
-# Quote an alias YAML reads as true/false or a number, e.g. ["ON", "NO"].
-# Keep checks.yaml business_area_in_scope in step (a test checks they match).
+# Knowledge Agent business areas in scope, used by `make import-cases` and `make goldens`.
+# Format: official name: [other spellings to accept]. Quote aliases YAML would read as true/false or numbers.
+# The agent gets the name with spaces as underscores (Customer_Vulnerability_Hub) unless `path:` is set.
 
 Knowledge Manager Guidance: []
 Blackhorse: [Black horse]

@@ -1,11 +1,8 @@
-"""
-The framework's own errors. The CLI prints these as one clean "ERROR: ..." line instead of a
-traceback, so their messages must say what to fix and where.
-"""
+"""The framework's own errors; the CLI prints them as one "ERROR: ..." line, so messages must say what to fix."""
 
 
 class ConfigError(Exception):
-    """A config file (agent.yaml, metric_library.yaml, synth.yaml) or a test case is wrong or incomplete."""
+    """A config file or test case is wrong or incomplete."""
 
 
 class JudgeConfigError(ConfigError):

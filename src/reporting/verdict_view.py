@@ -1,16 +1,6 @@
-"""
-The data behind the dashboard's verdict view (no Streamlit here, so it can be tested).
+"""Data behind the dashboard's verdict view, read from a verdict run's verdict.json and baseline_results.json.
 
-A verdict run (`make verdict`) has, in its run folder:
-  results.json            the new build's run (kind: verdict)
-  verdict.json            the outcome and every compared row (src/verdict/compare.py save_verdict)
-  baseline_results.json   the baseline's full run, as it was at verdict time
-
-From those, this module works out:
-  load(run)          the verdict and the baseline run (None when the run isn't a verdict)
-  case_changes(...)  per test case: regressed / missing / improved / new / unchanged, and what changed
-  metric_changes()   per judge and check: baseline vs current pass rate and mean score
-  headline(...)      the one-line reason for PASS / FAIL
+No Streamlit here, so it can be tested.
 """
 
 from __future__ import annotations
@@ -28,21 +18,24 @@ CHANGES = ("regressed", "missing", "improved", "new", "unchanged")
 
 @dataclass
 class Verdict:
+    """A verdict run: the new build's run, its verdict.json outcome and the full baseline run."""
     run: Run                                  # the new build
     outcome: dict[str, Any]                   # verdict.json
-    baseline_run: Run | None                  # the baseline build in full (None for older baselines)
+    baseline_run: Run | None                  # None for older baselines
 
     @property
     def passed(self) -> bool:
+        """Return True when the verdict passed."""
         return bool(self.outcome.get("passed"))
 
     @property
     def baseline_build(self) -> str:
+        """Return the baseline's build label, or '?'."""
         return str((self.outcome.get("baseline") or {}).get("build") or "?")
 
 
 def load(run: Run) -> Verdict | None:
-    """The verdict saved with this run, or None for an ordinary run."""
+    """Return the verdict saved with this run, or None for an ordinary run."""
     path = run.folder / "verdict.json"
     if run.kind != "verdict" or not path.is_file():
         return None
@@ -54,6 +47,7 @@ def load(run: Run) -> Verdict | None:
 
 @dataclass
 class CaseChange:
+    """How one test case moved between builds, with the rows that changed."""
     case_id: str
     change: str                                        # one of CHANGES
     items: list[dict[str, Any]] = field(default_factory=list)   # the rows that changed (not "ok")
@@ -61,10 +55,8 @@ class CaseChange:
 
 
 def case_changes(rows: list[dict[str, Any]]) -> dict[str, CaseChange]:
-    """
-    Group verdict rows ("<case> :: <kind>:<name>") by test case. A case is regressed if any of its results
-    regressed, else missing if one didn't run, else improved, else new (only new results), else unchanged.
-    """
+    """Group verdict rows ("<case> :: <kind>:<name>") by case and classify each case.
+    Priority: regressed, missing, improved, new (only new results), unchanged."""
     by_case: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         case_id, _, result = row["result"].partition(" :: ")
@@ -90,7 +82,7 @@ def case_changes(rows: list[dict[str, Any]]) -> dict[str, CaseChange]:
 
 
 def describe(item: dict[str, Any]) -> str:
-    """'correctness 0.86 -> 0.62' / 'anchor hit pass -> fail' / 'answer non empty: not run this time'."""
+    """Describe one changed row, e.g. 'correctness 0.86 → 0.62' or 'anchor hit pass → fail'."""
     kind, _, name = item["name"].partition(":")
     label = name.replace("_", " ")
     before, after = item.get("baseline") or {}, item.get("current") or {}
@@ -104,6 +96,7 @@ def describe(item: dict[str, Any]) -> str:
 
 
 def _rate_text(summary: dict[str, Any]) -> str:
+    """Return a pass rate as text: 'pass' / 'fail' for a single run, else a percentage."""
     rate = summary.get("pass_rate")
     if rate is None:
         return "–"
@@ -113,7 +106,7 @@ def _rate_text(summary: dict[str, Any]) -> str:
 
 
 def metric_changes(baseline_run: Run | None, run: Run) -> list[dict[str, Any]]:
-    """Per judge and check: pass rate and mean score in each build (None where it didn't run)."""
+    """Return per judge / check the pass rate and mean score in each build (None where it didn't run)."""
     now = {(r["kind"], r["name"]): r for r in summarise([run])}
     before = {(r["kind"], r["name"]): r for r in summarise([baseline_run])} if baseline_run else {}
     rows = []
@@ -128,7 +121,7 @@ def metric_changes(baseline_run: Run | None, run: Run) -> list[dict[str, Any]]:
 
 
 def headline(outcome: dict[str, Any], changes: dict[str, CaseChange], errors: int, targets_missed: int) -> str:
-    """The reason for the verdict, in one line."""
+    """Return the one-line reason for the verdict."""
     parts = []
     regressed = sum(c.change == "regressed" for c in changes.values())
     missing = sum(c.change == "missing" for c in changes.values())

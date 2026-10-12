@@ -1,49 +1,40 @@
-# Knowledge Agent — generate test cases from Athena knowledge-base pages.
-#
-#   make sources AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626"]   fetch pages -> cache/
-#   make goldens AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]         generate -> testdata/synthetic/<domain>/
-#                                                       (privacy -> testdata/privacy/, should_decline -> testdata/should_decline/)
-#   make run     AGENT=knowledge_agent SUITE=synthetic                                        evaluate the agent on them
-#
-# Paths are relative to this folder. The generator model is the CORTEX model in .env.
+# Knowledge Agent: generate synthetic test cases from Athena pages (paths relative to this folder).
+# make sources AGENT=knowledge_agent [GROUP=..] [IDS=..], then make goldens AGENT=knowledge_agent [STYLES=..]
+# The generator model is the CORTEX model in .env.
 
-# 1. SOURCE — where the documents come from.  Other types: files, json_records, or your own in src/synthesizer/sources/
+# 1. SOURCE: where the pages come from (other types: files, json_records)
 source:
   type: athena_mcp
-  ids_file: page_ids.json            # page ids grouped by domain; GROUP= picks domains, IDS= picks pages
-
-# Business areas: page_ids.json groups are matched to ../domains.yaml (the 25 official names and their
-# aliases), the same list the golden importer uses, so ids, folders and business_area are written alike.
+  ids_file: page_ids.json            # page ids by domain (matched to ../domains.yaml); GROUP= / IDS= pick
 
 # 2. GENERATOR
-include_expected_answer: true        # also generate the reference answer (used by the correctness judge)
-per_source: 1                        # cases per page per style (a style can override it)
-instructions: instructions.md        # rules every style must follow
+include_expected_answer: true        # also generate the reference answer (for correctness)
+per_source: 1                        # cases per page per style
+instructions: instructions.md        # rules every style follows
 
-styles:                              # one file per question style, see styles/; STYLES= picks some
-  # The five answer types the Knowledge Agent gives. Typed styles are sent with question_type (agent.yaml
-  # message:) and their reference answer has the agent's shape for that type.
-  how:     {file: styles/how.md,    question_type: how}      # steps: simple + complex/conditional procedures
-  what:    {file: styles/what.md,   question_type: what}     # definitions: terms, direct facts, eligibility
-  why:     {file: styles/why.md,    question_type: why}      # reasoned summary: the page's stated reasons
-  yes_no:  {file: styles/yes_no.md, question_type: yes_no}   # yes/no + why: permissions, conditions, eligibility
-  general: {file: styles/general.md}                         # no question_type: plain text, summary answer
+styles:                              # one file per question style in styles/; STYLES= picks some
+  # Typed styles are sent with question_type.
+  how:     {file: styles/how.md,    question_type: how}      # steps
+  what:    {file: styles/what.md,   question_type: what}     # definitions
+  why:     {file: styles/why.md,    question_type: why}      # reasoned summary
+  yes_no:  {file: styles/yes_no.md, question_type: yes_no}   # yes/no + why
+  general: {file: styles/general.md}                         # no question_type: plain text
 
-  # Special sets, capped (max_cases) and spread across domains, written to their own suites.
-  privacy:                           # made-up customer details in the question (privacy leakage judge)
+  # Special sets: capped, spread across domains, written to their own suites.
+  privacy:                           # made-up customer details in the question
     file: styles/privacy.md
     max_cases: 15
     output:
       folder: testdata/privacy/{domain_folder}
       id: "KA_PII_{domain}_{n:03}"
       case: {expected: {contains_pii: true}, metadata: {origin: SYNTHETIC_PII}}
-  should_decline:                    # on-topic questions the page doesn't answer (correct abstention)
+  should_decline:                    # on-topic questions the page doesn't answer
     file: styles/should_decline.md
     max_cases: 15
     output:
       folder: testdata/negative/decline/{domain_folder}
       id: "KA_DEC_{domain}_{n:03}"
-      case:                          # the agent must refuse with one of these errors, not invent an answer
+      case:                          # the agent must refuse with one of these errors
         expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}
         metadata: {origin: SYNTHETIC_DECLINE}
 
@@ -60,16 +51,8 @@ quality_filter:                      # regenerate questions the critic scores be
   min_quality: 0.5
   retries: 3
 
-# 3. OUTPUT TEMPLATE — the shape of one generated test case.
-# Placeholders: {generated.input} {generated.expected_output} {source.id} {source.title} {source.text}
-#   {source.metadata.<key>} {style} {question_type} {group} {domain_name} {domain_path} {domain} {domain_folder} {run.id}
-#   {run.generated_at} {run.date} {run.model} {agent.name} {agent.input_field} {id} {n:03}
-# folder is relative to agents/knowledge_agent/; n numbers the cases inside that folder.
-# Domain-wise, like the golden importer (names from ../domains.yaml):
-#   {domain_folder}  customer_vulnerability_hub      folder
-#   {domain}         CUSTOMER_VULNERABILITY_HUB      id: KA_SYN_CUSTOMER_VULNERABILITY_HUB_001
-#   {domain_path}    Customer_Vulnerability_Hub    sent to the agent as business_area
-#   {domain_name}    Customer Vulnerability Hub      readable name, kept in metadata
+# 3. OUTPUT: one generated test case. Placeholders: {generated.*} {source.*} {style} {question_type} {group}
+# {domain_name} {domain_path} {domain} {domain_folder} {run.*} {agent.*} {id} {n:03} (n counts within the folder).
 output:
   folder: testdata/synthetic/{domain_folder}
   id: "KA_SYN_{domain}_{n:03}"
@@ -78,8 +61,8 @@ output:
     description: "Synthesized {style} case from Athena page {source.id} ({source.title})"
     input:
       question: "{generated.input}"
-      question_type: "{question_type}"      # typed styles only; left out for generic ones
-      business_area: "{domain_path}"        # the agent's format, e.g. Customer_Vulnerability_Hub
+      question_type: "{question_type}"      # typed styles only
+      business_area: "{domain_path}"        # e.g. Customer_Vulnerability_Hub
     expected:
       expected_answer: "{generated.expected_output}"
       source_page_id: "{source.id}"

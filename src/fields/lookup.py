@@ -1,27 +1,7 @@
 """
-Values looked up OUTSIDE the trace, by id, with a function the agent provides — e.g. the text of
-the pages the agent used, which the trace names by id only (fields.yaml):
-
-    contexts: {lookup: get_page_content_from_athena, ids: evidence_page_ids}
-
-`lookup:` is a function in agents/<agent>/lookups.py that takes one id and returns its value:
-a text, a {"title", "text"} mapping, or any JSON (e.g. a record from the agent's own API). Where
-the value comes from, and how it is cleaned, is the agent's business; this file knows nothing
-about Athena, HTML or pages. It only does what every agent needs, for every id in the `ids:` field:
-
-  1. already looked up in this run?        reuse it (each id is looked up once per run)
-  2. saved by an earlier run?              OFFLINE=1 reuses the saved copy (a live run looks it up
-                                           again, so a changed source is picked up)
-  3. otherwise                             call the agent's function, save a copy
-Saved copies: outputs/lookups/<agent>/<lookup>/<id>.json  ({id, value, saved_at}).
-
-OFFLINE=1 means "replay the agent's saved trace"; ids never saved are still looked up once.
-`make fields` (local=True) never calls anything: it only shows saved copies.
-
-The field's value is one text per id (a {"title", "text"} value becomes "title\\n\\ntext"; other
-JSON is shown as indented JSON). If any id fails, the field is left empty and the reason is
-reported, so the case shows an ERROR — a judge never scores on partial evidence.
-The runner only computes lookup fields that the suite's judges or checks read.
+Lookup fields: values fetched by id with a function in agents/<agent>/lookups.py (e.g. page text).
+Each id is fetched once per run and saved to outputs/lookups/<agent>/<lookup>/<id>.json; OFFLINE reuses saves.
+If any id fails the field is empty and the case errors, so judges never score partial evidence.
 """
 
 from __future__ import annotations
@@ -38,12 +18,12 @@ from src.core import paths
 from src.core.exceptions import ConfigError
 
 FILE = "lookups.py"
-_values: dict[tuple[str, str, str], Any] = {}      # (agent folder, lookup, id) -> value, for this run
+_values: dict[tuple[str, str, str], Any] = {}      # (agent folder, lookup, id) -> value
 _modules: dict[str, ModuleType] = {}
 
 
 def check(folder: Path, name: str, where: str) -> None:
-    """At agent load: agents/<agent>/lookups.py exists and defines `name`."""
+    """Raise ConfigError unless the agent's lookups.py exists and defines `name`."""
     if not (folder / FILE).is_file():
         raise ConfigError(f"{where}: lookup '{name}' needs {folder / FILE} with a function {name}(id)")
     if not callable(getattr(_module(folder), name, None)):
@@ -51,12 +31,12 @@ def check(folder: Path, name: str, where: str) -> None:
 
 
 def function(folder: Path, name: str) -> Callable[[str], Any]:
-    """The agent's lookup function (tests replace this to avoid real calls)."""
+    """Return the agent's lookup function (tests patch this to avoid real calls)."""
     return getattr(_module(folder), name)
 
 
 def texts(folder: Path, name: str, ids: list[Any], offline: bool, local: bool = False) -> tuple[list[str], list[str]]:
-    """([one text per id], [problems]). With any problem the texts are [] (no partial evidence)."""
+    """Return ([one text per id], [problems]); texts are [] if there is any problem."""
     out, problems = [], []
     for item in [str(i) for i in ids if str(i).strip()]:
         try:
@@ -67,6 +47,7 @@ def texts(folder: Path, name: str, ids: list[Any], offline: bool, local: bool = 
 
 
 def as_text(value: Any) -> str:
+    """Render a looked-up value as text: {title, text} -> 'title\\n\\ntext', other JSON indented."""
     if isinstance(value, str):
         return value
     if isinstance(value, dict) and "text" in value:
@@ -75,11 +56,12 @@ def as_text(value: Any) -> str:
 
 
 def clear_cache() -> None:
-    """Forget this run's looked-up values (tests; a new process starts empty anyway)."""
+    """Forget this run's looked-up values (for tests)."""
     _values.clear()
 
 
 def _value(folder: Path, name: str, item: str, offline: bool, local: bool) -> Any:
+    """Return one id's value: run cache, else saved copy (offline/local), else call the function and save."""
     key = (str(folder), name, item)
     if key in _values:
         return _values[key]
@@ -101,6 +83,7 @@ def _value(folder: Path, name: str, item: str, offline: bool, local: bool) -> An
 
 
 def _module(folder: Path) -> ModuleType:
+    """Import (once) and return the agent's lookups.py module."""
     path = folder / FILE
     if str(path) not in _modules:
         spec = importlib.util.spec_from_file_location(f"{folder.name}_lookups", path)
@@ -111,4 +94,5 @@ def _module(folder: Path) -> ModuleType:
 
 
 def _safe(item: str) -> str:
+    """Make an id safe to use as a file name."""
     return "".join(c if c.isalnum() or c in "-_." else "_" for c in item)

@@ -8,6 +8,7 @@ from src.verdict.compare import compare, save_verdict
 
 
 def row(case, name, status, before=None, after=None, note=""):
+    """One verdict comparison row, as compare() returns it."""
     return {"result": f"{case} :: {name}", "status": status, "baseline": before, "current": after, "note": note}
 
 

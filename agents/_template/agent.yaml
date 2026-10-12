@@ -1,9 +1,8 @@
-# my_agent — one line on what this agent does
-#
-# Created by `make new-agent NAME=my_agent`. Fill in the TODOs, add test cases under
-# testdata/sanity/, then: make run AGENT=my_agent SUITE=sanity
+# my_agent: one line on what this agent does.
+# Created by `make new-agent NAME=my_agent`. Fill in the TODOs, add cases under testdata/sanity/, then:
+# make run AGENT=my_agent SUITE=sanity
 
-connection:                   # how to reach the agent (Google ADK). Values come from env/.env
+connection:                   # how to reach the agent (Google ADK); values from env/.env
   base_url: ${MY_AGENT_BASE_URL:-http://localhost:8080}
   base_path: ${MY_AGENT_BASE_PATH:-}
   app_name: ${MY_AGENT_APP_NAME:-my_agent}
@@ -13,28 +12,25 @@ connection:                   # how to reach the agent (Google ADK). Values come
   verify_tls: true            # true | false | /path/to/ca-bundle.pem
   headers: {}                 # e.g.  x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
 
-input_field: question         # the key in each test case's "input" that is sent to the agent
+input_field: question         # key in each case's "input" that is sent to the agent
 # message_template: "Please look up {question}"   # optional: wrap the input before sending
 
-# Metrics this agent is judged on.
-#   Built-in ones (names from metric_library.yaml): just the name + threshold.
-#   Your own: a rubric file under rubrics/ (runs on DeepEval GEval).
+# Judges: built-ins from metric_library.yaml by name, or your own rubric under rubrics/ (DeepEval GEval).
 metrics:
   relevance:   {threshold: 0.7}
-  correctness: {threshold: 0.7}           # only runs for cases that have expected.expected_answer
+  correctness: {threshold: 0.7}           # skipped without expected.expected_answer
   # tone:      {rubric: rubrics/tone.md, threshold: 0.8}
 
-# Deterministic checks (optional) go in checks.yaml next to this file; a suite picks which run below.
+# Deterministic checks (optional) go in checks.yaml.
 
-# Suites = which judges (metrics:) and which checks (checks: all | none | [groups or names]; all
-# when left out) run on which test data. testdata defaults to testdata/<suite name>.
+# Suites: which judges and checks (all | none | [groups or names]; default all) run on testdata/<suite name>.
 suites:
   sanity:
     metrics: [relevance]
   # regression:
   #   metrics: [relevance, correctness]
   #   checks: [basic, answer]
-  #   targets:                       # release bar: pass RATES across the run (see the README)
+  #   targets:                       # pass rates across the run
   #     correctness: 0.90
   #     error_rate: 0.05             # ceiling
 

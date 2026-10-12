@@ -1,15 +1,6 @@
 """
-`make fields`: show what every field in fields.yaml gives for saved traces — and what the
-checks in checks.yaml make of them — without calling the agent or any judge.
-
-    make fields AGENT=knowledge_agent CASE=TC_002                 one saved trace of the sanity suite
-    make fields AGENT=knowledge_agent SUITE=golden                every saved trace of a suite
-    make fields AGENT=knowledge_agent TRACE=path/to/trace.json    any trace file
-
-Use it after writing a field, and whenever the agent's trace format changes:
-  NOT FOUND  the path found nothing in this trace (out of date, or the agent didn't log it)
-  empty      found, but empty (e.g. caveats: [])
-  MISSING    a required field found nothing: runs would ERROR on this trace
+`make fields`: print each field (and check result) for saved traces, without calling the agent or judges.
+Marks: NOT FOUND (path found nothing), empty, MISSING (required field absent; a run would ERROR).
 """
 
 from __future__ import annotations
@@ -54,7 +45,7 @@ def preview(agent_name: str, suite_name: str = "sanity", case_ids: list[str] | N
     problems = 0
     for path, case in traces:
         trace = json.loads(path.read_text())
-        values, missing = extract(trace, agent.fields, offline=True, local=True)   # saved Athena copies only
+        values, missing = extract(trace, agent.fields, offline=True, local=True)   # saved lookup copies only
         fetch_errors = values.pop("_fetch_errors", [])
         problems += bool(missing)
         print(f"\n=== {path.name}" + ("" if case else "   (no test case found: checks not shown)"))
@@ -75,6 +66,7 @@ def preview(agent_name: str, suite_name: str = "sanity", case_ids: list[str] | N
 
 
 def _cases_by_id(agent: Any, suite_name: str) -> dict[str, dict[str, Any]]:
+    """Return the suite's test cases by id ({} if the suite can't be loaded)."""
     try:
         return {c["test_case_id"]: c for c in load_cases(agent, agent.suite(suite_name))}
     except ConfigError:
@@ -82,6 +74,7 @@ def _cases_by_id(agent: Any, suite_name: str) -> dict[str, dict[str, Any]]:
 
 
 def _short(value: Any) -> str:
+    """Render a value on one line, cut to WIDTH characters."""
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
     text = text.replace("\n", "\\n")
     return text if len(text) <= WIDTH else text[: WIDTH - 3] + "..."

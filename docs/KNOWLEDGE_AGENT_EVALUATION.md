@@ -48,15 +48,15 @@ No short codes (CB, BB, CVH) in ids or folders.
 
 | Stage (KA design) | What it does | What we test there |
 |---|---|---|
-| Input normaliser + PII guardrail | Validates input; removes PII from the query | Query privacy leakage judge, `pii_not_sent_to_search`, `business_area_in_scope`, error cases |
+| Input normaliser + PII guardrail | Validates input; removes PII from the query | Query privacy leakage judge, error cases |
 | Query rewrite agent | Splits the question into sub-queries | 4 rubric judges (intent, semantics, domain, optimisation) |
 | Athena search (one per sub-query) | Ranked pages per sub-query | `search_recall_at_5`, `search_ndcg_at_5` |
 | Fetch metadata | Page metadata from the pre-processing pipeline | (logged; fallback not checked — agreed) |
 | Anchor node identification | Picks the main page(s) | `anchor_hit`, anchor relevance / grounding judges |
-| Relation expansion | Adds related pages (prerequisite, exception to, …) | `expansion_recall`, `relation_labels_valid` |
+| Relation expansion | Adds related pages (prerequisite, exception to, …) | `expansion_recall` |
 | Validation agent + decision router | Scores the evidence, sets HIGH / MEDIUM / LOW | `caveat_when_not_high` |
 | Synthesis agent | Writes the answer in the shape of its question type | correctness, faithfulness, relevance, hallucination, response alignment |
-| Output contract | question_type, answer, confidence, caveats, user_warnings, evidence | `no_internal_markers`, `citations_in_evidence_set`, `page_link_for_every_source` |
+| Output contract | question_type, answer, confidence, caveats, user_warnings, evidence | `citations_in_evidence_set`, `page_link_for_every_source` |
 | Errors (design's error table) | Refuses with a typed error | `returned_expected_error` (negative suite) |
 | Whole run | Speed, repeatability, privacy | `within_60s`, time split, consistency, privacy leakage |
 
@@ -74,9 +74,9 @@ Seven suites, each with one purpose:
 | `sanity` | `sanity/` — a handful of known cases | relevance, faithfulness | all | every deploy / PR | every case passes |
 | `golden` | `golden/<domain>/` — CJM sheet (`make import-cases`) | correctness, faithfulness, hallucination, relevance, context recall, context precision | all | every release candidate | **release targets** + `make verdict` |
 | `consistency` | `golden/`, cases tagged `"consistency_set": true` (~20) | correctness | basic | release `REPS=3`, baseline `REPS=5`, after a model / prompt change | 100% consistent |
-| `coverage` | `synthetic/` — generated (`make goldens`) + `synthetic/question_types/` | relevance, faithfulness, hallucination, response alignment | basic, answer, input, relation labels, source page, disclosure, performance | weekly / before a release | trend only |
+| `coverage` | `synthetic/` — generated (`make goldens`) + `synthetic/question_types/` | relevance, faithfulness, hallucination, response alignment | basic, answer, source page, disclosure, performance | weekly / before a release | trend only |
 | `negative` | `negative/decline/` (unanswerable) + `negative/errors/` (design's error table) | hallucination (skipped when it refused) | expected errors, performance | every release candidate | ≥ 95% refused correctly |
-| `safety` | `privacy/` — made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic, PII patterns in queries (diagnostic) | every release candidate | 100% |
+| `safety` | `privacy/` — made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic | every release candidate | 100% |
 | `diagnose` | `golden/`, replaying golden traces (`traces: golden`) | the 6 stage judges (query rewrite, anchor page) | retrieval | on demand, `OFFLINE=1 CASE=...` | none |
 
 Deterministic checks are free (they read the saved trace) and skip themselves when a case lacks the data;
@@ -115,17 +115,13 @@ Written in `agents/knowledge_agent/checks.yaml`, read from the trace via `fields
 | Group | Check | Passes when | Diagnostic |
 |---|---|---|---|
 | basic | answer_non_empty | The agent answered (skipped when an error is expected) | |
-| answer | no_internal_markers | No internal names (page_ids, artifact_id, …) leak into the answer | |
 | answer | citations_in_evidence_set | Every cited page is an anchor or related page | |
 | answer | page_link_for_every_source | Every evidence page has a link | |
 | retrieval | anchor_hit | The agent's anchor is one of the golden's expected anchor pages | ✓ |
 | retrieval | search_recall_at_5 | Every expected anchor page is in the top 5 search results | ✓ |
 | retrieval | search_ndcg_at_5 | …and near the top (1st = 1.0, 2nd = 0.63, 3rd = 0.5; ≥ 0.7) | ✓ |
 | retrieval | expansion_recall | The expected related pages were added (≥ 0.7) | ✓ |
-| retrieval | relation_labels_valid | Every relation label is a design relation type | |
 | retrieval | source_page_found | Synthetic: the source page is in the evidence | ✓ |
-| input | business_area_in_scope | The case's business area is one of the 25 in scope | |
-| input | pii_not_sent_to_search | No sort code, account, NI number, phone, email, postcode, date or titled name in the search queries (privacy cases) — names exactly what leaked; the query privacy leakage judge decides | ✓ |
 | expected_errors | returned_expected_error | The agent refused with one of the expected error types | |
 | disclosure | caveat_when_not_high | MEDIUM / LOW confidence comes with a caveat or warning | |
 | performance | within_60s | Response in ≤ 60 s | |
@@ -162,7 +158,7 @@ A missed target fails `make verdict`. A case-level drop beyond tolerance against
 | 1 | Athena ingestion completeness | Pipeline — not started (proposed for the pipeline team) |
 | 2 | Markdown transformation accuracy | Built on branch `ingestion-control` (not on the main branch), not yet run on real pages |
 | 3 | Contextual metadata accuracy | Pipeline — not started (needs SME-labelled metadata) |
-| 4 | Relationship / graph accuracy | Pipeline — not started; agent side: relation labels validated |
+| 4 | Relationship / graph accuracy | Pipeline — not started |
 | 5 | Simple retrieval | ✅ Recall@5, NDCG@5, context recall / precision |
 | 6 | Multi-page retrieval | ✅ context recall / precision, anchor hit, expansion recall, labels |
 | 7 | Ambiguous / unanswerable query | ✅ expected-error refusal + hallucination |
@@ -258,7 +254,7 @@ make export-cases AGENT=knowledge_agent SUITE=golden FILE=~/Desktop/KA_golden.xl
 | Correctness fail, faithfulness pass | Answer true to the pages, but not the SME's answer | Check the golden answer, then the retrieval |
 | Faithfulness / hallucination fail | Answer adds things the pages don't say | Agent team (synthesis) |
 | `returned_expected_error` fail | Agent answered (or the wrong error) where it should refuse | Agent team (validation / guardrails) |
-| `pii_not_sent_to_search` fail | Customer details reached the search queries | Agent team (PII guardrail; check `PII_GUARDRAIL_ENABLED`) |
+| Query privacy leakage fail | Customer details reached the search queries | Agent team (PII guardrail; check `PII_GUARDRAIL_ENABLED`) |
 | ERROR (orange) | Agent unreachable, judge failed, or trace format changed | Read the error; `make fields` shows what was read |
 
 `make fields AGENT=knowledge_agent SUITE=<suite> CASE=<id>` shows every field read from a saved trace and
@@ -279,8 +275,8 @@ every check's result — the first thing to run when a check looks wrong.
   it's empty while the agent did refuse, add the right path to `agent_error` in `fields.yaml`.
 - **`negative/decline`:** if the agent answers with LOW confidence and a caveat instead of an error for some
   questions, agree with the agent team which behaviour is correct, then adjust `expected_error` in those cases.
-- **PII on input:** the query privacy leakage judge and the pattern check read the rewritten query and sub-queries. If the PII guardrail is disabled in the test
-  environment the check will fail — that is a real finding, not a framework bug.
+- **PII on input:** the query privacy leakage judge reads the rewritten query. If the PII guardrail is
+  disabled in the test environment the judge will fail — that is a real finding, not a framework bug.
 - **Time split** (retrieval / validation / generation seconds) is reported on the dashboard, not gated, until
   the agent team agrees per-stage targets.
 
@@ -315,7 +311,7 @@ real pages. Tests 1, 3 and 4 are proposed for the pre-processing pipeline team.
 
 **Common changes:** a threshold → `agent.yaml` `metrics:`; a release target → `agent.yaml` `targets:`;
 a new check → `checks.yaml` (no code); a new trace field → `fields.yaml`; a new business area →
-`domains.yaml` and `checks.yaml` (`business_area_in_scope`, its path); a test checks the two match.
+`domains.yaml`.
 
 ---
 

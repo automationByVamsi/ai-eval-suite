@@ -16,6 +16,7 @@ TRACES = ROOT / "outputs/traces/knowledge_agent/sanity"
 
 
 def trace(case_id):
+    """Load a committed knowledge_agent sanity trace."""
     return json.loads((TRACES / f"{case_id}.json").read_text())
 
 
@@ -61,7 +62,7 @@ def test_knowledge_agent_fields_from_the_full_metadata_path():
     assert values["stage_seconds"]["search_node"] == 5.0
     assert values["search_ranked"] == [["40346", "40345", "40011"]]                   # one list per search
     assert (values["retrieval_seconds"], values["validation_seconds"], values["generation_seconds"]) \
-        == (16.31, 5.66, 1.71)                                                         # the time split
+        == (16.31, 5.66, 1.71)
 
 
 def test_knowledge_agent_fields_from_the_fallback_path():
@@ -117,6 +118,7 @@ def test_field_typos_fail_when_the_agent_loads(spec, message):
 # --- checks -----------------------------------------------------------------------------------
 
 def run(spec, fields, expected=None):
+    """Validate and run one check; return its result."""
     return checks.run_checks(checks.validate({"c": spec}, "t"), fields, {"expected": expected or {}})[0]
 
 
@@ -182,6 +184,7 @@ SAVED = "outputs/lookups/knowledge_agent/get_page_content_from_athena"
 
 
 def _counting(calls):
+    """A fake Athena lookup that records each page id it is asked for."""
     from conftest import fake_athena_page
     return lambda pid: calls.append(pid) or fake_athena_page(pid)
 
@@ -193,7 +196,7 @@ def test_evidence_text_is_looked_up_once_and_saved(outputs, monkeypatch):
     calls = []
     use_lookup(monkeypatch, _counting(calls))
     for name in ("40345", "40017", "40015"):
-        (outputs / SAVED / f"{name}.json").unlink()                              # start with no saved copies
+        (outputs / SAVED / f"{name}.json").unlink()
     fields = load_agent("knowledge_agent").fields
 
     values, _ = extract.extract(trace("TC_002"), fields)                           # live run: look up
@@ -204,7 +207,7 @@ def test_evidence_text_is_looked_up_once_and_saved(outputs, monkeypatch):
     assert sorted(calls) == ["40015", "40017", "40345"]                          # 40345 twice: looked up once
     assert (outputs / SAVED / "40345.json").is_file()                            # saved for OFFLINE runs
 
-    extract.extract(trace("TC_012"), fields)                                       # 40015 again: not again
+    extract.extract(trace("TC_012"), fields)                                       # 40015 again: not looked up again
     assert sorted(calls) == ["40015", "40017", "40022", "40345"]
 
     lookup.clear_cache()
@@ -214,6 +217,7 @@ def test_evidence_text_is_looked_up_once_and_saved(outputs, monkeypatch):
 
 
 def _fake_judges(monkeypatch, seen=None):
+    """Make every DeepEval judge score 0.9; record the values each judge got in `seen`."""
     from src.metrics import judges
 
     def fake_score(name, metric, values, threshold):
@@ -243,7 +247,7 @@ def test_a_failed_lookup_is_an_error_not_a_low_score(outputs, monkeypatch):
 
 
 def test_offline_run_looks_up_ids_it_never_saved(outputs, monkeypatch):
-    """OFFLINE=1 replays the agent's trace; ids never saved are still looked up once, then reused."""
+    """Ids with no saved copy are still looked up once, then reused."""
     from conftest import use_lookup
 
     from src.fields import lookup
@@ -275,11 +279,11 @@ def test_make_fields_never_calls_a_lookup(outputs, monkeypatch):
 
 
 def test_lookups_run_only_when_a_judge_needs_them(outputs, monkeypatch):
-    """A relevance-only suite never looks anything up — so Athena being down can't ERROR it."""
+    """A relevance-only suite looks nothing up, so Athena being down can't make it error."""
     from conftest import use_lookup
     _fake_judges(monkeypatch)
     for saved in (outputs / SAVED).glob("*.json"):
-        saved.unlink()                                             # no saved pages at all
+        saved.unlink()
     use_lookup(monkeypatch, lambda pid: pytest.fail("lookup was called"))
     case = run_suite("knowledge_agent", "sanity", offline=True, case_ids=["TC_002"], metrics=["relevance"]).cases[0]
     assert [r.name for r in case.results if r.kind == "judge"] == ["relevance"]   # METRICS=relevance
@@ -297,7 +301,7 @@ def test_faithfulness_judge_gets_the_evidence_text(outputs, monkeypatch):
 
 
 def test_knowledge_agent_lookup_cleans_the_athena_html(monkeypatch):
-    """lookups.py: Athena's page JSON (as in Bruno's "Get Page Content") -> title + plain text."""
+    """lookups.py turns Athena's page JSON into a title and plain text."""
     from src.fields import lookup
     folder = load_agent("knowledge_agent").folder
     module = lookup._module(folder)
@@ -315,7 +319,7 @@ def test_knowledge_agent_lookup_cleans_the_athena_html(monkeypatch):
 
 
 def test_lookup_values_can_be_any_json():
-    """Another agent's lookup may return a record from its own API: it reaches the judge as JSON text."""
+    """A lookup may return any record; it reaches the judge as JSON text."""
     from src.fields.lookup import as_text
     assert as_text("plain") == "plain"
     assert as_text({"title": "T", "text": "body"}) == "T\n\nbody"

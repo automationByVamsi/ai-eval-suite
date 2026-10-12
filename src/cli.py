@@ -1,23 +1,6 @@
-"""
-Command line. Every `make` target runs one of these (`make help` shows the make versions):
+"""Command line behind every `make` target (`python -m src <command>`).
 
-  python -m src doctor [--no-ping]                                     check this machine is ready
-  python -m src list
-  python -m src new-agent <name> [--input-field question]
-  python -m src sources  <agent> [--group G] [--ids ID ...]              fetch synthesizer documents
-  python -m src goldens  <agent> [--group G] [--ids ID ...] [--styles S ...] [--replace]  generate test cases
-  python -m src summary  <agent> <suite> [--last N | --run ID ...]   rates across several saved runs
-  python -m src fields   <agent> [--suite S] [--case ID ...] [--trace FILE]   preview fields.yaml on saved traces
-  python -m src import-cases <agent> <file.xlsx|.csv> [--mapping M] [--sheet S] [--dry-run]
-  python -m src export-cases <agent> [--suite S] [--out FILE.xlsx]       test case JSON -> one Excel workbook
-  python -m src review-sheet <agent> <suite> [--run latest|ID] [--out FILE]   Excel sheet for SMEs to mark
-  python -m src calibrate <file.csv>                                   judges vs the SME's marks
-  python -m src run      <agent> <suite> [--offline] [--no-judges] [--reps N] [--build X] [--case ID ...]
-                                         [--metrics M ...]   only these judges this time
-  python -m src baseline <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
-  python -m src verdict  <agent> <suite> [--reps N] [--build X]   (or --from-run latest|<run_id>)
-
-Exit code: 0 when everything passed, 1 otherwise — ready for CI.
+Exit code is 0 when everything passed, 1 otherwise.
 """
 
 from __future__ import annotations
@@ -42,6 +25,7 @@ from src.verdict.compare import compare, save_verdict
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argparse parser with one subcommand per `make` target."""
     parser = argparse.ArgumentParser(prog="python -m src", description="Evaluate AI agents.")
     commands = parser.add_subparsers(dest="command", required=True)
     doctor = commands.add_parser("doctor", help="check Python env, Pegasus, env files, certificates and CORTEX")
@@ -113,7 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run one command; returns the exit code."""
+    """Run one command and return its exit code."""
     args = build_parser().parse_args(argv)
 
     if args.command == "doctor":
@@ -179,7 +163,6 @@ def main(argv: list[str] | None = None) -> int:
         import_cases(args.agent, args.file, mapping=args.mapping, sheet=args.sheet, dry_run=args.dry_run)
         return 0
 
-    # run / baseline / verdict: get a run (new, or a saved one), then act on it.
     if getattr(args, "from_run", None):
         run = load_run(args.from_run, args.agent, args.suite)
     else:
@@ -208,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def run_cli() -> int:
-    """main(), with the framework's own errors printed as one line instead of a traceback."""
+    """Run main(), printing framework errors as one line instead of a traceback."""
     try:
         return main()
     except (ConfigError, FileNotFoundError, ValueError) as error:

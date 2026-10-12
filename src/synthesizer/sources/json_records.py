@@ -1,15 +1,6 @@
 """
-Source `json_records`: one JSON file holding a list of records (e.g. an API export) — no code needed.
-
-    source:
-      type: json_records
-      file: records.json          # relative to the agent's synth/ folder; a list, or {"<key>": [...]}
-      records_key: items          # optional: where the list is, if the file is an object
-      id_field: id
-      title_field: name           # optional
-      group_field: region         # optional
-      text_fields: [summary, details]   # optional: joined as the text. Leave out to use the
-                                        # whole record as pretty JSON (good for structured data)
+Source `json_records`: one document per record in a JSON file (e.g. an API export).
+Settings: file, records_key, id_field, title_field, group_field, text_fields (default: the whole record as JSON).
 """
 
 from __future__ import annotations
@@ -20,7 +11,7 @@ from typing import Any
 
 
 def fetch(settings: dict[str, Any], ids: list[str] | None, folder: Path) -> list[dict[str, Any]]:
-    """One document per record; the whole record is kept in metadata.record for the output template."""
+    """Return one document per record; the full record is kept in metadata.record for the output template."""
     data = json.loads((folder / settings["file"]).read_text())
     records = data[settings["records_key"]] if settings.get("records_key") else data
     if not isinstance(records, list):

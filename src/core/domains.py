@@ -1,23 +1,6 @@
-"""
-An agent's domains (for the Knowledge Agent: its 25 business areas), written once in
-agents/<agent>/domains.yaml and used by the spreadsheet importer and the synthesizer, so every test case
-names its domain the same way:
+"""An agent's domains (business areas) from agents/<agent>/domains.yaml, with their aliases.
 
-    Customer Vulnerability Hub: [CVH]        # official name: [other spellings seen in sheets / page_ids.json]
-    Customer Financial Assistance (CFA):
-      aliases: [CFA]
-      path: Customer_Financial_Assistance_(CFA)     # only when the agent's value isn't the usual one
-
-Each domain gives four values (the placeholders in import mappings and synth.yaml):
-
-    {domain_name}    Customer Vulnerability Hub          the official name
-    {domain_path}    Customer_Vulnerability_Hub          what the agent receives as business_area
-    {domain}         CUSTOMER_VULNERABILITY_HUB          in test case ids
-    {domain_folder}  customer_vulnerability_hub          test data folder
-
-Names match ignoring case, spaces and punctuation ("customer_vulnerability_hub" = "Customer Vulnerability
-Hub"). A name not in the list keeps its own spelling. No domain (an empty cell) -> {domain_path} is "", so
-the case sends no business_area and the agent searches the whole knowledge base.
+Gives each domain its {domain_name}, {domain_path}, {domain} and {domain_folder} values for importers and synth.yaml.
 """
 
 from __future__ import annotations
@@ -35,7 +18,7 @@ FILE = "domains.yaml"
 
 
 def load_domains(agent_folder: Path) -> dict[str, dict[str, Any]]:
-    """{official name: {"aliases": [...], "path": "..."}} from agents/<agent>/domains.yaml ({} if none)."""
+    """Return {official name: {"aliases": [...], "path": "..."}} from domains.yaml, or {} if there is none."""
     file = Path(agent_folder) / FILE
     if not file.is_file():
         return {}
@@ -51,7 +34,7 @@ def load_domains(agent_folder: Path) -> dict[str, dict[str, Any]]:
 
 
 def official_name(text: str, domains: dict[str, dict[str, Any]]) -> str | None:
-    """The official name `text` stands for (its name or one of its aliases), or None."""
+    """Return the official name `text` matches (by name or alias, ignoring case and punctuation), or None."""
     wanted = _plain(text)
     for name, spec in domains.items():
         if wanted in {_plain(name), *map(_plain, spec["aliases"])}:
@@ -60,21 +43,22 @@ def official_name(text: str, domains: dict[str, dict[str, Any]]) -> str | None:
 
 
 def domain_values(text: str, domains: dict[str, dict[str, Any]]) -> dict[str, str]:
-    """{domain, domain_folder, domain_name, domain_path} for a domain as written in a sheet or page list."""
+    """Return {domain, domain_folder, domain_name, domain_path} for a domain; unknown names keep their spelling."""
     name = official_name(text, domains) or str(text).strip()
     path = domains[name]["path"] if name in domains else _underscored(name)
     return {"domain": slug(name).upper(), "domain_folder": slug(name), "domain_name": name, "domain_path": path}
 
 
 def no_domain(label: str) -> dict[str, str]:
-    """For a case without a business area: filed under `label` (e.g. UNASSIGNED), nothing sent to the agent."""
+    """Return domain values for a case with no business area: filed under `label`, nothing sent to the agent."""
     return {**domain_values(label, {}), "domain_name": "", "domain_path": ""}
 
 
 def _underscored(name: str) -> str:
-    """The agent's business_area: the name with spaces as underscores, e.g. Complaint_Managers."""
+    """Return the name with spaces as underscores, e.g. Complaint_Managers."""
     return str(name).strip().replace(" ", "_")
 
 
 def _plain(text: str) -> str:
+    """Return text lowercased with everything but letters and digits removed, for matching."""
     return re.sub(r"[^a-z0-9]", "", str(text).lower())

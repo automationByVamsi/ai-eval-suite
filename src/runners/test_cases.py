@@ -1,18 +1,6 @@
 """
-Find the test cases of a suite.
-
-Every *.json under the suite's testdata folder is read, sub-folders included (anything whose
-path contains a folder or file starting with _ is skipped). A file holds one case, or several
-as {"cases": [...]}. A case looks like:
-
-    {
-      "test_case_id": "TC_001",                  # defaults to the file name
-      "input":    {"question": "..."},           # must contain the agent's input_field
-      "expected": {"expected_answer": "...", "keywords": ["..."]},   # all optional
-      "metadata": {...}                          # optional, free-form
-    }
-
-A suite's `only:` in agent.yaml keeps matching cases, e.g. only: {metadata.approval_status: APPROVED}.
+Load a suite's test cases: every *.json under its testdata folder (paths with a `_` part are skipped).
+A file holds one case or {"cases": [...]}; the suite's `only:` filter keeps matching cases.
 """
 
 from __future__ import annotations
@@ -25,7 +13,7 @@ from src.core.exceptions import ConfigError
 
 
 def load_cases(agent: Agent, suite: Suite) -> list[dict[str, Any]]:
-    """All cases of a suite, validated. Raises ConfigError if there are none or IDs repeat."""
+    """Return the suite's validated cases. Raises ConfigError if there are none or IDs repeat."""
     if not suite.testdata.is_dir():
         raise ConfigError(f"Test data folder not found: {suite.testdata} (generated suites: run make goldens first)")
     cases: list[dict[str, Any]] = []
@@ -52,7 +40,7 @@ def load_cases(agent: Agent, suite: Suite) -> list[dict[str, Any]]:
 
 
 def dotted(data: dict[str, Any], path: str) -> Any:
-    """dotted(case, "metadata.approval_status") -> case["metadata"]["approval_status"], or None."""
+    """Return the value at a dotted path like "metadata.status", or None."""
     for part in path.split("."):
         data = data.get(part) if isinstance(data, dict) else None
     return data

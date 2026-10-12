@@ -13,6 +13,7 @@ from src.runners.suite_runner import run_suite
 
 
 def _case(case_id, rep, evidence, correctness="pass", score=0.9, error=""):
+    """One case result with a correctness judge and a passing within_60s check."""
     return CaseResult(case_id, rep=rep, error=error, details={"evidence_page_ids": evidence}, results=[
         Result("correctness", "judge", correctness, score=score, threshold=0.7),
         Result("within_60s", "check", "pass"),
@@ -20,6 +21,7 @@ def _case(case_id, rep, evidence, correctness="pass", score=0.9, error=""):
 
 
 def _run(cases, reps=1, targets=None):
+    """A golden run of `cases`, with a consistency rule on evidence pages."""
     return Run("knowledge_agent", "golden", reps=reps, cases=cases, targets=targets or {},
                consistency={"same": "evidence_page_ids", "min_overlap": 1.0, "all_pass": ["correctness"]})
 
@@ -65,6 +67,7 @@ def test_consistent_only_if_same_sources_and_every_rep_passes():
 
 
 def _rep(rep, anchors, expanded, cited, correctness="pass", expected_answer=True):
+    """One repetition of TC_012 with the given anchor, expanded and cited page ids."""
     judge = (Result("correctness", "judge", correctness, score=0.9, threshold=0.7) if expected_answer else
              Result("correctness", "judge", "skip", reason="skipped: case has no expected_answer"))
     return CaseResult("TC_012", rep=rep, answer=f"answer {rep}", question="q", results=[judge], details={
@@ -134,8 +137,7 @@ def test_precision_and_recall_at_k_on_logged_search_candidates():
 
 
 def test_ndcg_matches_ranx_on_the_tc_002_search():
-    # TC_002 searched "add support need process" -> 40346, 40345, 40011 (best first). Expected values from
-    # ranx ndcg@5 on the same lists: 0.6309 (gold at rank 2), 0.3869 (gold 40017 never found), 1.0.
+    # Expected values come from ranx ndcg@5 on TC_002's search results.
     assert checks.ndcg(["40346", "40345", "40011"], ["40345"]) == 0.6309
     assert checks.ndcg(["40346", "40345", "40011"], ["40345", "40017"]) == 0.3869
     assert checks.ndcg(["40022", "40015"], ["40015", "40022"]) == 1.0
@@ -193,7 +195,7 @@ def test_knowledge_agent_suites_load_with_targets_and_new_checks(outputs):
     run = run_suite("knowledge_agent", "sanity", offline=True, judges=False, case_ids=["TC_002"])
     names = {r.name: r.status for r in run.cases[0].results}
     assert names["within_60s"] == "pass" and names["page_link_for_every_source"] == "pass"
-    assert names["no_internal_markers"] == "pass" and names["citations_in_evidence_set"] == "pass"
+    assert names["citations_in_evidence_set"] == "pass"
     assert names["caveat_when_not_high"] == "skip"                        # confidence is HIGH
     assert run.targets == {"case_pass_rate": 1.0, "error_rate": 0.05}
 

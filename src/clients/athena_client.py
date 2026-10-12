@@ -1,20 +1,6 @@
-"""
-Hive Athena MCP server: read knowledge-base pages.
+"""Read knowledge-base pages from the Hive Athena MCP server (one JSON-RPC call per page).
 
-One JSON-RPC call per page:
-    POST {HIVE_ATHENA_BASE_URL}/v1/mcp
-    {"method": "tools/call", "params": {"name": "athena_get_page_content",
-                                         "arguments": {"pageId": "<id>", "format": "json"}}}
-The page JSON (@title, body, @revision) is at result.structuredContent.result.value.
-
-Settings (env/.env):
-  HIVE_ATHENA_BASE_URL        e.g. https://web203-int-ew2.c2.test.lbgcp.cloud/cct1/hive1/athena-mcp-server
-  HIVE_ATHENA_CLIENT_ID       sent as x-lbg-client-id
-  HIVE_ATHENA_CLIENT_SECRET   sent as x-lbg-client-secret
-
-Certificate checks follow VERIFY_TLS / CA_BUNDLE (src/core/tls.py).
-
-Used by: synthesizer/sources/athena_mcp.py, agents/knowledge_agent/lookups.py.
+Settings: HIVE_ATHENA_BASE_URL, HIVE_ATHENA_CLIENT_ID, HIVE_ATHENA_CLIENT_SECRET in env/.env.
 """
 
 from __future__ import annotations
@@ -29,7 +15,7 @@ from src.core.env import require
 
 
 def athena_http(timeout_s: float = 60) -> httpx.Client:
-    """An HTTP client with the Athena auth headers. Use it in a `with` block."""
+    """Return an httpx client with the Athena auth headers; use it in a `with` block."""
     return httpx.Client(
         timeout=timeout_s,
         verify=tls.httpx_verify(),
@@ -43,13 +29,13 @@ def athena_http(timeout_s: float = 60) -> httpx.Client:
 
 
 def mcp_url() -> str:
-    """HIVE_ATHENA_BASE_URL + /v1/mcp — the base URL may be given with or without the /v1/mcp."""
+    """Return the MCP endpoint URL, adding /v1/mcp to HIVE_ATHENA_BASE_URL if it is missing."""
     base_url = require("HIVE_ATHENA_BASE_URL").rstrip("/")
     return base_url if base_url.endswith("/v1/mcp") else f"{base_url}/v1/mcp"
 
 
 def get_page_content(http: httpx.Client, page_id: str) -> dict[str, Any]:
-    """One page as Athena returns it: {"@title", "@revision", "body": [html strings / TOC objects]}."""
+    """Fetch one page as {"@title", "@revision", "body"}; raises RuntimeError on an error or unexpected shape."""
     response = http.post(mcp_url(), json={
         "jsonrpc": "2.0",
         "id": 1,
@@ -70,13 +56,13 @@ def get_page_content(http: httpx.Client, page_id: str) -> dict[str, Any]:
 
 
 def page_html(page: dict[str, Any]) -> str:
-    """The page's content as one HTML string: the HTML parts of its body (table-of-contents objects left out)."""
+    """Return the HTML parts of a page's body as one string, skipping table-of-contents objects."""
     body = page.get("body") or []
     return "\n".join([body] if isinstance(body, str) else [part for part in body if isinstance(part, str)])
 
 
 def _json_body(text: str) -> dict[str, Any]:
-    """Plain JSON, or a server-sent-events body ('data: {...}' lines — the last one is the answer)."""
+    """Parse a plain JSON or server-sent-events body; for SSE the last 'data:' line is the answer."""
     text = text.strip()
     if text.startswith("{"):
         return json.loads(text)

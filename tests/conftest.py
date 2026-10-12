@@ -1,9 +1,5 @@
-"""
-Shared test fixtures. The tests never call a real agent, CORTEX or Athena: runs replay the
-traces in outputs/traces/, and the HTTP services are small local fake servers.
-
-    make test
-"""
+"""Shared test fixtures. Tests never call a real agent, CORTEX or Athena: runs replay saved traces
+and HTTP services are local fake servers."""
 
 import json
 import shutil
@@ -25,8 +21,7 @@ def serve(handler_class):
     return server, f"http://127.0.0.1:{server.server_port}"
 
 
-# Stand-ins for the Athena pages the committed traces cite (evidence for Faithfulness).
-# Tests never call Athena: every lookup function is replaced by fake_athena_page below.
+# Fake versions of the Athena pages cited by the committed traces.
 FAKE_PAGES = {
     "40345": "How To Add a Support Need in MCP",
     "40017": "How to Add a Support Need",
@@ -37,20 +32,21 @@ KA_LOOKUP = "get_page_content_from_athena"
 
 
 def fake_athena_page(page_id):
+    """Return a fake Athena page from FAKE_PAGES; raise if the id is unknown."""
     if page_id not in FAKE_PAGES:
         raise RuntimeError(f"Athena page {page_id}: not found")
     return {"title": FAKE_PAGES[page_id], "text": f"Text of page {page_id}.", "revision": "1"}
 
 
 def use_lookup(monkeypatch, fake):
-    """Make every lookups.py function call `fake(id)` instead (no network)."""
+    """Make every lookups.py function call `fake(id)` instead of the network."""
     from src.fields import lookup
     monkeypatch.setattr(lookup, "function", lambda folder, name: fake)
 
 
 @pytest.fixture(autouse=True)
 def no_real_athena(monkeypatch):
-    """Every test: lookups come from FAKE_PAGES, and nothing is remembered between tests."""
+    """For every test, serve lookups from FAKE_PAGES and clear the lookup cache."""
     from src.fields import lookup
     lookup.clear_cache()
     use_lookup(monkeypatch, fake_athena_page)
@@ -60,8 +56,8 @@ def no_real_athena(monkeypatch):
 
 @pytest.fixture
 def outputs(tmp_path, monkeypatch):
-    """Run everything in a temp outputs/ + baselines/, seeded with the committed traces and saved
-    copies of their evidence pages (so OFFLINE runs have them, as after a live run)."""
+    """Temp outputs/ and baselines/, seeded with the committed traces and their saved evidence pages
+    so offline runs work."""
     shutil.copytree(ROOT / "outputs" / "traces", tmp_path / "outputs" / "traces")
     saved = tmp_path / "outputs" / "lookups" / "knowledge_agent" / KA_LOOKUP
     saved.mkdir(parents=True)
@@ -74,7 +70,7 @@ def outputs(tmp_path, monkeypatch):
 
 @pytest.fixture
 def temp_agents(tmp_path, monkeypatch):
-    """An empty agents/ (with the template) and env/ in a temp folder, for creating agents."""
+    """Temp agents/ (template only) and env/ folders, for creating agents."""
     agents = tmp_path / "agents"
     shutil.copytree(ROOT / "agents" / "_template", agents / "_template")
     (tmp_path / "env").mkdir()
@@ -86,10 +82,8 @@ def temp_agents(tmp_path, monkeypatch):
 
 @pytest.fixture
 def fake_cortex(monkeypatch):
-    """
-    A local stand-in for the CORTEX gateway that answers every judge prompt favourably.
-    The first request gets a 503, so the client's retry is exercised. Yields the request headers seen.
-    """
+    """Fake CORTEX gateway that answers every judge prompt favourably, after one 503 to test retries.
+    Yields the request headers it saw."""
     from src.clients import cortex_client
     from src.metrics import judges
 
@@ -125,7 +119,7 @@ def fake_cortex(monkeypatch):
 
 @pytest.fixture
 def fake_generator(monkeypatch):
-    """DeepEval's Synthesizer and the CORTEX model replaced by fakes; records what they were given."""
+    """Replace DeepEval's Synthesizer and the CORTEX model with fakes; returns what they were given."""
     import deepeval.synthesizer
     from deepeval.dataset import Golden
     from deepeval.models import DeepEvalBaseLLM
@@ -167,7 +161,7 @@ def fake_generator(monkeypatch):
 
 @pytest.fixture
 def ka_copy(tmp_path, monkeypatch):
-    """The real knowledge_agent folder in a temp dir, with its two Athena pages already cached."""
+    """A temp copy of the knowledge_agent folder, with its two Athena pages already cached."""
     agents = tmp_path / "agents"
     shutil.copytree(ROOT / "agents" / "knowledge_agent", agents / "knowledge_agent")
     monkeypatch.setattr(paths, "AGENTS_DIR", agents)

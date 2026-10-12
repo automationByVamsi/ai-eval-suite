@@ -1,8 +1,5 @@
-"""
-`make dashboard` opens without errors, on every kind of page: no runs yet, an ordinary run, a baseline run
-and a verdict (both builds side by side). Streamlit's AppTest runs dashboard.py with no browser; every tab
-and expander is drawn, so a broken import or a renamed function in any dashboard file fails here.
-"""
+"""`make dashboard` opens without errors on every page type: no runs, an ordinary run, a baseline and a verdict.
+Uses Streamlit's AppTest, so no browser is needed."""
 
 from conftest import ROOT
 from streamlit.testing.v1 import AppTest
@@ -16,6 +13,7 @@ APP = str(ROOT / "src" / "reporting" / "dashboard.py")
 
 
 def open_dashboard() -> AppTest:
+    """Run the dashboard app and fail if it raised."""
     app = AppTest.from_file(APP, default_timeout=60)
     app.run()
     assert not app.exception, [e.value for e in app.exception]
@@ -23,6 +21,7 @@ def open_dashboard() -> AppTest:
 
 
 def page_text(app: AppTest) -> str:
+    """All markdown on the page as one string."""
     return " ".join(str(m.value) for m in app.markdown)
 
 
@@ -47,7 +46,7 @@ def test_run_baseline_and_verdict_pages_open(outputs):
             ":material/new_releases: This build · 1.5.0 (2)", ":material/history: Baseline build · 1.4.0 (2)"} <= labels
 
     run_menu = app.sidebar.selectbox[2]
-    assert any("VERDICT FAIL · 1.5.0 vs 1.4.0" in label for label in run_menu.options)   # the sidebar label
+    assert any("VERDICT FAIL · 1.5.0 vs 1.4.0" in label for label in run_menu.options)
     run_menu.set_value(stable.run_id).run()                        # the baseline run: the ordinary page
     assert not app.exception, [e.value for e in app.exception]
     assert any("Overview" in t.label for t in app.tabs) and any("Baseline" in t.label for t in app.tabs)

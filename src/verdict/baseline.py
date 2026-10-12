@@ -1,13 +1,6 @@
 """
-Baselines: what "good" looked like for the last stable build.
-
-`make baseline AGENT=.. SUITE=.. BUILD=1.4.0 REPS=5` runs the stable build (ideally 3-5 reps,
-because LLM agents and judges vary run to run) and stores, per case and per check/judge, the
-pass rate and mean score in baselines/<agent>/<suite>.json, and the whole run (every case's answer,
-pages, scores and reasons) in baselines/<agent>/<suite>.run.json — so the verdict dashboard can show the
-baseline build case by case on any machine.
-
-Commit both files so the whole team compares against the same baseline.
+Baselines: save a stable build's per-case pass rates and mean scores to baselines/<agent>/<suite>.json,
+plus its full run to <suite>.run.json. Commit both so the team compares against the same baseline.
 """
 
 from __future__ import annotations
@@ -24,16 +17,17 @@ from src.core.results import ERROR, PASS, SKIP, Result, Run, load_run
 
 
 def baseline_path(agent: str, suite: str) -> Path:
+    """Return the path of the baseline summary file."""
     return paths.BASELINES_DIR / agent / f"{suite}.json"
 
 
 def baseline_run_path(agent: str, suite: str) -> Path:
-    """The baseline's full run (results.json of the run it was saved from)."""
+    """Return the path of the baseline's committed full run."""
     return paths.BASELINES_DIR / agent / f"{suite}.run.json"
 
 
 def baseline_run_file(agent: str, suite: str) -> Path | None:
-    """Where the baseline's full run is: the committed copy, else the run folder it came from (older baselines)."""
+    """Return the baseline's full run file: the committed copy, else its original run folder, else None."""
     path = baseline_run_path(agent, suite)
     if path.is_file():
         return path
@@ -47,17 +41,14 @@ def baseline_run_file(agent: str, suite: str) -> Path | None:
 
 
 def load_baseline_run(agent: str, suite: str) -> Run | None:
-    """The baseline's full run, or None when only the numbers were kept (baselines saved before this file)."""
+    """Load the baseline's full run, or None when only the summary exists."""
     path = baseline_run_file(agent, suite)
     return load_run(str(path)) if path else None
 
 
 def summarize(run: Run) -> dict[str, dict[str, Any]]:
-    """
-    Per "<case_id> :: <kind>:<name>": pass rate and mean score across reps.
-
-    Skipped results are left out — a judge that had no data to judge says nothing about the build.
-    """
+    """Return pass rate and mean score across reps per "<case_id> :: <kind>:<name>".
+    Skipped results are left out."""
     grouped: dict[str, list[Result]] = defaultdict(list)
     for case in run.cases:
         for r in case.results:
@@ -76,12 +67,12 @@ def summarize(run: Run) -> dict[str, dict[str, Any]]:
 
 
 def save_baseline(run: Run) -> Path:
-    """Save a run as the baseline. Refused if any case errored: a broken run is not a baseline."""
+    """Save a run as the baseline and return the summary path. Refuses runs with errored cases."""
     errors = [c.case_id for c in run.cases if c.status == ERROR]
     if errors:
         raise ValueError(f"Not saving a baseline from a run with errors (cases {errors}). Fix and re-run.")
     run.kind = "baseline"
-    saved_run = run.save()                       # results.json, now marked as the baseline
+    saved_run = run.save()
     path = baseline_path(run.agent, run.suite)
     path.parent.mkdir(parents=True, exist_ok=True)
     baseline_run_path(run.agent, run.suite).write_text(saved_run.read_text())

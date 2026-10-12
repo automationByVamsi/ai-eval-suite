@@ -1,4 +1,4 @@
-"""HTTP clients: CORTEX retries and auth, Athena MCP calls and page clean-up."""
+"""HTTP clients (CORTEX retries and auth, Athena MCP), HTTPS certificate settings and `make doctor`."""
 
 import json
 from http.server import BaseHTTPRequestHandler
@@ -116,7 +116,7 @@ def test_doctor_scores_one_pegasus_metric(fake_cortex, monkeypatch, tmp_path, ca
     from src.onboarding import doctor
     (tmp_path / ".env").write_text("")
     monkeypatch.setattr(paths, "ENV_DIR", tmp_path)
-    monkeypatch.setattr(doctor, "_installed", lambda module: True)            # pretend Pegasus is installed
+    monkeypatch.setattr(doctor, "_installed", lambda module: True)
     monkeypatch.setattr(doctor, "_version_of_module", lambda module: "2.5.1")
     monkeypatch.setattr(judges, "score_with_pegasus", lambda metric, values, threshold: (0.93, ""))
     monkeypatch.setattr(judges, "pegasus_installed", lambda: True)

@@ -1,16 +1,6 @@
 """
-`make export-cases`: every test case JSON file of an agent -> one Excel workbook, to attach or review.
-The reverse of `make import-cases`.
-
-    make export-cases AGENT=knowledge_agent                   # every suite, one sheet each
-    make export-cases AGENT=knowledge_agent SUITE=golden      # one suite
-    make export-cases AGENT=knowledge_agent FILE=~/Desktop/KA_cases.xlsx
-
-The first sheet is a summary (suite, folder, number of cases); then one sheet per suite, one row per
-test case. Columns: Test case ID, Description, then every key of the cases' input, expected and
-metadata blocks (a coloured band above the headers says which block), then the file it came from.
-A list becomes one item per line in its cell. Suites that share a folder (e.g. sanity and
-relevance_only) are exported once. Generic: works for any agent.
+`make export-cases`: write an agent's test cases to one Excel workbook (the reverse of `make import-cases`).
+A summary sheet, then one sheet per suite with a row per case; suites sharing a folder are exported once.
 """
 
 from __future__ import annotations
@@ -32,7 +22,7 @@ LABELS = {"test_case_id": "Test case ID", "description": "Description"}
 
 
 def export_cases(agent_name: str, suite: str | None = None, out: str | Path | None = None) -> Path:
-    """Write the workbook and return its path. Prints what went where."""
+    """Write the workbook, print what went where, and return its path."""
     agent = load_agent(agent_name)
     suites = [agent.suite(suite)] if suite else list(agent.suites.values())
     sheets, summary, seen = [], [], set()
@@ -63,7 +53,7 @@ def export_cases(agent_name: str, suite: str | None = None, out: str | Path | No
 
 
 def cases_sheet(name: str, cases: list[dict[str, Any]], folder: Path) -> Sheet:
-    """One sheet: a row per case, a column per key (in the order they first appear)."""
+    """Build one sheet with a row per case and a column per key, in first-seen order."""
     columns: list[tuple[str, str, str]] = [("", key, key) for key in FIRST]    # (group, key, where in the case)
     for block, group in BLOCKS.items():
         keys = dict.fromkeys(k for case in cases for k in (case.get(block) or {}))
@@ -80,7 +70,7 @@ def cases_sheet(name: str, cases: list[dict[str, Any]], folder: Path) -> Sheet:
 
 
 def _files_by_id(folder: Path) -> dict[str, str]:
-    """{test case id: its file, relative to the test data folder}."""
+    """Return {test case id: its file path relative to the test data folder}."""
     found = {}
     for path in sorted(folder.rglob("*.json")):
         try:
@@ -93,12 +83,13 @@ def _files_by_id(folder: Path) -> dict[str, str]:
 
 
 def _get(case: dict[str, Any], path: str) -> Any:
+    """Return the value at a "block.key" or top-level path in a case."""
     block, _, key = path.partition(".")
     return (case.get(block) or {}).get(key) if key else case.get(path)
 
 
 def _cell(value: Any) -> Any:
-    """A JSON value as a cell: list -> one item per line; object -> compact JSON; True -> TRUE."""
+    """Convert a JSON value to a cell: list -> one item per line, object -> JSON, bool -> TRUE/FALSE."""
     if isinstance(value, list):
         return "\n".join(str(_cell(v)) for v in value)
     if isinstance(value, dict):
@@ -109,11 +100,12 @@ def _cell(value: Any) -> Any:
 
 
 def _label(key: str) -> str:
-    """'expected_anchor_page_ids' -> 'Expected anchor page ids'."""
+    """Turn a key into a header, e.g. 'expected_page_ids' -> 'Expected page ids'."""
     return key.replace("_", " ").strip().capitalize()
 
 
 def _relative(folder: Path) -> str:
+    """Return a folder relative to the repo, for printing."""
     try:
         return folder.relative_to(paths.ROOT).as_posix()
     except ValueError:

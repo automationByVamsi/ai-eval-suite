@@ -1,18 +1,6 @@
-# my_agent — the fields evaluation reads from each trace (optional).
-#
-# Without this file, judges get the standard fields: question (the case input), answer (the
-# agent's final text), contexts (trace["context"], if any) and expected_answer (from the case).
-# Add a field here to judge or check anything else in the trace — one line each, no Python.
-#
-# Each field is a JMESPath query (try it on https://jmespath.org) on one document made from the trace:
-#   final     the final output             state     the agent's session state (latest value wins)
-#   nodes     {node name: [its outputs]}   models    {agent name: [its model replies]}
-#   messages  [every text in the trace]    timing    {step: seconds}       trace   the trace file itself
-# Options (path list, where/pick, unique, join, default, required, lookup): see src/fields/extract.py.
-# agents/knowledge_agent/fields.yaml is a full example.
-#
-# Check your fields on a saved trace (after one `make run`):
-#   make fields AGENT=my_agent CASE=TC_001
+# Fields read from each trace (optional): one JMESPath query each, on final, state, nodes, models,
+# messages, timing, trace. Options: see src/fields/extract.py; full example: agents/knowledge_agent/fields.yaml.
+# Without this file judges get question, answer, contexts, expected_answer. Preview: make fields AGENT=my_agent
 
 fields:
   # answer:          {path: final.answer.summary, required: true}

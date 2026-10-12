@@ -1,15 +1,5 @@
-"""
-The page for an ordinary run (one saved by `make run` or `make baseline`).
-
-Layout, top to bottom:
-  a header   agent name, suite, build, and one line saying how the run went
-  tabs       Overview, Test cases, (Consistency, only when REPS > 1), Trends, Baseline
-
-Each tab is one small function below. The Test cases tab lives in dashboard_cases.py and the Consistency
-tab in dashboard_consistency.py.
-
-Used by: dashboard.py.
-"""
+"""Dashboard page for an ordinary run (`make run` / `make baseline`): a header, then the Overview, Test cases,
+Consistency (REPS > 1), Trends and Baseline tabs."""
 
 import altair as alt
 import pandas as pd
@@ -26,22 +16,17 @@ from src.reporting.summary import summarise, time_split
 from src.verdict.baseline import baseline_path
 from src.verdict.compare import compare
 
-# The colour of each status in the "every case x every result" chart.
 COLORS = {PASS: "#16a34a", FAIL: "#dc2626", ERROR: "#d97706", SKIP: "#94a3b8"}
 
 
 def show_run_page(run: Run, same_suite_ids: list[str], status_filter: list[str], search: str) -> None:
     """Draw the whole page for one run.
-
-    same_suite_ids: the ids of every run of this agent and suite, newest first (used by the Trends tab).
-    status_filter, search: the filters chosen in the sidebar (used by the Test cases tab).
-    """
-    stats = ui.run_stats(run)           # the totals: cases passed, judge pass rate, latency ...
+    same_suite_ids: this agent and suite's run ids, newest first (for Trends)."""
+    stats = ui.run_stats(run)
     summary = summarise([run])          # one row per judge / check, with its pass rate
 
     show_header(run, stats)
 
-    # The Consistency tab only exists when every case was run more than once.
     consistency_rows = release.consistency(run) if run.reps > 1 else []
     tab_names = [":material/dashboard: Overview", f":material/list_alt: Test cases ({len(run.cases)})",
                  ":material/trending_up: Trends", ":material/compare_arrows: Baseline"]
@@ -68,7 +53,7 @@ def show_run_page(run: Run, same_suite_ids: list[str], status_filter: list[str],
 # --- header --------------------------------------------------------------------------------------
 
 def show_header(run: Run, stats: dict) -> None:
-    """The big box at the top: agent name, small chips (suite, build ...) and the one-line result."""
+    """Draw the header box: agent name, run chips (suite, build ...) and a one-line result."""
     mode = "offline replay" if run.offline else "live agent"
     sub = "".join(ui.chip(x, k) for x, k in [
         (run.suite, "accent"), (f"build {run.build}" if run.build else "no build label", "plain"),
@@ -76,7 +61,6 @@ def show_header(run: Run, stats: dict) -> None:
         (pd.to_datetime(run.started_at).strftime("%d %b %Y, %H:%M") if run.started_at else "", "ghost"),
         (run.run_id, "ghost")] if x)
 
-    # The one-line result: errors first, then failures, otherwise all good.
     if stats["errors"]:
         word, kind = f"{stats['errors']} case{'s' * (stats['errors'] > 1)} could not be evaluated", "warn"
     elif stats["failed"]:
@@ -96,14 +80,13 @@ def show_header(run: Run, stats: dict) -> None:
 # --- Overview tab --------------------------------------------------------------------------------
 
 def show_overview(run: Run, stats: dict, summary: list[dict], consistency_rows: list[dict]) -> None:
-    """The run at a glance: numbers, release targets, consistency, scoreboards, what needs attention."""
+    """Draw the Overview tab: KPIs, targets, consistency, scoreboards and cases needing attention."""
     show_kpis(stats)
     show_time_split(run)
     show_targets(run)
     if consistency_rows:
         show_consistency_card(run, consistency_rows)
 
-    # Two boxes side by side: LLM judges on the left, deterministic checks on the right.
     left, right = st.columns(2, gap="large")
     with left.container(border=True):
         html('<div class="card-label">LLM judges<span class="count">pass rate across cases</span></div>')
@@ -118,7 +101,7 @@ def show_overview(run: Run, stats: dict, summary: list[dict], consistency_rows: 
 
 
 def show_time_split(run: Run) -> None:
-    """Where the time goes, averaged over the cases (fields ending in _seconds, e.g. retrieval / generation)."""
+    """Draw the mean time per stage (fields ending in _seconds) as KPI cards."""
     split = time_split([run])
     if not split:
         return
@@ -130,7 +113,7 @@ def show_time_split(run: Run) -> None:
 
 
 def show_kpis(stats: dict) -> None:
-    """The row of five big numbers."""
+    """Draw the row of five headline KPI cards."""
     case_rate = stats["passed"] / stats["cases"] if stats["cases"] else None
     judged = stats["judges"][PASS] + stats["judges"][FAIL]
     checked = stats["checks"][PASS] + stats["checks"][FAIL]
@@ -152,7 +135,7 @@ def show_kpis(stats: dict) -> None:
 
 
 def show_targets(run: Run) -> None:
-    """The release targets from agent.yaml, with how many were missed. Nothing is drawn if there are none."""
+    """Draw the agent.yaml release targets and how many were missed; nothing if there are none."""
     gate_ok, target_rows = release.gate(run)
     if not target_rows:
         return
@@ -164,7 +147,7 @@ def show_targets(run: Run) -> None:
 
 
 def show_consistency_card(run: Run, consistency_rows: list[dict]) -> None:
-    """A short summary of the Consistency tab: how many cases agreed with themselves."""
+    """Draw a short consistency summary: how many cases agreed across runs, and which didn't."""
     with st.container(border=True):
         ok, total = sum(r["consistent"] for r in consistency_rows), len(consistency_rows)
         badge = ui.chip(f"{ok} of {total} cases consistent", "good" if ok == total else "bad")
@@ -179,7 +162,7 @@ def show_consistency_card(run: Run, consistency_rows: list[dict]) -> None:
 
 
 def show_needs_attention(run: Run) -> None:
-    """A table of every case that did not pass, with the first reason."""
+    """Draw a table of every case that did not pass, with its first reason."""
     attention = [c for c in run.cases if c.status != PASS]
     st.markdown('<div class="section-title">Needs attention</div>'
                 '<div class="section-note">Every case that failed or could not be evaluated, with the first reason.'
@@ -198,12 +181,12 @@ def show_needs_attention(run: Run) -> None:
 
 
 def show_heatmap(run: Run) -> None:
-    """A grid of coloured squares: one row per case, one column per judge / check."""
+    """Draw a status heatmap: one row per case, one column per judge / check."""
     cells = [{"case": c.case_id + (f" r{c.rep + 1}" if run.reps > 1 else ""), "result": ui.label(r.name),
               "kind": "LLM judge" if r.kind == "judge" else "check", "status": r.status,
               "detail": r.reason or ("passed" if r.status == PASS else "")}
              for c in run.cases for r in c.results if not ui.is_setup(r)]
-    for c in run.cases:                        # a first column: could the case be evaluated at all?
+    for c in run.cases:                        # first column: could the case be evaluated at all?
         trouble = ui.problems(c)
         cells.append({"case": c.case_id + (f" r{c.rep + 1}" if run.reps > 1 else ""), "result": "Agent & setup",
                       "kind": "setup", "status": ERROR if trouble else PASS,
@@ -215,7 +198,7 @@ def show_heatmap(run: Run) -> None:
                 'Hover a cell for why.'
                 '</div>', unsafe_allow_html=True)
     frame = pd.DataFrame(cells)
-    rank = {"setup": 0, "LLM judge": 1, "check": 2}     # column order: setup, then judges, then checks
+    rank = {"setup": 0, "LLM judge": 1, "check": 2}
     order = list(dict.fromkeys(frame.sort_values("kind", key=lambda k: k.map(rank), kind="stable")["result"]))
     chart = alt.Chart(frame).mark_rect(cornerRadius=3, stroke="white", strokeWidth=1.5).encode(
         x=alt.X("result:N", sort=order, title=None,
@@ -231,14 +214,12 @@ def show_heatmap(run: Run) -> None:
 # --- Trends tab ----------------------------------------------------------------------------------
 
 def show_trends(run: Run, same_suite_ids: list[str]) -> None:
-    """The same agent and suite over its last 20 runs: a line chart and a table."""
-    # same_suite_ids is newest first; the chart reads left to right, so reverse it (oldest first).
+    """Draw the last 20 runs of this agent and suite as a line chart and a table."""
     history = [load(rid) for rid in reversed(same_suite_ids[:20])]
     if len(history) < 2:
         st.info(f"Only one run of {run.agent}/{run.suite} so far. Trends appear from the second run on.")
         return
 
-    # One point per run for "cases passing", and one per run for each judge's mean score.
     rows = []
     for number, past in enumerate(history, 1):
         s = ui.run_stats(past)
@@ -269,7 +250,7 @@ def show_trends(run: Run, same_suite_ids: list[str]) -> None:
 # --- Baseline tab --------------------------------------------------------------------------------
 
 def show_baseline(run: Run) -> None:
-    """This run against the saved baseline (the same comparison `make verdict` makes)."""
+    """Draw this run compared with the saved baseline (the same comparison `make verdict` makes)."""
     path = baseline_path(run.agent, run.suite)
     if not path.is_file():
         st.info(f"No baseline for {run.agent}/{run.suite} yet. Create one from a stable build:\n\n"
@@ -283,7 +264,7 @@ def show_baseline(run: Run) -> None:
          f'build {ui.esc(run.build or "?")} against baseline build {ui.esc(baseline.get("build") or "?")}'
          f'</div></div><div class="verdict"><span class="verdict-word {"good" if passed else "bad"}">'
          f'{"PASS" if passed else "FAIL"}</span></div></div>')
-    order = {"regression": 0, "missing": 1, "improved": 2, "new": 3, "ok": 4}     # worst first
+    order = {"regression": 0, "missing": 1, "improved": 2, "new": 3, "ok": 4}
     st.dataframe(pd.DataFrame([{
         "status": r["status"].upper(), "case :: result": r["result"],
         "baseline pass rate": (r["baseline"] or {}).get("pass_rate"),

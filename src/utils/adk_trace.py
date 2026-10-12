@@ -1,18 +1,4 @@
-"""
-Read fields out of a Google ADK trace, so parsers never have to learn the raw event format.
-
-A trace is the dict saved to outputs/traces/ after every live call:
-
-    {"agentOutput": "<final answer>", "sessionId": "...", "latency_ms": 1234.5,
-     "raw_events": [ ...ADK events exactly as the agent returned them... ]}
-
-Typical use in agents/<agent>/parser.py:
-
-    from src.utils.adk_trace import find_event, state, tool_calls
-
-    rewritten = state(trace, "rewritten_query", "")
-    tools = [c["name"] for c in tool_calls(trace)]
-"""
+"""Read values out of a Google ADK trace (final answer, state, events, tool calls) without touching raw events."""
 
 from __future__ import annotations
 
@@ -21,11 +7,7 @@ from typing import Any
 
 
 def final_text(events: list[dict[str, Any]]) -> str:
-    """
-    The agent's final answer: the last non-empty text part written by the model.
-
-    "Thought" parts are ignored, and a leading "Answer:" line (some agents add one) is dropped.
-    """
+    """Return the last non-empty, non-thought model text, minus any leading "Answer:" line."""
     text = ""
     for event in events:
         content = event.get("content") or {}
@@ -40,12 +22,12 @@ def final_text(events: list[dict[str, Any]]) -> str:
 
 
 def events(trace: dict[str, Any]) -> list[dict[str, Any]]:
-    """The raw ADK events of a trace ([] for traces from non-ADK agents)."""
+    """Return the trace's raw ADK events ([] for non-ADK agents)."""
     return trace.get("raw_events") or []
 
 
 def state(trace: dict[str, Any], key: str, default: Any = None) -> Any:
-    """Final value of a session-state key: the last `stateDelta` that wrote it, else `default`."""
+    """Return a session-state key's value from the last `stateDelta` that wrote it, else `default`."""
     value = default
     for event in events(trace):
         delta = (event.get("actions") or {}).get("stateDelta") or {}
@@ -55,12 +37,12 @@ def state(trace: dict[str, Any], key: str, default: Any = None) -> Any:
 
 
 def find_event(trace: dict[str, Any], author: str) -> dict[str, Any] | None:
-    """First event written by one ADK node, e.g. find_event(trace, "query_rewrite_agent")."""
+    """Return the first event written by `author`, or None."""
     return next((e for e in events(trace) if e.get("author") == author), None)
 
 
 def event_json(event: dict[str, Any] | None) -> dict[str, Any]:
-    """An event's text parsed as a JSON object; {} when it is missing or not a JSON object."""
+    """Return an event's text parsed as a JSON object; {} when missing or not a JSON object."""
     parts = ((event or {}).get("content") or {}).get("parts") or []
     try:
         data = json.loads(parts[0].get("text", "")) if parts else {}
@@ -70,7 +52,7 @@ def event_json(event: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def tool_calls(trace: dict[str, Any]) -> list[dict[str, Any]]:
-    """Every tool the agent called, in order: [{"name": ..., "args": {...}}]."""
+    """Return every tool call in order as [{"name": ..., "args": {...}}]."""
     calls = []
     for event in events(trace):
         for part in (event.get("content") or {}).get("parts") or []:

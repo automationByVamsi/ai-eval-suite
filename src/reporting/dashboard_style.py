@@ -1,13 +1,8 @@
-"""
-How the dashboard looks: the colours (a light and a dark set), the CSS, and `html()` — the one helper
-every dashboard view uses to draw a block of HTML.
-
-Used by: the dashboard files only (dashboard.py and the dashboard_*.py views).
-"""
+"""Dashboard look: light and dark colour sets, the CSS, and the `html()` drawing helper."""
 
 import streamlit as st
 
-# The colours. Everything in the CSS below refers to them by name, e.g. var(--good).
+# The CSS refers to these colours by name, e.g. var(--good).
 LIGHT = """--surface:#ffffff; --surface-2:#f8fafc; --border:rgba(15,23,42,.10); --ink:#0f172a; --ink-2:#475569;
   --muted:#94a3b8; --good:#16a34a; --bad:#dc2626; --warn:#d97706; --accent:#4f46e5; --track:#e2e8f0;
   --good-wash:rgba(22,163,74,.10); --bad-wash:rgba(220,38,38,.09); --warn-wash:rgba(217,119,6,.11);
@@ -152,11 +147,11 @@ table.vt td { vertical-align:middle; }
 
 
 def apply_theme() -> None:
-    """Put the CSS on the page, in the colours of the viewer's theme (light or dark)."""
+    """Add the CSS to the page in the viewer's theme colours (light or dark)."""
     dark = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
     st.markdown(CSS % (DARK if dark else LIGHT), unsafe_allow_html=True)
 
 
 def html(markup: str, target=st) -> None:
-    """Draw a piece of HTML (on the page, or in `target`, e.g. a column)."""
+    """Draw a block of HTML on the page, or in `target` (e.g. a column)."""
     target.markdown(markup, unsafe_allow_html=True)

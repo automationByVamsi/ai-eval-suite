@@ -1,15 +1,7 @@
-# Everything you need day to day. `make help` lists it.
-#
-#   make run      AGENT=knowledge_agent SUITE=sanity
-#   make run      AGENT=knowledge_agent SUITE=sanity OFFLINE=1        (reuse saved traces)
+# Every day-to-day command; `make help` lists them all. Examples:
+#   make run      AGENT=knowledge_agent SUITE=sanity [OFFLINE=1]   (OFFLINE=1 reuses saved traces)
 #   make baseline AGENT=knowledge_agent SUITE=sanity BUILD=1.4.0 REPS=5
 #   make verdict  AGENT=knowledge_agent SUITE=sanity BUILD=1.5.0 REPS=5
-#   make new-agent NAME=my_agent INPUT_FIELD=question
-#   make sources  AGENT=knowledge_agent [GROUP="Recoveries Commercial Bank"] [IDS="36626 39696"]
-#   make goldens  AGENT=knowledge_agent [GROUP=..] [IDS=..] [STYLES=..] [REPLACE=1]   (synthesizer)
-#   make fields   AGENT=knowledge_agent [SUITE=..] [CASE=..] [TRACE=file]   (what fields.yaml reads from traces)
-#   make import-cases AGENT=knowledge_agent FILE="~/Downloads/golden.xlsx" [SHEET=..] [MAPPING=..] [DRY_RUN=1]
-#   make export-cases AGENT=knowledge_agent [SUITE=golden] [FILE=~/Desktop/cases.xlsx]   (JSON -> Excel)
 
 AGENT ?= knowledge_agent
 SUITE ?= sanity
@@ -32,9 +24,8 @@ LAST ?= 1
 
 FLAGS = --reps $(REPS) $(if $(METRICS),--metrics $(METRICS)) $(if $(BUILD),--build $(BUILD)) $(if $(OFFLINE),--offline) $(if $(filter 0,$(JUDGES)),--no-judges) \
         $(foreach c,$(CASE),--case $(c))
-# Which Python runs the commands: the project's .venv (made by make setup), or — if you activated a
-# virtual env first — that one. --frozen: use uv.lock as it is, never re-resolve (so commands work
-# even on machines that can't reach SAR, where Pegasus lives).
+# Runs in the project's .venv, or in your activated virtual env. --frozen: never re-resolve uv.lock
+# (works without access to SAR, where Pegasus lives).
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
@@ -60,13 +51,11 @@ help:
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
 
-# Installs everything with uv sync, Pegasus included when env/.env has your SAR token.
-# The steps are in scripts/setup.sh (readable, commented).
+# Installs everything (Pegasus too, if env/.env has your SAR token); steps in scripts/setup.sh.
 setup:
 	@sh scripts/setup.sh
 
-# CorteX DevKit sign-in (only when CORTEX_AUTH=devkit): opens the browser for SSO, then stores the
-# token in your OS keyring. Every command after this reaches CORTEX without an API key.
+# CorteX DevKit SSO sign-in (CORTEX_AUTH=devkit only); the token is kept in your OS keyring.
 cortex-login:
 	$(UV_RUN) cx auth login
 
@@ -97,26 +86,24 @@ sources:
 goldens:
 	$(EVAL) goldens $(AGENT) $(SYNTH) $(if $(STYLES),--styles $(STYLES)) $(if $(REPLACE),--replace)
 
-# Rates (e.g. anchor hit rate) across the last N saved runs of a suite — no agent call, no judges.
+# Pass rates across the last N saved runs (no agent call, no judges).
 summary:
 	$(EVAL) summary $(AGENT) $(SUITE) --last $(LAST)
 
-# What fields.yaml reads from saved traces (and what the checks make of it). No agent call, no judges.
+# Preview fields.yaml values and checks on saved traces (no agent call, no judges).
 fields:
 	$(EVAL) fields $(AGENT) --suite $(SUITE) $(foreach c,$(CASE),--case $(c)) $(if $(TRACE),--trace "$(TRACE)")
 
-# Spreadsheet -> test case JSON files. The column mapping and case template are per agent:
-# agents/<AGENT>/importers/<MAPPING>.yaml. FILE may contain spaces: quote it.
+# Spreadsheet -> test case JSON, mapped by agents/<AGENT>/importers/<MAPPING>.yaml. Quote FILE if it has spaces.
 import-cases:
 	@test -n "$(FILE)" || { echo 'Give the spreadsheet: make import-cases AGENT=$(AGENT) FILE="path/to/file.xlsx"'; exit 1; }
 	$(EVAL) import-cases $(AGENT) "$(FILE)" $(if $(MAPPING),--mapping $(MAPPING)) $(if $(SHEET),--sheet "$(SHEET)") $(if $(DRY_RUN),--dry-run)
 
-# Test case JSON files -> one formatted Excel workbook (the reverse of import-cases). Every suite unless
-# SUITE= is given on the command line; FILE= sets where (default outputs/exports/).
+# Test case JSON -> one Excel workbook. All suites unless SUITE= is given; default FILE in outputs/exports/.
 export-cases:
 	$(EVAL) export-cases $(AGENT) $(if $(filter command line environment,$(origin SUITE)),--suite $(SUITE)) $(if $(FILE),--out "$(FILE)")
 
-# Judge calibration: an Excel sheet of a run's answers + judge scores for SMEs to mark, then the comparison.
+# Judge calibration: SMEs mark a run's answers and scores (review-sheet), then compare (calibrate).
 review-sheet:
 	$(EVAL) review-sheet $(AGENT) $(SUITE) $(if $(RUN),--run $(RUN))
 

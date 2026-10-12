@@ -1,11 +1,7 @@
 """
-Only for agents that are NOT Google ADK. Rename this file to client.py and the runner will
-call it instead of the built-in ADK client. Everything else (checks, judges, reports,
-baseline/verdict) works unchanged.
-
-`settings` is the `connection:` section of agent.yaml (with env/.env values filled in).
-Return a trace dict. Only "agentOutput" is required; keep the raw response in it too,
-so parser.py can read whatever it needs and --offline replays have everything.
+Custom client for agents that are NOT Google ADK: rename to client.py to replace the built-in ADK client.
+`settings` is agent.yaml's `connection:` section, with env/.env values filled in.
+Return a trace dict: only "agentOutput" is required; keep "raw_response" for parser.py and --offline replays.
 """
 
 import time
@@ -14,6 +10,7 @@ import httpx
 
 
 def call_agent(settings, message):
+    """Send one message to the agent and return its trace dict."""
     start = time.perf_counter()
     response = httpx.post(
         f"{settings['base_url']}/chat",                 # TODO: your agent's endpoint
