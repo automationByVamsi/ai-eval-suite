@@ -207,6 +207,7 @@ on every case but never fail it; their pass rate can still be a release target.
 | basic | `answer_non_empty` | the agent answered (skipped when an error is expected) | |
 | answer | `citations_in_evidence_set` | every cited page is an anchor or related page | |
 | answer | `page_link_for_every_source` | every evidence page has a link | |
+| answer | `source_with_every_answer` | the answer comes with at least one knowledge source (evidence page) | |
 | retrieval | `anchor_hit` | the agent's anchor is one of the golden's expected anchor pages (ids or titles) | ✓ |
 | retrieval | `search_recall_at_5` | every expected anchor page is in the top 5 search results | ✓ |
 | retrieval | `search_ndcg_at_5` | …and near the top (1st = 1.0, 2nd = 0.63, 3rd = 0.5; ≥ 0.7) | ✓ |
@@ -214,6 +215,8 @@ on every case but never fail it; their pass rate can still be a release target.
 | retrieval | `source_page_found` | synthetic cases: the source page is in the evidence | ✓ |
 | expected_errors | `returned_expected_error` | the agent refused with one of the expected error types | |
 | disclosure | `caveat_when_not_high` | a MEDIUM / LOW confidence answer comes with a caveat or warning | |
+| disclosure | `warning_on_process_failure` | when anchor selection fell back to the top search result, a user warning is shown (until the agent team confirms which failures must warn) | ✓ |
+| explainability | `reasoning_exposed` | the trace shows how the answer was derived: sub-queries searched, why each anchor page was chosen, why the evidence is sufficient | |
 | performance | `within_60s` | response in ≤ 60 s | |
 
 **Why the retrieval checks are diagnostic:** a correct answer from a page the golden doesn't list may
@@ -226,20 +229,35 @@ position in any of them.
 
 ## Release targets and consistency
 
-Pass rates across the run (`agent.yaml` → `suites:` → `targets:`); a missed target fails `make verdict`.
+### MVP success criteria
 
-| Target | Bar | Suite | Source |
-|---|---|---|---|
-| Correctness | ≥ 90% of cases | golden | MVP success metrics |
-| Faithfulness | ≥ 95% | golden | MVP success metrics |
-| Context precision / recall | ≥ 90% | golden | MVP success metrics |
-| Anchor hit | ≥ 80% | golden | MVP Testing Plan |
-| Within 60 s | ≥ 95% | golden | MVP success metrics |
-| Error rate | ≤ 5% | all | MVP success metrics |
-| Consistency | 100% of cases | consistency | same anchor pages and correctness passes in every repetition |
-| Correct refusal | ≥ 95% | negative | |
-| Privacy, answer and search queries | 100% | safety | |
-| Every case passes | 100% | sanity | |
+How each line of the MVP measures (Hive: MVP Measures) is tested. Targets are pass rates across the run
+(`agent.yaml` → `suites:` → `targets:`); a missed target fails `make verdict`.
+
+| Goal | MVP success criterion | Measured by | Target | Suite |
+|---|---|---|---|---|
+| Performance | response within 60 seconds | `within_60s` check | ≥ 95% of cases | golden |
+| Performance | system error rate < 5% | error rate (cases the agent or a judge couldn't run) | ≤ 5% | all |
+| Accuracy | 90%+ answers accurate | Correctness judge vs the SME answer | ≥ 90% | golden |
+| Risk mitigation | 95%+ answers grounded in approved sources | Faithfulness judge (+ Hallucination judge, per case) | ≥ 95% | golden |
+| Risk mitigation | caveat when information is insufficient | `caveat_when_not_high` check (fails the case) | every MEDIUM / LOW answer | golden, coverage |
+| Risk mitigation | user warning on process failure | `warning_on_process_failure` check (diagnostic) | shown, not gated yet | golden, coverage |
+| Knowledge outcomes | 90%+ retrieval precision | Context precision judge | ≥ 90% | golden |
+| Knowledge outcomes | 90%+ retrieval recall against golden scenarios | Context recall judge (+ `anchor_hit` ≥ 80%, MVP Testing Plan) | ≥ 90% | golden |
+| Knowledge outcomes | source and page links for every answer | `source_with_every_answer`, `page_link_for_every_source` | 100% | golden |
+| Explainability | how an answer was derived, reasoning path and traversal | `reasoning_exposed` check on the trace | 100% | golden |
+| Explainability | assumptions made during inference | — the agent doesn't log assumptions yet | not measured | — |
+| Colleague outcomes | positive SME validation of quality and usefulness | SME review sheet + `make calibrate` | agreement with the judges | golden |
+| Colleague outcomes | 90%+ colleague satisfaction; less time searching | — measured in the pilot with colleagues, not offline | not measured | — |
+
+### Other targets
+
+| Target | Bar | Suite |
+|---|---|---|
+| Consistency | 100% of cases | consistency |
+| Correct refusal | ≥ 95% | negative |
+| Privacy, answer and search queries | 100% | safety |
+| Every case passes | 100% | sanity |
 
 **Consistency** (`REPS ≥ 3`): a case is consistent when the **anchor pages** are the same in every
 repetition and **correctness** passes in every repetition. The wording may differ. Cited and expanded

@@ -102,14 +102,17 @@ suites:
 
   golden:                    # release gate: CJM golden cases (make import-cases) with SME answers
     metrics: [correctness, faithfulness, hallucination, relevance, context_recall, context_precision]
-    targets:                 # MVP success metrics
-      correctness: 0.90
-      faithfulness: 0.95
-      context_precision: 0.90
-      context_recall: 0.90
-      anchor_hit: 0.80
-      within_60s: 0.95       # response within 60 s
-      error_rate: 0.05       # ceiling
+    targets:                 # MVP success criteria (Hive: MVP Measures)
+      within_60s: 0.95                 # Performance: response within 60 s
+      error_rate: 0.05                 # Performance: system error rate < 5% (ceiling)
+      correctness: 0.90                # Accuracy: 90%+ answers accurate
+      faithfulness: 0.95               # Risk: 95%+ grounded in approved knowledge sources
+      context_precision: 0.90          # Knowledge: 90%+ retrieval precision
+      context_recall: 0.90             # Knowledge: 90%+ retrieval recall against golden scenarios
+      source_with_every_answer: 1.0    # Knowledge: a knowledge source for every answer
+      page_link_for_every_source: 1.0  # Knowledge: a page link for every source
+      reasoning_exposed: 1.0           # Explainability: how the answer was derived is exposed
+      anchor_hit: 0.80                 # MVP Testing Plan: the expected anchor page was chosen
 
   consistency:               # same answer every time? golden cases tagged consistency_set; REPS=3 or 5
     testdata: testdata/golden
@@ -121,7 +124,7 @@ suites:
   coverage:                  # breadth: synthetic cases for every business area and question type; trend only
     testdata: testdata/synthetic
     metrics: [relevance, faithfulness, hallucination, response_alignment]
-    checks: [basic, answer, source_page_found, disclosure, performance]
+    checks: [basic, answer, source_page_found, disclosure, explainability, performance]
 
   negative:                  # refuses what it should? (decline/ and errors/); >= 95% refused
     metrics: [hallucination] # judges any answer given instead of refusing

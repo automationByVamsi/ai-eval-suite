@@ -5,6 +5,7 @@ checks:
   answer:                     # what the caller receives is safe to show
     citations_in_evidence_set:  {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
     page_link_for_every_source: {type: same_count, fields: [evidence_page_ids, evidence_links]}
+    source_with_every_answer:   {type: present, field: evidence_page_ids}   # MVP: a knowledge source for every answer
 
   retrieval:                  # golden cases: the expected pages were found (by id or title)
     # Diagnostic: does not fail the case (the run's anchor_hit target still gates).
@@ -49,6 +50,15 @@ checks:
 
   disclosure:                 # a MEDIUM / LOW confidence answer carries a caveat or warning
     caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
+    warning_on_process_failure:   # MVP: a user warning when a stage fell back (anchor = top Athena result,
+      type: present               # not the agent's choice). Diagnostic until the agent team confirms which
+      field: user_warnings        # failures must raise a warning.
+      diagnostic: true
+      when: {field: anchor_fallback, present: true}
+
+  explainability:             # MVP: the agent can show how an answer was derived (in its trace)
+    reasoning_exposed:          # sub-queries searched, why each anchor page was chosen, why the evidence is enough
+      {type: present, fields: [branch_sub_queries, anchor_rationales, sufficiency_reason]}
 
   performance:                # response within 60 seconds
     within_60s:             {type: range, field: latency_ms, min: 0, max: 60000}
