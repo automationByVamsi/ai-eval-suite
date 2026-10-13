@@ -22,40 +22,67 @@ SME_VERDICT, SME_NOTES = "SME verdict (pass / fail)", "SME notes"
 JUDGE_HEADER = re.compile(r"^(?P<name>.+) \(pass ≥ (?P<threshold>[0-9.]+)\)$")     # "Faithfulness (pass ≥ 0.7)"
 
 
-def review_sheet(run: Run, out: Path | None = None, columns: dict[str, str] | None = None) -> Path:
-    """Write the SME review workbook for a run; returns its path. columns: extra {heading: field} to show."""
+# Columns when the agent has no exporters/review_sheet.yaml: {group: {heading: value}}.
+BASIC_COLUMNS = {"Test case": {"Query": "case.question"},
+                 "Agent answer": {"Agent answer": "case.answer", "Expected answer": "case.expected_answer"}}
+TONE = {"green": "good", "red": "bad"}
+
+
+def review_sheet(run: Run, out: Path | None = None, columns: dict[str, dict] | None = None) -> Path:
+    """Write the SME review workbook for a run; returns its path.
+    columns: {group: {heading: value}} from exporters/review_sheet.yaml (see the knowledge_agent one)."""
     judges = list(dict.fromkeys(r.name for c in run.cases for r in c.results if r.kind == "judge"))
     thresholds = {r.name: r.threshold for c in run.cases for r in c.results if r.kind == "judge" and r.threshold}
-    columns = columns or {}
+    shown = [(group, heading, value) for group, headings in (columns or BASIC_COLUMNS).items()
+             for heading, value in headings.items()]
     reps = run.reps > 1
     header = [("Test case", "Case ID"), *([("Test case", "Run")] if reps else []),
-              ("Test case", "Query type"), ("Test case", "Business area"), ("Test case", "Query"),
-              ("Agent answer", "Agent answer"), ("Agent answer", "Caveats / warnings"), ("Agent answer", "Confidence"),
-              ("Agent answer", "Expected answer"),
-              *[("Pages", heading) for heading in columns],
+              *[(group, heading) for group, heading, _ in shown],
               *[("LLM judges", f"{_title(name)} (pass ≥ {thresholds.get(name, 0.7):g})") for name in judges],
               ("Result", "Deterministic checks"), ("Result", "Case result"),
               ("SME review", SME_VERDICT), ("SME review", SME_NOTES),
               ("Reference", "Agent output (raw)")]
     rows = []
     for case in run.cases:
-        d, given = case.details or {}, case.input or {}
         by_name = {r.name: r for r in case.results if r.kind == "judge"}
-        row = [case.case_id, *([case.rep + 1] if reps else []),
-               given.get("question_type") or d.get("question_type") or "",
-               given.get("business_area") or d.get("business_area") or "",
-               case.question, case.answer or _refusal(d), _cell(_notes(d)), _confidence(d.get("confidence")),
-               case.expected_answer]
-        row += [_cell(d.get(field)) for field in columns.values()]
+        row = [case.case_id, *([case.rep + 1] if reps else [])]
+        row += [_column(case, value) for _, _, value in shown]
         row += [_score(by_name.get(name)) for name in judges]
         row += [_checks(case), Cell(case.status.upper(), "good" if case.status == PASS else "bad"),
-                Cell("", "input"), Cell("", "input"), _raw(d.get("agent_response"))]
+                Cell("", "input"), Cell("", "input"), _raw((case.details or {}).get("agent_response"))]
         rows.append(row)
     verdict_column = header.index(("SME review", SME_VERDICT))
     review = Sheet("Review", header, rows, freeze_columns=1, dropdowns={verdict_column: ["pass", "fail"]})
     out = out or paths.OUTPUTS_DIR / "review" / f"{run.run_id}.xlsx"
     write_xlsx(out, [_how_to(run, judges, thresholds), review])
     return out
+
+
+def _column(case: Any, value: Any) -> Any:
+    """One configured cell: the first non-empty source, coloured when `colours:` matches its text."""
+    if isinstance(value, dict):
+        cell = _column(case, value["value"])
+        for text, colour in (value.get("colours") or {}).items():
+            if str(cell).strip().lower() == str(text).lower():
+                return Cell(str(text), TONE[colour])
+        return cell
+    for source in value if isinstance(value, list) else [value]:
+        cell = _cell(_source(case, str(source)))
+        if cell not in ("", None, []):
+            return cell
+    return ""
+
+
+def _source(case: Any, source: str) -> Any:
+    """A column value: case.question / case.answer / case.expected_answer, input.<key>, or a field."""
+    details = case.details or {}
+    if source == "case.answer":
+        return case.answer or _refusal(details)
+    if source.startswith("case."):
+        return getattr(case, source.removeprefix("case."), "")
+    if source.startswith("input."):
+        return (case.input or {}).get(source.removeprefix("input."))
+    return details.get(source)
 
 
 def _how_to(run: Run, judges: list[str], thresholds: dict[str, float]) -> Sheet:
@@ -69,12 +96,6 @@ def _how_to(run: Run, judges: list[str], thresholds: dict[str, float]) -> Sheet:
                              "Your verdicts tell us whether the judges can be trusted."]]
     rows += [[f"{_title(name)}", f"passes at ≥ {thresholds.get(name, 0.7):g}"] for name in judges]
     return Sheet("How to review", [("", "Item"), ("", "Details")], rows)
-
-
-def _notes(details: dict[str, Any]) -> list[str]:
-    """The caveats and user warnings the colleague sees with the answer."""
-    return [str(n) for key in ("caveats", "user_warnings") for n in (details.get(key) or [])
-            if isinstance(details.get(key), list)]
 
 
 def _refusal(details: dict[str, Any]) -> str:
@@ -103,12 +124,6 @@ def _checks(case: Any) -> str:
     failed = [_title(r.name) + (" (diagnostic)" if r.diagnostic else "") for r in checks if r.status == FAIL]
     text = f"{len(checks) - len(failed)}/{len(checks)} passed" if checks else ""
     return text + ("\nFailed: " + ", ".join(failed) if failed else "")
-
-
-def _confidence(value: Any) -> Any:
-    """Return the agent's confidence as a cell, green for HIGH and red for LOW."""
-    tone = {"HIGH": "good", "LOW": "bad"}.get(str(value or "").upper(), "")
-    return Cell(str(value).upper(), tone) if value else ""
 
 
 def _title(name: str) -> str:

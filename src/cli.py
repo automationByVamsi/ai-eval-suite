@@ -147,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
 
         from src.reporting.calibration import review_sheet
         out = review_sheet(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None,
-                           load_agent(args.agent).review_columns)
+                           load_agent(args.agent).review_sheet)
         print(f"Review sheet: {out}\nAsk the SME to fill the yellow columns (pass / fail + notes), "
               f"then: make calibrate FILE={out}")
         return 0

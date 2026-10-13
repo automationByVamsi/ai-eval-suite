@@ -106,6 +106,7 @@ Principles:
 | `README.md` | what the agent does and how it is evaluated | recommended |
 | `domains.yaml` | business areas: official names and aliases | if cases are grouped by area |
 | `importers/*.yaml` | spreadsheet column mapping for `make import-cases` | optional |
+| `exporters/review_sheet.yaml` | the SME review sheet's columns for `make review-sheet` | optional |
 | `synth/` | test case generator settings for `make goldens` | optional |
 | `lookups.py` | fetch values outside the trace by id (e.g. document text) | optional |
 | `client.py` | only for agents that are not Google ADK | rare |
@@ -302,7 +303,8 @@ it as a release view: what regressed, what improved, both builds side by side.
 
 **Judge calibration** — judges are LLMs, so check them against people: `make review-sheet` writes an
 Excel sheet of answers and judge scores; an SME marks ~20+ rows pass / fail; `make calibrate FILE=…`
-reports agreement, false passes and the threshold that would agree best.
+reports agreement, false passes and the threshold that would agree best. The sheet's columns are per agent
+in `exporters/review_sheet.yaml` (without it: query, answer, expected answer).
 
 ## Add an agent
 

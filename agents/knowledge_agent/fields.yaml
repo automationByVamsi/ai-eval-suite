@@ -24,6 +24,7 @@ fields:
   caveats:           final.caveats
   user_warnings:     final.user_warnings
   disclosures:       {path: [final.caveats, final.user_warnings]}     # caveats, or else user warnings
+  caveats_and_warnings: "[final.caveats, final.user_warnings][]"     # both, one list (review sheet)
   evidence_page_ids: "final.evidence[].page_id"
   evidence_titles:   "final.evidence[].title"
   evidence_links:    "final.evidence[].uri_ui"
@@ -99,7 +100,7 @@ fields:
   validation_seconds:  timing.validation_workflow
   generation_seconds:  timing.synthesis_workflow
 
-  # --- Pages with title and link (for review_columns in agent.yaml) -----------------------------
+  # --- Pages with title and link (for exporters/review_sheet.yaml) ------------------------------
   anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}
   related_pages: {path: final.evidence, where: {page_id: expanded_page_ids}}   # added by relation expansion
   cited_pages:   {path: final.evidence, where: {page_id: cited_page_ids}}      # cited in the answer

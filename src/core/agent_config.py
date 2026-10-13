@@ -1,4 +1,5 @@
-"""Load and validate one agent's config: agents/<name>/agent.yaml plus its checks.yaml and fields.yaml.
+"""Load and validate one agent's config: agents/<name>/agent.yaml plus its checks.yaml, fields.yaml
+and exporters/review_sheet.yaml.
 
 Raises ConfigError on mistakes before anything runs.
 """
@@ -46,7 +47,7 @@ class Agent:
     checks: dict[str, dict[str, Any]] = field(default_factory=dict)
     message_fields: dict[str, str] = field(default_factory=dict)      # send input as JSON; see _message_fields
     consistency: dict[str, Any] = field(default_factory=dict)         # rules for REPS > 1
-    review_columns: dict[str, str] = field(default_factory=dict)      # SME review sheet: {heading: field}
+    review_sheet: dict[str, dict] = field(default_factory=dict)       # SME review sheet: {group: {heading: value}}
 
     def checks_for(self, suite: Suite) -> dict[str, dict[str, Any]]:
         """Return the agent's checks this suite runs; a group name selects its whole group."""
@@ -146,7 +147,7 @@ def load_agent(name: str) -> Agent:
         message_template=raw.get("message_template"),
         message_fields=_message_fields(raw.get("message"), str(path)),
         consistency=consistency,
-        review_columns=_review_columns(raw.get("review_columns"), fields, str(path)),
+        review_sheet=_review_sheet(raw, folder, fields),
         metrics=metrics,
         suites=suites,
         fields=fields,
@@ -183,14 +184,49 @@ def _targets(spec: Any, where: str) -> dict[str, float]:
     return {str(k): float(v) for k, v in spec.items()}
 
 
-def _review_columns(spec: Any, fields: dict[str, Any], where: str) -> dict[str, str]:
-    """Return the review sheet's extra columns as {heading: field}; a plain list uses field names as headings."""
-    columns = dict(spec) if isinstance(spec, dict) else {name: name for name in ([spec] if isinstance(spec, str)
-                                                                                 else spec or [])}
-    unknown = [f for f in columns.values() if f not in fields]
-    if unknown:
-        raise ConfigError(f"{where}: review_columns {unknown} are not fields in fields.yaml")
+# The SME review sheet (make review-sheet): its own file, and what a column value can be.
+REVIEW_SHEET = "exporters/review_sheet.yaml"
+CASE_VALUES = ("case.question", "case.answer", "case.expected_answer")
+COLOURS = ("green", "red")
+
+
+def _review_sheet(raw: dict, folder: Path, fields: dict[str, Any]) -> dict[str, dict]:
+    """Return the review sheet's columns from the optional exporters/review_sheet.yaml as
+    {group: {heading: value}}; {} when there is no file (the sheet then shows the basic columns)."""
+    if raw.get("review_columns"):
+        raise ConfigError(f"{folder / 'agent.yaml'}: `review_columns:` moved to {folder / REVIEW_SHEET} "
+                          f"(under `columns:`, grouped by band; see the knowledge_agent one)")
+    file = folder / REVIEW_SHEET
+    if not file.is_file():
+        return {}
+    columns = (yaml.safe_load(file.read_text()) or {}).get("columns") or {}
+    if not isinstance(columns, dict) or not all(isinstance(c, dict) for c in columns.values()):
+        raise ConfigError(f"{file}: columns: must be {{group: {{column heading: value}}}}")
+    for group, headings in columns.items():
+        for heading, value in headings.items():
+            _check_review_value(value, fields, f"{file}: '{group}' > '{heading}'")
     return columns
+
+
+def _check_review_value(value: Any, fields: dict[str, Any], where: str) -> None:
+    """Raise ConfigError unless `value` is a case value, input.<key>, a field, a list of those,
+    or {value: .., colours: {text: green | red}}."""
+    if isinstance(value, dict):
+        unknown = set(value) - {"value", "colours"}
+        colours = value.get("colours") or {}
+        if unknown or "value" not in value or not isinstance(colours, dict):
+            raise ConfigError(f"{where}: use {{value: <field>, colours: {{HIGH: green, LOW: red}}}}")
+        bad = sorted({str(c) for c in colours.values()} - set(COLOURS))
+        if bad:
+            raise ConfigError(f"{where}: colours can be {list(COLOURS)} (got {bad})")
+        _check_review_value(value["value"], fields, where)
+        return
+    for source in value if isinstance(value, list) else [value]:
+        source = str(source)
+        if source.startswith("case.") and source not in CASE_VALUES:
+            raise ConfigError(f"{where}: '{source}' isn't one of {list(CASE_VALUES)}")
+        if not source.startswith(("case.", "input.")) and source not in fields:
+            raise ConfigError(f"{where}: '{source}' is not a field in fields.yaml (or case.* / input.*)")
 
 
 def _consistency(spec: Any, where: str) -> dict[str, Any]:

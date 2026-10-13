@@ -110,13 +110,14 @@ No short codes (CB, BB, CVH) in ids or folders. A case without a business area s
 
 | File | What it holds |
 |---|---|
-| [`agent.yaml`](agent.yaml) | connection (`KNOWLEDGE_ADK_*` in `env/.env`), the input message, every judge and threshold, the 7 suites and their targets, consistency rules, review-sheet columns |
+| [`agent.yaml`](agent.yaml) | connection (`KNOWLEDGE_ADK_*` in `env/.env`), the input message, every judge and threshold, the 7 suites and their targets, consistency rules |
 | [`fields.yaml`](fields.yaml) | what is read from the trace (below) |
 | [`checks.yaml`](checks.yaml) | the deterministic checks, in groups |
 | [`lookups.py`](lookups.py) | `get_page_content_from_athena`: fetches a page's text from Athena by id and cleans the HTML |
 | [`domains.yaml`](domains.yaml) | the 25 business areas |
 | `rubrics/*.md` | the 6 stage judges (query rewrite, anchor page) |
 | `importers/cjm_golden.yaml` | the CJM golden spreadsheet → test cases |
+| `exporters/review_sheet.yaml` | a run → the SME review sheet: which columns it shows, in which band |
 | `synth/` | synthetic test case generation from Athena pages |
 | `testdata/` | the test cases, per suite |
 
@@ -356,8 +357,9 @@ make review-sheet AGENT=knowledge_agent SUITE=golden                # SME calibr
 ```
 
 The SME review sheet lists, per case, the **anchor pages**, **supporting pages** (relation expansion),
-**all evidence pages used**, **pages cited in the answer** and **pages search found** (`review_columns:`
-in `agent.yaml`), each as `id | title | link`.
+**all evidence pages used**, **pages cited in the answer** and **pages search found**, each as
+`id | title | link`. Its columns are set in `exporters/review_sheet.yaml` (add, remove, rename or reorder
+them there); the judge scores, checks and SME columns are always added.
 
 ## Limits of what we can measure
 

@@ -83,14 +83,6 @@ consistency:
   all_pass: [correctness]
   report: [cited_page_ids, expanded_page_ids]
 
-# Extra columns in the SME review sheet (make review-sheet): {column heading: field in fields.yaml}.
-review_columns:
-  Anchor pages: anchor_pages
-  Supporting pages (relation expansion): related_pages
-  All evidence pages used: evidence_pages
-  Pages cited in the answer: cited_pages
-  Pages search found: search_candidates
-
 # Suites: each runs only the judges (CORTEX calls, per case and per REP) that answer its question.
 # checks: all | none | [group or check names]. targets: {judge or check: pass rate across the run}.
 # traces: <suite> = which saved traces OFFLINE=1 replays.

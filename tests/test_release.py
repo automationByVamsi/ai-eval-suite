@@ -1,7 +1,9 @@
 """Release targets, consistency across repetitions (HIVE-6165), new check options, SME calibration."""
 
+import shutil
 import zipfile
 
+import pytest
 from conftest import ROOT
 from streamlit.testing.v1 import AppTest
 
@@ -212,7 +214,10 @@ def test_review_sheet_and_calibration(tmp_path):
     cases[0].input = {"question": "q", "question_type": "how", "business_area": "Business Banking"}
     cases[0].details = {"search_candidates": ["1", "2"], "confidence": "high",
                         "anchor_pages": [{"page_id": "1", "title": "Add a need", "uri_ui": "https://kb/1"}]}
-    columns = {"Pages search found": "search_candidates", "Anchor pages": "anchor_pages"}
+    columns = {"Test case": {"Query type": ["input.question_type", "question_type"],
+                             "Business area": "input.business_area", "Query": "case.question"},
+               "Agent answer": {"Confidence": {"value": "confidence", "colours": {"HIGH": "green", "LOW": "red"}}},
+               "Pages": {"Pages search found": "search_candidates", "Anchor pages": "anchor_pages"}}
     sheet = review_sheet(_run(cases), tmp_path / "review.xlsx", columns)
     rows = read_rows(sheet, sheet="Review", header_row=2)
     first = rows[0]
@@ -235,6 +240,39 @@ def test_review_sheet_and_calibration(tmp_path):
     assert report["n"] == 6 and report["false_pass"] == 2 and report["false_fail"] == 0
     assert round(report["agreement"], 2) == 0.67
     assert 0.75 < report["best_threshold"] <= 0.9 and report["best_agreement"] == 1.0
+
+
+def test_review_sheet_columns_come_from_the_exporter_yaml(tmp_path, monkeypatch):
+    from src.core import paths
+    from src.core.agent_config import load_agent
+    from src.core.exceptions import ConfigError
+    from src.importers.spreadsheet import read_rows
+    columns = load_agent("knowledge_agent").review_sheet
+    assert columns["Pages"]["Anchor pages"] == "anchor_pages"
+
+    # No exporters/review_sheet.yaml: the basic columns.
+    case = CaseResult("C1", question="q", answer="", expected_answer="e")
+    case.details = {"agent_error": "HTTP 422"}
+    [row] = read_rows(review_sheet(_run([case]), tmp_path / "basic.xlsx"), sheet="Review", header_row=2)
+    assert [h for h in row if h != "_row"][:4] == ["Case ID", "Query", "Agent answer", "Expected answer"]
+    assert row["Agent answer"] == "(no answer — the agent returned an error: HTTP 422)"
+
+    # Mistakes are caught when the agent loads; the old agent.yaml key points to the new file.
+    agents = tmp_path / "agents"
+    shutil.copytree(paths.AGENTS_DIR / "knowledge_agent", agents / "knowledge_agent")
+    monkeypatch.setattr(paths, "AGENTS_DIR", agents)
+    sheet_file = agents / "knowledge_agent" / "exporters" / "review_sheet.yaml"
+    sheet_file.write_text("columns:\n  Pages:\n    Anchor pages: anchor_pagez\n")
+    with pytest.raises(ConfigError, match="'anchor_pagez' is not a field"):
+        load_agent("knowledge_agent")
+    sheet_file.write_text("columns:\n  A:\n    Confidence: {value: confidence, colours: {HIGH: blue}}\n")
+    with pytest.raises(ConfigError, match="colours can be"):
+        load_agent("knowledge_agent")
+    sheet_file.unlink()
+    agent_file = agents / "knowledge_agent" / "agent.yaml"
+    agent_file.write_text(agent_file.read_text() + "\nreview_columns:\n  Anchor pages: anchor_pages\n")
+    with pytest.raises(ConfigError, match="moved to"):
+        load_agent("knowledge_agent")
 
 
 def test_calibrate_says_why_there_is_nothing_to_compare(tmp_path):
