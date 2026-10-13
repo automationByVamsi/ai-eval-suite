@@ -157,6 +157,8 @@ Seven suites, each answering one question:
 | `golden` | is it good enough to release? | `golden/<business area>/` — CJM sheet | correctness, faithfulness, hallucination, relevance, context recall, context precision | all | every release candidate | **release targets** + `make verdict` |
 | `consistency` | same answer every time? | `golden/`, cases tagged `"consistency_set": true` (~20) | correctness | basic | release `REPS=3`, baseline `REPS=5`, after a model / prompt change | 100% consistent |
 | `coverage` | how does it do across all 25 areas and 5 question types? | `synthetic/` — generated + `synthetic/question_types/` | relevance, faithfulness, hallucination, response alignment | basic, answer, source page, disclosure, performance | weekly / before a release | trend only |
+| `synthetic_simple` | one ask from one page: right anchor, right answer? | `synthetic/simple/` | relevance, faithfulness, hallucination, response alignment | basic, answer, retrieval, disclosure, performance | weekly / before a release | trend only |
+| `synthetic_complex` | a live case with conditions / exceptions / two asks (the agent splits it) | `synthetic/complex/` | same | same | weekly / before a release | trend only |
 | `negative` | does it refuse what it should? | `negative/decline/` (unanswerable) + `negative/errors/` (the design's error table) | hallucination (skipped when it refused) | expected errors, performance | every release candidate | ≥ 95% refused correctly |
 | `safety` | does personal data stay out, input and output? | `privacy/` — made-up customer details | privacy leakage (answer), query privacy leakage (search queries), relevance | basic | every release candidate | 100% |
 | `diagnose` | why did retrieval drop? | `golden/`, replaying golden traces | the 6 stage judges | retrieval | on demand, `OFFLINE=1 CASE=...` | none |
@@ -270,7 +272,8 @@ expected to vary.
 |---|---|---|
 | `testdata/sanity/` | sanity | hand-written known cases |
 | `testdata/golden/<business area>/` | golden, consistency, diagnose | the CJM golden spreadsheet (`make import-cases`) |
-| `testdata/synthetic/<business area>/` | coverage | generated from Athena pages (`make goldens`) |
+| `testdata/synthetic/simple/<business area>/` | coverage, synthetic_simple | generated from Athena pages (`make goldens`): simple styles |
+| `testdata/synthetic/complex/<business area>/` | coverage, synthetic_complex | generated: the complex style |
 | `testdata/synthetic/question_types/` | coverage | one hand-written case per question type |
 | `testdata/negative/decline/` | negative | generated: on-topic questions the page doesn't answer |
 | `testdata/negative/errors/` | negative | the design's error table: empty query, invalid question type, nonsense, unknown business area |
@@ -300,17 +303,36 @@ for the consistency suite.
 ### Synthetic cases (generator)
 
 `synth/synth.yaml` generates cases from Athena pages listed in `synth/page_ids.json`, grouped by
-business area. Styles (`synth/styles/`) follow the agent's answer types:
+business area. `synth/instructions.md` (shared by every style) makes the questions read like a colleague
+mid-case: the role is worked out from each page (so no per-area files), customer-situation framing,
+informal wording and the page's own abbreviations, the brand / channel / system when the page is
+specific to one, a bias towards what costs most if the agent is wrong (money, deadlines, customer
+protection), and reference answers in the same shape as the agent's answers. Styles (`synth/styles/`):
 
-| Style | `question_type` sent | Reference answer shape |
-|---|---|---|
-| `how` | how | steps — simple and complex / conditional procedures |
-| `what` | what | definitions — terms, direct facts, eligibility |
-| `why` | why | the page's stated reasons |
-| `yes_no` | yes_no | yes / no + why — permissions, conditions, eligibility |
-| `general` | — | a summary |
-| `privacy` | — | made-up customer details in the question; ≤ 15 cases → `testdata/privacy/` |
-| `should_decline` | — | on-topic questions the page doesn't answer; ≤ 15 → `testdata/negative/decline/`, expects `InsufficientContextError` / `GuardrailError` |
+| Style | Complexity | `question_type` sent | Reference answer shape |
+|---|---|---|---|
+| `how` | simple | how | steps |
+| `what` | simple | what | `term: meaning` lines — terms, codes, facts, criteria |
+| `why` | simple | why | the page's stated reasons |
+| `yes_no` | simple | yes_no | yes / no + why |
+| `general` | simple | — | a short direct answer |
+| `complex` | complex | how | the steps for that situation, incl. the exception / escalation path |
+
+**Simple** = one ask about the page's main subject, with no "and / if / when" (the agent's query rewrite
+keeps it as one search); written to `synthetic/simple/` with the source page as the expected anchor, and no
+DeepEval evolution (`evolutions: {rounds: 0}` on the style), which would otherwise add conditions.
+**Complex** = a live case with one to three conditions, an exception, a deadline or two linked asks, all
+answered by the same page (the agent classifies it as complex and splits it); written to
+`synthetic/complex/`, ids `KA_CPX_...`, with one round of CONSTRAINED / HYPOTHETICAL / REASONING
+evolution. It is sent as `how`: most real complex questions are "customer is ..., what do I do?".
+Conditional yes/no questions are left to the golden set for now. Questions that need several pages
+(relation expansion) are not generated yet: they need related page pairs as the source.
+
+| Special set | What it generates |
+|---|---|
+| `privacy` | made-up customer details in the question; ≤ 15 cases → `testdata/privacy/` |
+| `should_decline` | on-topic questions the page doesn't answer; ≤ 15 → `testdata/negative/decline/`, expects `InsufficientContextError` / `GuardrailError` |
+| `out_of_scope` | questions outside banking; ≤ 10 → `testdata/negative/out_of_scope/`, the agent must decline |
 
 Generated cases start as `approval_status: UNREVIEWED` and record their source page
 (`expected.source_page_id`, checked by `source_page_found`).

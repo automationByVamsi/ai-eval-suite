@@ -142,8 +142,9 @@ def fake_generator(monkeypatch):
     calls = {"styles": [], "contexts": [], "answer": "Answer from the page.", "input": None, "fail_on": None}
 
     class FakeSynthesizer:
-        def __init__(self, styling_config, **kwargs):
+        def __init__(self, styling_config, evolution_config=None, **kwargs):
             calls["styles"].append(styling_config)
+            calls.setdefault("evolutions", []).append(evolution_config)
 
         def generate_goldens_from_contexts(self, contexts, source_files, max_goldens_per_context, **kwargs):
             if calls["fail_on"] in source_files:

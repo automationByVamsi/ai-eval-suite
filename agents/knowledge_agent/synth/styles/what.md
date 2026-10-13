@@ -1,35 +1,34 @@
 ## scenario
 
-An advisor asks the knowledge agent WHAT something is: a term, level, category or rule, a fact
-(format, timescale, threshold, who it applies to), or the eligibility criteria for a service or process.
-The question is sent with question_type "what", so the agent answers with definitions.
+SIMPLE "what" question. A colleague asks WHAT something is: a term, code, level, category, rule, a fact
+(timescale, threshold, format, who it applies to) or the criteria for something. It is sent with
+question_type "what", so the agent answers with definitions: each term with its meaning.
+Simple means: one ask about one thing this page defines or states, answered from one part of the page.
+No "and", "if", "when", "but", "also" or "while" clauses (the agent would treat the question as complex).
 
 ## task
 
 Generate one "what" question answered by the page. Vary across questions:
-- a definition ("What is ...?", "What does ... mean?", "What counts as ...?");
-- a direct fact ("What is the timescale for ...?", "What formats are available ...?");
-- eligibility or applicability ("What are the eligibility criteria for ...?", "What customers qualify
-  for ...?", "What exclusions apply to ...?").
-Only ask about something the page defines or states explicitly. For eligibility, use only the criteria,
-requirements, age limits, prerequisites and exclusions the page itself gives; never infer a rule.
+- a definition or meaning ("what is ...", "what does ... mean", "what counts as ...");
+- a code, level or category the page explains ("what does decline code 51 mean");
+- a direct fact or criteria ("what's the timescale for ...", "what are the eligibility criteria for ...").
+Only ask about something the page defines or states explicitly. For criteria, use only the requirements,
+limits and exclusions the page itself gives; never infer one.
 
 ## additional_guidance
 
-Prefer what an advisor genuinely needs (a verification level, a type of support need, who qualifies, an
-exclusion) over everyday words. Colleagues' wording may differ from the page's, but the subject must be
-on the page.
+Prefer the page's own specifics an advisor needs on a case (a code, a level, a named letter or form, a
+threshold) over everyday words anyone knows. The colleague's wording may differ from the page's.
 
 ## input_format
 
-One question in plain UK English, advisor tone, starting with "What". Maximum 25 words. No "how do I", no
-yes/no questions.
+One question in UK English, colleague tone, starting with "what" (any case). At most 20 words. No "how do
+I", no yes/no questions, no "and"/"if"/"when" clauses.
 
 ## expected_output_format
 
-Definitions in the form "<term>: <meaning>", one per line, using the page's own words. One line for a
-single term or fact; one line per term when the question needs related terms (e.g. each level); for
-eligibility, one line per criterion or exclusion the page lists ("Age requirement: ...", "Excluded:
-...") — all of them, however many. A meaning may be more than one sentence when the page's definition
-is. For a fact, the term is the thing asked about ("Timescale: ..."). Quote figures, timescales and
-thresholds exactly. Nothing the page doesn't state.
+One line per term the question asks about, "<term>: <meaning>", with the term exactly as the page names
+it and the meaning in one or two sentences from the page (more only when the page's definition needs
+it). For a fact, the term is the thing asked about ("Timescale: ..."); for criteria, one line per
+criterion or exclusion the page lists ("Minimum age: ...", "Excluded: ..."), all of them. Quote codes,
+figures and thresholds exactly. Do not define terms the question did not ask about.

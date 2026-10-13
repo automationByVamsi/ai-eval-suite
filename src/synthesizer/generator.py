@@ -46,7 +46,7 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
     started = datetime.now(UTC)
     run = {"id": started.strftime("%Y%m%d_%H%M%S"), "generated_at": started.isoformat(timespec="seconds"),
            "date": started.date().isoformat(), "model": llm.get_model_name()}
-    evolution_config, filtration_config = _deepeval_configs(settings, llm)
+    _, filtration_config = _deepeval_configs(settings, llm)
     include_expected = bool(settings.get("include_expected_answer", True))
     instructions = (settings["folder"] / settings["instructions"]).read_text().strip() \
         if settings.get("instructions") else ""
@@ -65,6 +65,9 @@ def generate_goldens(agent_name: str, groups: list[str] | None = None, ids: list
         # StylingConfig has only four fields, so the extra sections are folded into them.
         task = "\n\n".join(s for s in [sections.get("task"), sections.get("additional_guidance")] if s)
         scenario = "\n\n".join(s for s in [sections.get("scenario"), instructions] if s)
+        # A style's own `evolutions:` replaces the shared one (simple styles use rounds: 0: no evolving).
+        evolution_config, _ = _deepeval_configs({**settings, "evolutions": style.get("evolutions",
+                                                                                     settings.get("evolutions"))}, llm)
         synthesizer = Synthesizer(
             model=llm, async_mode=False, evolution_config=evolution_config, filtration_config=filtration_config,
             styling_config=StylingConfig(

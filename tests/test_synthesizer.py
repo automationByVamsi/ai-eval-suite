@@ -15,13 +15,17 @@ from src.synthesizer.settings import load_settings
 
 def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     written = generate_goldens("knowledge_agent")
-    assert len(written) == 16                     # 5 answer types x 2 pages + privacy 2 + decline 2 + out of scope 2
-    assert "advisor" in fake_generator["styles"][0].scenario.lower()
-    assert "colleague" in fake_generator["styles"][0].scenario        # instructions.md folded in
-    assert "advisor would use" in fake_generator["styles"][0].task    # additional_guidance folded in
+    # 5 simple types x 2 pages + complex 2 + privacy 2 + decline 2 + out of scope 2
+    assert len(written) == 18
+    assert "SIMPLE" in fake_generator["styles"][0].scenario
+    assert "real colleagues' questions" in fake_generator["styles"][0].scenario   # instructions.md folded in
+    assert "the way a colleague would" in fake_generator["styles"][0].task      # additional_guidance folded in
+    rounds = [e.num_evolutions for e in fake_generator["evolutions"]]
+    assert rounds[:5] == [0] * 5 and rounds[5] == 1                 # simple: no evolving; complex: 1 round
 
-    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"   # domain-wise, full name (domains.yaml)
-    assert {p.parent for p in written} == {folder, ka_copy / "testdata/privacy/recoveries_commercial_bank",
+    folder = ka_copy / "testdata/synthetic/simple/recoveries_commercial_bank"   # domain-wise (domains.yaml)
+    complex_ = ka_copy / "testdata/synthetic/complex/recoveries_commercial_bank"
+    assert {p.parent for p in written} == {folder, complex_, ka_copy / "testdata/privacy/recoveries_commercial_bank",
                                            ka_copy / "testdata/negative/decline/recoveries_commercial_bank",
                                            ka_copy / "testdata/negative/out_of_scope"}
     cases = {}
@@ -33,7 +37,13 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     assert generic["input"] == {"question": "Question 9 about 36626?",              # no question_type sent
                                 "business_area": "Recoveries_Commercial_Bank"}     # the agent's format
     assert "question_type" not in generic["metadata"]
-    assert generic["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626"}
+    assert generic["expected"] == {"expected_answer": "Answer from the page.", "source_page_id": "36626",
+                                   "expected_anchor_page_ids": ["36626"]}          # simple: the page is the anchor
+    assert generic["metadata"]["complexity"] == "simple"
+    case = cases["complex"]
+    assert case["test_case_id"] == "KA_CPX_RECOVERIES_COMMERCIAL_BANK_001"
+    assert case["metadata"]["complexity"] == "complex" and case["input"]["question_type"] == "how"
+    assert case["expected"]["expected_anchor_page_ids"] == ["36626"]
     assert generic["metadata"]["domain"] == "RECOVERIES_COMMERCIAL_BANK"
     assert generic["metadata"]["business_area_name"] == "Recoveries Commercial Bank"
     assert generic["metadata"]["group"] == "Recoveries Commercial Bank"
@@ -52,9 +62,11 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
                                    "expected_error": ["InsufficientContextError", "GuardrailError"]}
 
     agent = load_agent("knowledge_agent")
-    assert len(load_cases(agent, agent.suite("coverage"))) == 14         # 10 generated + 4 question_types/
+    assert len(load_cases(agent, agent.suite("coverage"))) == 16         # 12 generated + 4 question_types/
+    assert len(load_cases(agent, agent.suite("synthetic_simple"))) == 10
+    assert len(load_cases(agent, agent.suite("synthetic_complex"))) == 2
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
-    assert manifest["generated"] == 16 and manifest["failed"] == []
+    assert manifest["generated"] == 18 and manifest["failed"] == []
 
 
 def test_a_capped_style_stops_at_max_cases_and_takes_groups_in_turn(ka_copy, fake_generator):
@@ -72,7 +84,7 @@ def test_a_capped_style_stops_at_max_cases_and_takes_groups_in_turn(ka_copy, fak
 
 def test_styles_pick_some_and_replace_keeps_the_others(ka_copy, fake_generator):
     generate_goldens("knowledge_agent", ids=["36626"], styles=["general", "why"])
-    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"
+    folder = ka_copy / "testdata/synthetic/simple/recoveries_commercial_bank"
     styles = sorted(json.loads(p.read_text())["metadata"]["style"] for p in folder.glob("*.json"))
     assert styles == ["general", "why"]
     fake_generator["contexts"].clear()
@@ -87,7 +99,7 @@ def test_goldens_add_to_existing_cases_unless_replace(ka_copy, fake_generator):
     generate_goldens("knowledge_agent", ids=["36626"])
     fake_generator["contexts"].clear()                     # run again: new cases are numbered after the old ones
     generate_goldens("knowledge_agent", ids=["36626"])
-    folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"
+    folder = ka_copy / "testdata/synthetic/simple/recoveries_commercial_bank"
     assert len(list(folder.glob("*.json"))) == 10                    # 5 answer types, twice: numbered on
     assert (folder / "KA_SYN_RECOVERIES_COMMERCIAL_BANK_010.json").is_file()
     generate_goldens("knowledge_agent", ids=["36626"], replace=True)
@@ -103,7 +115,7 @@ def test_goldens_filters_skips_and_failures(ka_copy, fake_generator):
     written = generate_goldens("knowledge_agent", groups=["recoveries commercial bank"])
     assert len(written) == 1
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
-    assert len(manifest["failed"]) == 8                   # one per style
+    assert len(manifest["failed"]) == 9                   # one per style
     assert {s["reason"] for s in manifest["skipped"]} == {"duplicate question"}
 
 
@@ -192,3 +204,11 @@ def test_unknown_source_type_lists_the_available_ones(ka_copy):
         fetch_sources("knowledge_agent")
 
 
+
+
+def test_a_style_can_have_its_own_evolutions(ka_copy):
+    settings = ka_copy / "synth/synth.yaml"
+    assert load_settings(load_agent("knowledge_agent"))["styles"]["how"]["evolutions"] == {"rounds": 0}
+    settings.write_text(settings.read_text().replace("CONSTRAINED: 0.35,", "CONSTRAINED: 0.75,"))
+    with pytest.raises(ConfigError, match="add up to 1.40"):
+        load_settings(load_agent("knowledge_agent"))

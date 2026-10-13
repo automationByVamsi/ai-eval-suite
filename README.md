@@ -251,8 +251,9 @@ the files, empty cells are left out, and the import stops on a missing column or
 **Generated** — `make sources`, then `make goldens AGENT=<agent> [GROUP=…] [IDS=…] [STYLES=…]`. DeepEval's
 Synthesizer writes questions and reference answers from source documents (Athena pages, a folder of
 files, or a JSON export), one style file per kind of question, in the shape set in `synth/synth.yaml`.
-Generated cases start as `UNREVIEWED`; a suite can keep only approved ones with
-`only: {metadata.approval_status: APPROVED}`.
+A style can set its own `output:` (folder, id, extra fields) and its own `evolutions:` (DeepEval's
+question rewriting; `{rounds: 0}` keeps a simple question simple). Generated cases start as `UNREVIEWED`;
+a suite can keep only approved ones with `only: {metadata.approval_status: APPROVED}`.
 
 **Domains** — agents that work per business area list them once in `domains.yaml`
 (`Customer Vulnerability Hub: [CVH]` = official name and aliases). The importer and the synthesizer then

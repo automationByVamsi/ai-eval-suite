@@ -1,33 +1,29 @@
 ## scenario
 
-A busy advisor types a question into the knowledge agent the way they would ask a colleague, without
-choosing a question type. It is sent as plain text, so the agent decides the shape of the answer and
-replies with a summary.
+SIMPLE untyped question. A busy colleague types a quick question without choosing a question type, so
+it is sent as plain text and the agent replies with a direct summary.
+Simple means: one ask about one thing this page covers, answered from one part of the page. No "and",
+"if", "when", "but", "also" or "while" clauses (the agent would treat the question as complex).
 
 ## task
 
-Generate one natural question answered by the page. Vary across questions:
-- a short one-line ask, even terse ("support need for hearing loss?", "paper-free and braille");
-- a situation described in a sentence or two followed by a question ("Customer says ... — what should
-  I do?");
-- a question that combines two related points the page covers.
-The answer must come entirely from the page. Do not introduce products, policies or conditions the page
-doesn't mention.
+Generate one quick, natural question the page answers directly. Vary across questions:
+- terse, keyword-style, the way it is typed mid-call ("refund timescale for chargebacks?", "who handles
+  CNP disputes");
+- a one-line ask in plain words ("where do i log a vulnerability for a customer").
+The answer must come entirely from the page.
 
 ## additional_guidance
 
-Use everyday colleague wording, not the page heading ("alternative format" for "accessible format",
-"digital correspondence" for "paper-free account"), so the agent is tested on how people really ask.
+Use everyday colleague wording, not the page heading, so the agent is tested on how people really ask.
+Do not start with a question-type word on purpose; write it as it would naturally come out.
 
 ## input_format
 
-Plain UK English, advisor tone: one short line, or one or two sentences. Maximum 40 words. Do not start
-with a question-type word on purpose; write it the way it would naturally come out.
+Plain UK English, colleague tone: one short line, at most 15 words. No "and"/"if"/"when" clauses.
 
 ## expected_output_format
 
-A summary in complete sentences that answers everything asked, using facts from the page only. Match
-the length to the question: a one-line ask needs 2-3 sentences; a situation or a two-part question
-needs enough to cover each part (a short paragraph each). Quote figures, timescales and thresholds
-exactly; mention any warning or exception the page gives that matters for the question. No hedging
-("it depends", "may vary") unless the page says so.
+A direct answer in 1-3 complete sentences using facts from the page only. Quote codes, figures,
+timescales and thresholds exactly; include a warning or exception only if the page attaches it to what
+is asked.

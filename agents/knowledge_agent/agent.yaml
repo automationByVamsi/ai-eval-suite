@@ -127,6 +127,16 @@ suites:
     metrics: [relevance, faithfulness, hallucination, response_alignment]
     checks: [basic, answer, source_page_found, disclosure, explainability, performance]
 
+  synthetic_simple:          # one ask from one page (make goldens STYLES=how,what,why,yes_no,general)
+    testdata: testdata/synthetic/simple
+    metrics: [relevance, faithfulness, hallucination, response_alignment]   # + correctness once SMEs review
+    checks: [basic, answer, retrieval, disclosure, performance]   # retrieval: source page chosen as anchor?
+
+  synthetic_complex:         # a live case with conditions / exceptions / two asks, one page (STYLES=complex)
+    testdata: testdata/synthetic/complex
+    metrics: [relevance, faithfulness, hallucination, response_alignment]   # + correctness once SMEs review
+    checks: [basic, answer, retrieval, disclosure, performance]
+
   negative:                  # refuses what it should? (decline/ and errors/); >= 95% refused
     metrics: [hallucination] # judges any answer given instead of refusing
     checks: [expected_errors, performance]
