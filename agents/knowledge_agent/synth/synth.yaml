@@ -28,7 +28,7 @@ styles:                              # one file per question style in styles/; S
       folder: testdata/privacy/{domain_folder}
       id: "KA_PII_{domain}_{n:03}"
       case: {expected: {contains_pii: true}, metadata: {origin: SYNTHETIC_PII}}
-  should_decline:                    # on-topic questions the page doesn't answer
+  should_decline:                    # in-domain: about an invented product / code / form (exists nowhere)
     file: styles/should_decline.md
     max_cases: 15
     output:
@@ -37,6 +37,15 @@ styles:                              # one file per question style in styles/; S
       case:                          # the agent must refuse with one of these errors
         expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}
         metadata: {origin: SYNTHETIC_DECLINE}
+  out_of_scope:                      # out-of-domain: nothing to do with banking (recipes, sport, poems ...)
+    file: styles/out_of_scope.md
+    max_cases: 10
+    output:
+      folder: testdata/negative/out_of_scope
+      id: "KA_OOS_{n:03}"
+      case:                          # the agent must decline: no answer from general knowledge
+        expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}
+        metadata: {origin: SYNTHETIC_OUT_OF_SCOPE}
 
 evolutions:                          # how questions are varied; weights must add up to 1.0
   rounds: 1

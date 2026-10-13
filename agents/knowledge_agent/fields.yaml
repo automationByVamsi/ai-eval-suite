@@ -4,9 +4,17 @@
 
 fields:
   # --- Final output (what the caller receives) ---------------------------------------------
-  # Answer shape depends on question_type; the first path that finds something wins.
-  answer:            {path: [final.answer.summary, final.answer.explanation, "final.answer.steps[].description",
-                             "final.answer.definitions[].meaning"], join: "\n", required: true}
+  # The whole answer as a colleague sees it, whatever its shape (question_type): the yes/no verdict,
+  # summary / explanation, each step, each definition as "phrase: meaning". Used by the judges, the
+  # dashboard, the HTML report and the review sheet. Page ids are left out (the evidence shows them).
+  answer:
+    path: >-
+      [final.answer.answer && join('', ['Answer: ', final.answer.answer]),
+       final.answer.summary, final.answer.explanation,
+       final.answer.steps[?description].join('', ['- ', description]),
+       final.answer.definitions[?meaning].join('', ['- ', phrase || term || '', ': ', meaning])][]
+    join: "\n\n"
+    required: true
   yes_no_verdict:    final.answer.answer                 # yes | no (yes_no answers only)
   agent_response:    final                               # whole final output (for response_alignment)
   cited_page_ids:    {path: [final.answer.page_ids, "final.answer.steps[].page_id",

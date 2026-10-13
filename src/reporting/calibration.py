@@ -6,6 +6,7 @@ Older .csv review sheets are still accepted by calibrate.
 from __future__ import annotations
 
 import csv
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -29,11 +30,13 @@ def review_sheet(run: Run, out: Path | None = None, columns: dict[str, str] | No
     reps = run.reps > 1
     header = [("Test case", "Case ID"), *([("Test case", "Run")] if reps else []),
               ("Test case", "Query type"), ("Test case", "Business area"), ("Test case", "Query"),
-              ("Agent answer", "Agent answer"), ("Agent answer", "Confidence"), ("Agent answer", "Expected answer"),
+              ("Agent answer", "Agent answer"), ("Agent answer", "Caveats / warnings"), ("Agent answer", "Confidence"),
+              ("Agent answer", "Expected answer"),
               *[("Pages", heading) for heading in columns],
               *[("LLM judges", f"{_title(name)} (pass ≥ {thresholds.get(name, 0.7):g})") for name in judges],
               ("Result", "Deterministic checks"), ("Result", "Case result"),
-              ("SME review", SME_VERDICT), ("SME review", SME_NOTES)]
+              ("SME review", SME_VERDICT), ("SME review", SME_NOTES),
+              ("Reference", "Agent output (raw)")]
     rows = []
     for case in run.cases:
         d, given = case.details or {}, case.input or {}
@@ -41,13 +44,14 @@ def review_sheet(run: Run, out: Path | None = None, columns: dict[str, str] | No
         row = [case.case_id, *([case.rep + 1] if reps else []),
                given.get("question_type") or d.get("question_type") or "",
                given.get("business_area") or d.get("business_area") or "",
-               case.question, case.answer, _confidence(d.get("confidence")), case.expected_answer]
+               case.question, case.answer or _refusal(d), _cell(_notes(d)), _confidence(d.get("confidence")),
+               case.expected_answer]
         row += [_cell(d.get(field)) for field in columns.values()]
         row += [_score(by_name.get(name)) for name in judges]
         row += [_checks(case), Cell(case.status.upper(), "good" if case.status == PASS else "bad"),
-                Cell("", "input"), Cell("", "input")]
+                Cell("", "input"), Cell("", "input"), _raw(d.get("agent_response"))]
         rows.append(row)
-    verdict_column = len(header) - 1
+    verdict_column = header.index(("SME review", SME_VERDICT))
     review = Sheet("Review", header, rows, freeze_columns=1, dropdowns={verdict_column: ["pass", "fail"]})
     out = out or paths.OUTPUTS_DIR / "review" / f"{run.run_id}.xlsx"
     write_xlsx(out, [_how_to(run, judges, thresholds), review])
@@ -65,6 +69,25 @@ def _how_to(run: Run, judges: list[str], thresholds: dict[str, float]) -> Sheet:
                              "Your verdicts tell us whether the judges can be trusted."]]
     rows += [[f"{_title(name)}", f"passes at ≥ {thresholds.get(name, 0.7):g}"] for name in judges]
     return Sheet("How to review", [("", "Item"), ("", "Details")], rows)
+
+
+def _notes(details: dict[str, Any]) -> list[str]:
+    """The caveats and user warnings the colleague sees with the answer."""
+    return [str(n) for key in ("caveats", "user_warnings") for n in (details.get(key) or [])
+            if isinstance(details.get(key), list)]
+
+
+def _refusal(details: dict[str, Any]) -> str:
+    """What the colleague gets when the agent refuses instead of answering."""
+    return f"(no answer — the agent returned an error: {details['agent_error']})" if details.get("agent_error") else ""
+
+
+def _raw(value: Any) -> str:
+    """The agent's whole final output as JSON, exactly as returned (capped for Excel's cell limit)."""
+    if value in (None, "", {}):
+        return ""
+    text = value if isinstance(value, str) else json.dumps(value, indent=2, ensure_ascii=False, default=str)
+    return text[:30000]
 
 
 def _score(result: Any) -> Any:

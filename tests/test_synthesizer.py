@@ -15,14 +15,15 @@ from src.synthesizer.settings import load_settings
 
 def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     written = generate_goldens("knowledge_agent")
-    assert len(written) == 14                                  # 5 answer types x 2 pages + privacy 2 + decline 2
+    assert len(written) == 16                     # 5 answer types x 2 pages + privacy 2 + decline 2 + out of scope 2
     assert "advisor" in fake_generator["styles"][0].scenario.lower()
     assert "colleague" in fake_generator["styles"][0].scenario        # instructions.md folded in
     assert "advisor would use" in fake_generator["styles"][0].task    # additional_guidance folded in
 
     folder = ka_copy / "testdata/synthetic/recoveries_commercial_bank"   # domain-wise, full name (domains.yaml)
     assert {p.parent for p in written} == {folder, ka_copy / "testdata/privacy/recoveries_commercial_bank",
-                                           ka_copy / "testdata/negative/decline/recoveries_commercial_bank"}
+                                           ka_copy / "testdata/negative/decline/recoveries_commercial_bank",
+                                           ka_copy / "testdata/negative/out_of_scope"}
     cases = {}
     for path in sorted(written):                                       # the first case of each style
         case = json.loads(path.read_text())
@@ -53,7 +54,7 @@ def test_goldens_for_the_knowledge_agent(ka_copy, fake_generator):
     agent = load_agent("knowledge_agent")
     assert len(load_cases(agent, agent.suite("coverage"))) == 14         # 10 generated + 4 question_types/
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
-    assert manifest["generated"] == 14 and manifest["failed"] == []
+    assert manifest["generated"] == 16 and manifest["failed"] == []
 
 
 def test_a_capped_style_stops_at_max_cases_and_takes_groups_in_turn(ka_copy, fake_generator):
@@ -102,7 +103,7 @@ def test_goldens_filters_skips_and_failures(ka_copy, fake_generator):
     written = generate_goldens("knowledge_agent", groups=["recoveries commercial bank"])
     assert len(written) == 1
     manifest = json.loads(next((ka_copy / "synth/runs").glob("*.json")).read_text())
-    assert len(manifest["failed"]) == 7                   # one per style
+    assert len(manifest["failed"]) == 8                   # one per style
     assert {s["reason"] for s in manifest["skipped"]} == {"duplicate question"}
 
 

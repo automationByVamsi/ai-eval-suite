@@ -36,7 +36,7 @@ def _fields(trace):
 def test_what_answer_definitions():
     values = _fields(WHAT)
     assert values["question_type"] == "what"
-    assert values["answer"].startswith("This is the required verification level for Personal Banking")
+    assert values["answer"].startswith("- Minimum Standard Risk: This is the required verification level")
     assert values["cited_page_ids"] == ["40015"]
     assert values["agent_response"]["answer"]["definitions"][0]["phrase"] == "Minimum Standard Risk"
 
@@ -45,14 +45,14 @@ def test_how_answer_steps():
     values = _fields(_with_answer("how", {"steps": [
         {"description": "Open Colleague Tools in MCP.", "page_id": "40345"},
         {"description": "Gain consent if on the phone.", "page_id": "40015"}]}))
-    assert values["answer"] == "Open Colleague Tools in MCP.\nGain consent if on the phone."
+    assert values["answer"] == "- Open Colleague Tools in MCP.\n\n- Gain consent if on the phone."
     assert values["cited_page_ids"] == ["40345", "40015"]
 
 
 def test_yes_no_answer():
     values = _fields(_with_answer("yes_no", {"answer": "yes", "explanation": "A third party can tell us.",
                                              "page_ids": ["40022"]}))
-    assert values["answer"] == "A third party can tell us."
+    assert values["answer"] == "Answer: yes\n\nA third party can tell us."                # the verdict is kept
     assert values["yes_no_verdict"] == "yes" and values["cited_page_ids"] == ["40022"]
 
 
