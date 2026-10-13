@@ -42,6 +42,24 @@ def test_the_trace_becomes_one_document():
     assert document["trace"]["latency_ms"] == 12.5
 
 
+
+def test_timing_looks_inside_wrapper_steps():
+    """A wrapper step (here `dispatcher`) is timed, and so is every step inside it."""
+    events = [{"nodeInfo": {"path": path}, "timestamp": stamp} for path, stamp in [
+        ("wf@1/prepare@1", 100), ("wf@1/dispatcher@1/search@1/rewrite@1", 103), ("wf@1/dispatcher@1/search@1", 104),
+        ("wf@1/dispatcher@1/answer@1", 110), ("wf@1/dispatcher@1", 110)]]
+    assert extract.view({"raw_events": events})["timing"] == \
+        {"prepare": 0, "dispatcher": 10, "search": 4, "rewrite": 3, "answer": 6}
+
+
+def test_knowledge_agent_phase_times_are_empty_not_zero_when_the_steps_are_renamed():
+    events = [{"nodeInfo": {"path": "wf@1/renamed_search@1"}, "timestamp": 1},
+              {"nodeInfo": {"path": "wf@1/renamed_synthesis@1"}, "timestamp": 5},
+              {"nodeInfo": {"path": "wf@1", "outputFor": ["wf"]}, "output": {"answer": {"summary": "hi"}}}]
+    values, _ = extract.extract({"raw_events": events}, load_agent("knowledge_agent").fields)
+    assert values["step_seconds"] == {"renamed_search": 0, "renamed_synthesis": 4}
+    assert values.get("retrieval_seconds") is None and values.get("generation_seconds") is None   # not 0
+
 # --- fields on the real Knowledge Agent traces -------------------------------------------------
 
 def test_knowledge_agent_fields_from_the_full_metadata_path():
@@ -59,7 +77,7 @@ def test_knowledge_agent_fields_from_the_full_metadata_path():
     assert values["metadata_missing"] == [False] and values["anchor_fallback"] == []
     assert values["validation_message"].endswith("content_length=8535")               # a status message
     assert values["synthesizer_page_ids"] == ["40345", "40015"]                        # from the model reply
-    assert values["stage_seconds"]["search_node"] == 5.0
+    assert values["stage_seconds"]["search"] == 5.0 and values["step_seconds"]["search_node"] == 5.0
     assert values["search_ranked"] == [["40346", "40345", "40011"]]                   # one list per search
     assert (values["retrieval_seconds"], values["validation_seconds"], values["generation_seconds"]) \
         == (16.31, 5.66, 1.71)

@@ -6,7 +6,7 @@ Each field is a JMESPath query (e.g. `answer_type: final.question_type`) on one 
   nodes     {node name: [each output of that node]}
   models    {agent name: [each model reply, parsed when JSON]}
   messages  [every text in the trace, in order]
-  timing    {workflow step: seconds}
+  timing    {workflow step: seconds}, every level (wrapper steps and the steps inside them)
   trace     the saved trace file itself
 
 Options:
@@ -168,17 +168,24 @@ def _unwrap(output: Any) -> Any:
 
 
 def _timing(events: list[dict[str, Any]]) -> dict[str, float]:
-    """Return {top-level step: seconds since the previous step ended}."""
-    start, ends = None, {}
+    """Return {step: seconds} for every step at every level of the workflow, e.g. a wrapper step like
+    `dispatcher` and the steps inside it. A step's seconds run from when the step before it (in the same
+    parent) ended, or its parent began, until its own last event."""
+    first, ends = None, {}                         # ends: {('dispatcher', 'search_node'): last timestamp}
     for event in events:
         stamp, parts = event.get("timestamp"), str((event.get("nodeInfo") or {}).get("path") or "").split("/")
         if isinstance(stamp, (int, float)) and len(parts) > 1:
-            start = stamp if start is None else min(start, stamp)
-            step = re.sub(r"@\d+$", "", parts[1])
-            ends[step] = max(ends.get(step, stamp), stamp)
-    seconds, previous = {}, start
-    for step, end in sorted(ends.items(), key=lambda item: item[1]):
-        seconds[step], previous = round(end - previous, 2), end
+            first = stamp if first is None else min(first, stamp)
+            steps = tuple(re.sub(r"@\d+$", "", part) for part in parts[1:])
+            for depth in range(1, len(steps) + 1):
+                ends[steps[:depth]] = max(ends.get(steps[:depth], stamp), stamp)
+    began, seconds = {(): first}, {}
+    for parent in sorted({key[:-1] for key in ends}, key=len):        # parents before their children
+        previous = began[parent]
+        for key in sorted((k for k in ends if k[:-1] == parent), key=ends.get):
+            began[key] = previous
+            seconds.setdefault(key[-1], round(ends[key] - previous, 2))   # same name twice: outer one wins
+            previous = ends[key]
     return seconds
 
 

@@ -1,0 +1,7 @@
+{
+  "test_case_id": "KA_ING_39960",
+  "description": "Customer Vulnerability Hub 2: every page in Athena's page tree is stored by the pipeline, current, nothing extra",
+  "input": {"page_id": "39960", "check": "completeness"},
+  "expected": {},
+  "metadata": {"domain": "Customer Vulnerability Hub 2", "environment": "INT"}
+}

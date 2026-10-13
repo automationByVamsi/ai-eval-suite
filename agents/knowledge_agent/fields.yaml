@@ -82,12 +82,22 @@ fields:
 
   # --- Timing -----------------------------------------------------------------------------------
   latency_ms:          trace.latency_ms
-  stage_seconds:       timing
+  # Every step's seconds, at every level (a wrapper such as `dispatcher` and the steps inside it).
+  # If the agent renames its steps, the names below go empty: find the new names here and update them.
+  step_seconds:        timing
+  # The pipeline steps, in order: the "Stage timings" chart on the dashboard and in the HTML report.
+  stage_seconds: >-
+    timing.{input_normalisation: input_normalisation_node, search: search_node,
+            fetch_metadata: fetch_metadata_node, anchor_identification: anchor_identification_workflow,
+            relation_expansion: relation_expansion_workflow, fetch_pages: fetch_page_workflow,
+            validation: validation_workflow, synthesis: synthesis_workflow}
   # Seconds per phase: retrieval (search -> fetch pages), validation, generation (synthesis).
-  # Empty when the trace has no stage timings.
-  retrieval_seconds:   "timing && sum([not_null(timing.search_node, `0`), not_null(timing.fetch_metadata_node, `0`), not_null(timing.anchor_identification_workflow, `0`), not_null(timing.relation_expansion_workflow, `0`), not_null(timing.fetch_page_workflow, `0`)])"
-  validation_seconds:  "timing && not_null(timing.validation_workflow, `0`)"
-  generation_seconds:  "timing && not_null(timing.synthesis_workflow, `0`)"
+  # Empty, not 0, when the trace has none of the phase's steps (so a renamed step can't look like 0 s).
+  retrieval_seconds: >-
+    [timing.search_node, timing.fetch_metadata_node, timing.anchor_identification_workflow,
+     timing.relation_expansion_workflow, timing.fetch_page_workflow][] | [0] && sum(@)
+  validation_seconds:  timing.validation_workflow
+  generation_seconds:  timing.synthesis_workflow
 
   # --- Pages with title and link (for review_columns in agent.yaml) -----------------------------
   anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}

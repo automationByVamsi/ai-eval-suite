@@ -139,6 +139,8 @@ def show_debug_tabs(case: CaseResult) -> None:
             st.caption(f"Trace: `{case.trace}`")
     with timing_tab:
         stages = (case.details or {}).get("stage_seconds")
+        if isinstance(stages, dict):            # steps missing from this trace are null: leave them out
+            stages = {k: v for k, v in stages.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
         split = {k.removesuffix("_seconds"): v for k, v in (case.details or {}).items()
                  if k.endswith("_seconds") and isinstance(v, (int, float)) and not isinstance(v, bool)}
         if split:
