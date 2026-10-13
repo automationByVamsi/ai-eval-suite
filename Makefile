@@ -29,7 +29,7 @@ FLAGS = --reps $(REPS) $(if $(METRICS),--metrics $(METRICS)) $(if $(BUILD),--bui
 UV_RUN = uv run --frozen $(if $(VIRTUAL_ENV),--active)
 EVAL   = $(UV_RUN) python -m src          # the CLI: src/cli.py
 
-.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases export-cases fields summary review-sheet calibrate dashboard test
+.PHONY: help setup cortex-login doctor list new-agent run baseline verdict sources goldens import-cases export-cases fields summary review-sheet calibrate report dashboard test
 
 help:
 	@echo "make setup                                  install everything (needs uv), create env/.env"
@@ -47,6 +47,7 @@ help:
 	@echo "make import-cases AGENT=.. FILE=..          spreadsheet (.xlsx/.csv) -> test case JSON [SHEET=..] [MAPPING=..] [DRY_RUN=1]"
 	@echo "make export-cases AGENT=..                  test case JSON -> one Excel workbook, a sheet per suite [SUITE=..] [FILE=..]"
 	@echo "make review-sheet AGENT=.. SUITE=.. [RUN=..] Excel of answers, pages + judge scores for SMEs to mark"
+	@echo "make report   AGENT=.. SUITE=.. [RUN=..]    one run as a single HTML file to share (the dashboard, offline)"
 	@echo "make calibrate FILE=..                      compare the judges with the SME's marks"
 	@echo "make dashboard                              open the results dashboard"
 	@echo "make test                                   test the framework itself (offline)"
@@ -106,6 +107,10 @@ export-cases:
 # Judge calibration: SMEs mark a run's answers and scores (review-sheet), then compare (calibrate).
 review-sheet:
 	$(EVAL) review-sheet $(AGENT) $(SUITE) $(if $(RUN),--run $(RUN))
+
+# One run as a single, self-contained HTML file (the dashboard's views, no Streamlit needed to open it).
+report:
+	$(EVAL) report $(AGENT) $(SUITE) $(if $(RUN),--run $(RUN))
 
 calibrate:
 	@test -n "$(FILE)" || { echo 'Give the marked sheet: make calibrate FILE=outputs/review/<run id>.xlsx'; exit 1; }

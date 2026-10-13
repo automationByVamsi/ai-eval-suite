@@ -16,6 +16,7 @@ from src.reporting.dashboard_data import all_run_ids, load, run_label  # noqa: E
 from src.reporting.dashboard_run import show_run_page  # noqa: E402
 from src.reporting.dashboard_style import apply_theme, html  # noqa: E402
 from src.reporting.dashboard_verdict import show_verdict_page  # noqa: E402
+from src.reporting.html_report import report_html  # noqa: E402
 
 st.set_page_config(page_title="Agent evals", page_icon=":material/fact_check:", layout="wide")
 apply_theme()
@@ -57,6 +58,11 @@ with st.sidebar:
 # --- the selected run: a verdict gets the release view, anything else the ordinary run page -------
 
 run = load(run_id)
+with st.sidebar:                # the selected run as one HTML file, to share without Streamlit
+    st.download_button(":material/download: Download HTML report", report_html(run),
+                       file_name=f"{run.run_id}.html", mime="text/html", width="stretch",
+                       help="The Overview, Test cases and Consistency views as a single file that opens "
+                            "in any browser. Same as `make report`.")
 verdict = vv.load(run)          # None unless the run was saved by `make verdict`
 if verdict is not None:
     show_verdict_page(verdict, status_filter, search)

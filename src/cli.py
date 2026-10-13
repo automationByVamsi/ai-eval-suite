@@ -76,6 +76,11 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("suite")
     review.add_argument("--run", default="latest", help="'latest' (default) or a run id")
     review.add_argument("--out", help="where to write the .xlsx (default outputs/review/<run id>.xlsx)")
+    report = commands.add_parser("report", help="one run as a self-contained HTML report (the dashboard, offline)")
+    report.add_argument("agent")
+    report.add_argument("suite")
+    report.add_argument("--run", default="latest", help="'latest' (default) or a run id")
+    report.add_argument("--out", help="where to write the .html (default outputs/reports/<run id>.html)")
     cal = commands.add_parser("calibrate", help="compare the judges with an SME-marked review sheet")
     cal.add_argument("file")
 
@@ -145,6 +150,14 @@ def main(argv: list[str] | None = None) -> int:
                            load_agent(args.agent).review_columns)
         print(f"Review sheet: {out}\nAsk the SME to fill the yellow columns (pass / fail + notes), "
               f"then: make calibrate FILE={out}")
+        return 0
+
+    if args.command == "report":
+        from pathlib import Path
+
+        from src.reporting.html_report import write_report
+        out = write_report(load_run(args.run, args.agent, args.suite), Path(args.out) if args.out else None)
+        print(f"HTML report: {out}\nOne file: open it in any browser, or attach it to share (no Streamlit needed).")
         return 0
 
     if args.command == "calibrate":

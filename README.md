@@ -143,6 +143,7 @@ Every file starts with a comment saying what it does. To read the code, start at
 | spreadsheet → test cases / test cases → Excel | `make import-cases AGENT=<agent> FILE=… [DRY_RUN=1]` / `make export-cases AGENT=<agent>` |
 | generate test cases | `make sources AGENT=<agent>`, then `make goldens AGENT=<agent>` |
 | SME review sheet / judge agreement | `make review-sheet AGENT=<agent> SUITE=<suite>` / `make calibrate FILE=…` |
+| share a run as one HTML file (the dashboard, offline) | `make report AGENT=<agent> SUITE=<suite> [RUN=<run id>]`, or **Download HTML report** in the dashboard |
 | create an agent | `make new-agent NAME=<name> INPUT_FIELD=question` |
 | test the framework | `make test` |
 
@@ -263,6 +264,7 @@ name every case the same way: `{domain_path}` `Customer_Vulnerability_Hub` (sent
 | Console | per case `PASS` / `FAIL` / `ERROR` with the reason, pass rates, release targets (MET / MISSED) |
 | `outputs/runs/<run id>/results.json` | everything: every check and judge, score, reason, every field read |
 | `make dashboard` | Overview, Test cases (answer, evidence, judges, checks, raw trace), Consistency, Trends, Baseline |
+| `make report` | the same views as one self-contained HTML file in `outputs/reports/`, to email or attach — opens in any browser |
 
 | Status | Meaning |
 |---|---|
