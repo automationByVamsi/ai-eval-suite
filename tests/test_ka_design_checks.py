@@ -64,3 +64,28 @@ def test_the_wrong_error_type_fails():
     [result] = checks.run_checks({"r": spec}, {"agent_error": "HTTP 500 AthenaRetrievalError: search failed"},
                                  {"expected": {"expected_error": ["InsufficientContextError"]}})
     assert result.status == results.FAIL
+
+
+def test_an_agent_error_keeps_the_question_and_says_the_agent_refused(outputs, monkeypatch):
+    # A sanity case (no expected error) where the agent replies 422 GuardrailError: the case is an ERROR,
+    # and the dashboard still shows what was asked and that the agent itself answered with an error.
+    from src.reporting import dashboard_parts as ui
+    refusal = {"error": {"code": "GuardrailError", "message": "Validation input content length exceeds limit"}}
+    server = _fake_agent(monkeypatch, lambda: (422, refusal))
+    try:
+        run = run_suite("knowledge_agent", "sanity", judges=False, case_ids=["TC_002"])
+    finally:
+        server.shutdown()
+    case = run.cases[0]
+    assert case.status == results.ERROR and "GuardrailError" in case.error
+    assert case.question == "How do I add a support need?"
+    assert ui.problems(case)[0]["title"] == "The agent returned an error instead of an answer"
+    saved = results.load_run(str(run.folder))                     # and it is still there when the run is reloaded
+    assert saved.cases[0].question == "How do I add a support need?"
+
+
+def test_older_runs_without_the_question_take_it_from_the_input(tmp_path):
+    data = {"agent": "knowledge_agent", "suite": "golden", "cases": [
+        {"case_id": "A", "error": "agent: HTTP 502", "input": {"question": "Why?"}, "results": []}]}
+    (tmp_path / "results.json").write_text(json.dumps(data))
+    assert results.load_run(str(tmp_path)).cases[0].question == "Why?"

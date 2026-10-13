@@ -280,8 +280,9 @@ def _answer_column(case: CaseResult) -> str:
 def _results_column(case: CaseResult, run: Run) -> str:
     """LLM judges, then deterministic checks by group."""
     judges, groups = ui.split(case)
+    stopped = '<div class="note">Not run: the case stopped before the judges (see the error above).</div>'
     judge_body = "".join(ui.judge_html(r) for r in judges) if judges else \
-        '<div class="note">This suite runs no LLM judges.</div>'
+        (stopped if case.error else '<div class="note">This suite runs no LLM judges.</div>')
     checks = [r for g in groups.values() for r in g]
     counts = ui.tally(checks)
     skipped = f" · {counts[SKIP]} skipped" if counts[SKIP] else ""
@@ -290,7 +291,8 @@ def _results_column(case: CaseResult, run: Run) -> str:
     elif run.checks == []:
         check_body = '<div class="note">This suite runs no deterministic checks (checks: none in agent.yaml).</div>'
     else:
-        check_body = '<div class="note">No checks ran for this case.</div>'
+        check_body = ('<div class="note">Not run: the case stopped before the checks (see the error above).</div>'
+                      if case.error else '<div class="note">No checks ran for this case.</div>')
     return (_card(f'<div class="card-label">LLM judges<span class="count">'
                   f'{ui.ran(ui.tally(judges)) + " passed" if judges else ""}</span></div>{judge_body}')
             + _card(f'<div class="card-label">Deterministic checks<span class="count">'

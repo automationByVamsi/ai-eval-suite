@@ -141,6 +141,8 @@ def load_run(ref: str, agent: str | None = None, suite: str | None = None) -> Ru
     for raw in data.pop("cases"):
         raw.pop("status", None)            # derived, not stored on the object
         results = [Result(**r) for r in raw.pop("results")]
+        if not raw.get("question") and isinstance(raw.get("input"), dict):   # older runs: errored cases had none
+            raw["question"] = str(raw["input"].get("question") or "")
         cases.append(CaseResult(**raw, results=results))
     return Run(**data, cases=cases)
 

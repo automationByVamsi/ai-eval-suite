@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import statistics
 from typing import Any
 
@@ -39,6 +40,11 @@ def explain_case_error(error: str) -> tuple[str, str]:
     if "no saved trace" in text:
         return ("No saved trace to replay",
                 "OFFLINE=1 replays the last saved trace of each case. Run the case once without OFFLINE=1.")
+    if text.startswith("agent:") and re.search(r"http [45]\d\d", text):
+        return ("The agent returned an error instead of an answer",
+                "The agent was reached and refused or failed: the code and message above are its own (e.g. "
+                "GuardrailError = input rejected, AthenaRetrievalError = its search failed). Raise it with the "
+                "agent team; a case that should be refused sets expected.expected_error instead.")
     if text.startswith("agent:"):
         return ("The agent did not answer",
                 "Check the agent is running at the connection.base_url in agent.yaml (make doctor), "

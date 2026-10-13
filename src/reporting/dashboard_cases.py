@@ -107,7 +107,8 @@ def show_results_column(case: CaseResult, col, suite_checks: list | None) -> Non
         if judges:
             html("".join(ui.judge_html(r) for r in judges))
         else:
-            html('<div class="note">This suite runs no LLM judges.</div>')
+            html('<div class="note">Not run: the case stopped before the judges (see the error above).</div>'
+                 if case.error else '<div class="note">This suite runs no LLM judges.</div>')
     with col.container(border=True):
         checks = [r for g in groups.values() for r in g]
         counts = ui.tally(checks)
@@ -119,7 +120,8 @@ def show_results_column(case: CaseResult, col, suite_checks: list | None) -> Non
         elif suite_checks == []:
             html('<div class="note">This suite runs no deterministic checks (checks: none in agent.yaml).</div>')
         else:
-            html('<div class="note">No checks ran for this case.</div>')
+            html('<div class="note">Not run: the case stopped before the checks (see the error above).</div>'
+                 if case.error else '<div class="note">No checks ran for this case.</div>')
 
 
 def show_debug_tabs(case: CaseResult) -> None:

@@ -83,8 +83,11 @@ def run_suite(agent_name: str, suite_name: str, *, offline: bool = False, reps: 
 
 def run_case(ctx: SuiteContext, case: dict[str, Any], rep: int) -> CaseResult:
     """Run one case: get the trace, read fields, check and judge. Never raises."""
+    inputs = dict(case.get("input") or {})
+    # The question is set from the test case first, so it shows even when the agent fails to answer.
     result = CaseResult(case_id=case["test_case_id"], rep=rep, description=str(case.get("description") or ""),
-                        input=dict(case.get("input") or {}), expected=dict(case.get("expected") or {}))
+                        question=str(inputs.get(ctx.agent.input_field) or ""),
+                        input=inputs, expected=dict(case.get("expected") or {}))
     try:
         # ACT
         trace = get_trace(ctx, case, rep)
@@ -95,7 +98,7 @@ def run_case(ctx: SuiteContext, case: dict[str, Any], rep: int) -> CaseResult:
         result.error = str(problem)
         return result
 
-    result.question = str(fields.get("question") or "")
+    result.question = str(fields.get("question") or result.question)
     result.answer = str(fields.get("answer") or "")
     result.expected_answer = str(fields.get("expected_answer") or "")
     result.details = _for_display(fields)
