@@ -47,7 +47,7 @@ COMPARING = {"any_in", "all_in", "precision", "recall", "ndcg", "contains"}
 TYPES = {"present", "one_of", "equals", "min_words", "not_contains", "range", "same_count", "subset",
          "not_matches"} | COMPARING
 KEYS = {"type", "field", "fields", "expected", "compare", "values", "value", "other", "of", "min", "max",
-        "threshold", "when", "description", "group", "k", "diagnostic", "patterns"}
+        "threshold", "when", "description", "group", "k", "diagnostic", "banner", "patterns"}
 
 
 def validate(checks: dict[str, Any], where: str) -> dict[str, dict[str, Any]]:
@@ -98,7 +98,7 @@ def run_checks(checks: dict[str, dict[str, Any]], fields: dict[str, Any], case: 
     results = []
     for name, spec in checks.items():
         result = Result(name=name, kind="check", status=SKIP, group=spec.get("group", ""),
-                        diagnostic=bool(spec.get("diagnostic")))
+                        diagnostic=bool(spec.get("diagnostic")), banner=bool(spec.get("banner")))
         result.reason = _when(spec.get("when"), fields, expected)
         if not result.reason:
             passed, reason = _check(spec, fields, expected, result)

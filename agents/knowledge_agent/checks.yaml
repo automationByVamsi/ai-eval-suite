@@ -60,5 +60,6 @@ checks:
     reasoning_exposed:          # sub-queries searched, why each anchor page was chosen, why the evidence is enough
       {type: present, fields: [branch_sub_queries, anchor_rationales, sufficiency_reason]}
 
-  performance:                # response within 60 seconds
-    within_60s:             {type: range, field: latency_ms, min: 0, max: 60000}
+  performance:                # MVP: respond within 60 s (a warning above it); 90 s is the hard cap
+    within_60s: {type: range, field: latency_ms, min: 0, max: 60000, diagnostic: true, banner: true}  # orange
+    within_90s: {type: range, field: latency_ms, min: 0, max: 90000, banner: true}                    # red

@@ -51,3 +51,17 @@ def test_the_app_renders_a_saved_run(outputs):
     assert len(accordions) == 2                                      # one accordion per case
     labels = " ".join(a.label for a in accordions)
     assert "TC_002" in labels and "TC_012" in labels
+
+
+def test_banner_checks_show_red_when_they_fail_the_case_and_orange_when_diagnostic():
+    from src.core.results import Result
+    case = CaseResult("TC_9", results=[
+        Result("within_60s", "check", "fail", "The agent took 72.4 s, over the 60 s limit",
+               diagnostic=True, banner=True),
+        Result("within_90s", "check", "pass", banner=True),
+        Result("anchor_hit", "check", "fail", "missed", diagnostic=True)])           # no banner: not marked
+    shown = ui.banners_html(case)
+    assert shown.count('class="banner') == 1 and 'class="banner warn"' in shown
+    assert "Within 60s" in shown and "72.4 s, over the 60 s limit" in shown and "doesn&#x27;t fail" in shown
+    case.results[1] = Result("within_90s", "check", "fail", "The agent took 95.0 s, over the 90 s limit", banner=True)
+    assert 'class="banner bad"' in ui.banners_html(case) and case.status == "fail"

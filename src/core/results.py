@@ -28,6 +28,7 @@ class Result:
     engine: str = ""             # judges only: "pegasus" or "deepeval"
     group: str = ""              # checks only: its group in checks.yaml
     diagnostic: bool = False     # checks only: a FAIL is shown but does not fail the case
+    banner: bool = False         # checks only: a FAIL is also shown as a banner at the top of the case
 
 
 def check(name: str, passed: bool, reason_if_failed: str = "", group: str = "") -> Result:

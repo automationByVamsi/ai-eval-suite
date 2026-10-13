@@ -222,7 +222,7 @@ def _case(case: CaseResult, run: Run, index: int) -> str:
     summary = (f'<span class="st {STATUS_KIND[case.status]}">{case.status.upper()}</span>'
                f'<b>{ui.esc(case.case_id)}</b>{rep} · {ui.esc(ui.short(case.question or case.description or "", 90))}'
                f'<span class="tail">{" · ".join(tail)}</span>')
-    body = "".join(ui.problem_html(p) for p in ui.problems(case))
+    body = "".join(ui.problem_html(p) for p in ui.problems(case)) + ui.banners_html(case)
     body += f'<div class="cols"><div>{_answer_column(case)}</div><div>{_results_column(case, run)}</div></div>'
     body += _debug_tabs(case, index)
     return (f'<details class="case" data-status="{case.status}" data-text="{ui.esc(search)}">'

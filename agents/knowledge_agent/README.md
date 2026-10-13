@@ -173,7 +173,7 @@ Seven suites, each answering one question:
 | Validation | — | `caveat_when_not_high` |
 | Synthesis | correctness, faithfulness, relevance, hallucination, response alignment, privacy leakage | `citations_in_evidence_set`, `page_link_for_every_source`, `source_page_found` |
 | Errors | — | `returned_expected_error` |
-| Whole run | — | `within_60s`, consistency |
+| Whole run | — | `within_60s`, `within_90s`, consistency |
 
 ## LLM judges (metrics)
 
@@ -217,7 +217,7 @@ on every case but never fail it; their pass rate can still be a release target.
 | disclosure | `caveat_when_not_high` | a MEDIUM / LOW confidence answer comes with a caveat or warning | |
 | disclosure | `warning_on_process_failure` | when anchor selection fell back to the top search result, a user warning is shown (until the agent team confirms which failures must warn) | ✓ |
 | explainability | `reasoning_exposed` | the trace shows how the answer was derived: sub-queries searched, why each anchor page was chosen, why the evidence is sufficient | |
-| performance | `within_60s` | response in ≤ 60 s | |
+| performance | `within_60s`, `within_90s` | response in ≤ 60 s (diagnostic: an orange warning above it); ≤ 90 s is the hard cap (fails the case, red) | |
 
 **Why the retrieval checks are diagnostic:** a correct answer from a page the golden doesn't list may
 still be right. Those cases go back to the SME, and the golden is updated if the page is also valid.
@@ -236,7 +236,7 @@ How each line of the MVP measures (Hive: MVP Measures) is tested. Targets are pa
 
 | Goal | MVP success criterion | Measured by | Target | Suite |
 |---|---|---|---|---|
-| Performance | response within 60 seconds | `within_60s` check | ≥ 95% of cases | golden |
+| Performance | response within 60 seconds (90 s hard cap) | `within_60s` (warning), `within_90s` checks | ≥ 95% within 60 s, 100% within 90 s | golden |
 | Performance | system error rate < 5% | error rate (cases the agent or a judge couldn't run) | ≤ 5% | all |
 | Accuracy | 90%+ answers accurate | Correctness judge vs the SME answer | ≥ 90% | golden |
 | Risk mitigation | 95%+ answers grounded in approved sources | Faithfulness judge (+ Hallucination judge, per case) | ≥ 95% | golden |

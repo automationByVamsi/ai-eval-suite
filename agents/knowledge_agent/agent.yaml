@@ -103,7 +103,8 @@ suites:
   golden:                    # release gate: CJM golden cases (make import-cases) with SME answers
     metrics: [correctness, faithfulness, hallucination, relevance, context_recall, context_precision]
     targets:                 # MVP success criteria (Hive: MVP Measures)
-      within_60s: 0.95                 # Performance: response within 60 s
+      within_60s: 0.95                 # Performance: response within 60 s (a warning per case above it)
+      within_90s: 1.0                  # Performance: hard cap, every response within 90 s
       error_rate: 0.05                 # Performance: system error rate < 5% (ceiling)
       correctness: 0.90                # Accuracy: 90%+ answers accurate
       faithfulness: 0.95               # Risk: 95%+ grounded in approved knowledge sources

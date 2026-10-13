@@ -87,6 +87,10 @@ details.skips summary { cursor:pointer; font-size:12px; color:var(--muted); marg
   background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin:8px 0;
   white-space:pre-wrap; word-break:break-word; }
 .problem-hint { font-size:12.5px; color:var(--ink-2); }
+.banner { border:1px solid; border-radius:12px; padding:10px 14px; margin-bottom:10px; font-size:13.5px;
+  color:var(--ink); }
+.banner.warn { border-color:var(--warn); background:var(--warn-wash); }
+.banner.bad { border-color:var(--bad); background:var(--bad-wash); }
 .question { font-size:16px; font-weight:600; color:var(--ink); line-height:1.45; }
 .page { padding:7px 0; border-top:1px solid var(--border); font-size:13px; }
 .page:first-of-type { border-top:none; }

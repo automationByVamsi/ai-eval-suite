@@ -223,7 +223,8 @@ shows `NOT FOUND`.
 ```yaml
 checks:
   answer:                                     # a group (suites pick groups or names)
-    within_60s: {type: range, field: latency_ms, max: 60000}
+    within_60s: {type: range, field: latency_ms, max: 60000, diagnostic: true, banner: true}   # orange warning
+    within_90s: {type: range, field: latency_ms, max: 90000, banner: true}                     # red, fails the case
     cites_only_evidence: {type: subset, field: cited_ids, of: [retrieved_ids]}
   retrieval:
     search_recall_at_5:
@@ -235,7 +236,8 @@ checks:
 
 Types: `present`, `equals`, `one_of`, `contains`, `not_contains`, `not_matches`, `min_words`, `range`,
 `same_count`, `subset`, `any_in`, `all_in`, `precision`, `recall`, `ndcg` (options at the top of
-`src/fields/checks.py`). `when:` limits a check to some cases. A case can expect a refusal
+`src/fields/checks.py`). `when:` limits a check to some cases. `banner: true` also shows a failure as a
+box at the top of the case: red when it fails the case, orange when the check is diagnostic. A case can expect a refusal
 (`"expected_error": ["InsufficientContextError"]`): the agent's error is then kept as its answer and
 checked, instead of the case being an ERROR.
 

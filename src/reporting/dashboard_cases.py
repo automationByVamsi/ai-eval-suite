@@ -179,6 +179,8 @@ def show_case_list(r: Run, key: str, status_filter: list | None, search: str) ->
         with st.expander(title, icon=icon, expanded=len(shown) == 1):
             for problem in ui.problems(case):
                 html(ui.problem_html(problem))
+            if banners := ui.banners_html(case):
+                html(banners)
             left, right = st.columns([1.15, 1], gap="medium")
             show_answer_column(case, left)
             show_results_column(case, right, r.checks)

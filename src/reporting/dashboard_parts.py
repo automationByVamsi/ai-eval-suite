@@ -245,6 +245,18 @@ def checks_html(groups: dict[str, list[Result]]) -> str:
     return "".join(parts)
 
 
+def banners_html(case: CaseResult) -> str:
+    """Failed checks marked `banner: true`, as boxes at the top of the case: red when the failure fails the
+    case, orange when the check is diagnostic (a warning)."""
+    parts = []
+    for r in case.results:
+        if r.kind == "check" and r.banner and r.status == FAIL:
+            kind, note = ("warn", "warning: doesn't fail the case") if r.diagnostic else ("bad", "fails the case")
+            parts.append(f'<div class="banner {kind}"><b>{esc(label(r.name))}</b> · {esc(note)}'
+                         f'<div>{esc(r.reason)}</div></div>')
+    return "".join(parts)
+
+
 def problem_html(problem: dict[str, str]) -> str:
     """Render one problem from problems() as an HTML warning box with its fix hint."""
     hint = f'<div class="problem-hint"><b>How to fix:</b> {esc(problem["hint"])}</div>' if problem["hint"] else ""
