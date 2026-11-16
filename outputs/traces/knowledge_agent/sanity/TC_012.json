@@ -1,0 +1,691 @@
+{
+  "agentOutput": "{\n  \"page_ids\": [\n    \"40022\",\n    \"40015\"\n  ],\n  \"summary\": \"When a third party discloses a customer's support need and the customer is not present, no verification of the third party is required to add the support need. The process involves adding the support need, following the guidance in the 'When a Carer or Family Member Shares a Customer\u2019s Vulnerability \u2013 Customer Not Present' section on the Third-Party Consent for Customer Vulnerability Support Needs page, and selecting 'Notified by a Third Party' on the Multi-channel Processes (MCP) system.\"\n}",
+  "sessionId": "822acbd1-144f-45f2-8f1a-451c14b3e9c9",
+  "latency_ms": 14383.9,
+  "raw_events": [
+    {
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "rewritten_query": [],
+          "search_branches": {},
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/input_normalisation_node@1"
+      },
+      "id": "89726c49-fd14-45c1-9dd9-2e5c71faf760",
+      "timestamp": 1790765493.703037
+    },
+    {
+      "modelVersion": "gemini-2.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"query_type\": \"complex\",\n  \"rewritten_query\": [\n    \"third party verification process\",\n    \"customer absent third party support protocol\"\n  ]\n}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 260,
+        "promptTokenCount": 582,
+        "thoughtsTokenCount": 217,
+        "totalTokenCount": 842
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "query_rewrite_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/search_node@1/query_rewrite_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/search_node@1/query_rewrite_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "36a3c9f3-c02c-4783-9acc-9da8b84ce7f7",
+      "timestamp": 1790765493.705292
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Athena search retrieved successfully for all sub-queries. completed=2/2"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": false
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": false
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/search_node@1"
+      },
+      "id": "ebb2df72-f907-4be3-bdc8-730ee2d1020e",
+      "timestamp": 1790765499.566498
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "KB metadata preload complete. artifact_count=2 page_count=6 cached_page_count=29"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/fetch_metadata_node@1"
+      },
+      "id": "6efef119-dc4a-450f-923b-018ec9decf92",
+      "timestamp": 1790765499.877013
+    },
+    {
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "82042b94-ce92-4b9e-888c-436cd8ba7997",
+        "filtered_page_ids": [
+          "40022"
+        ],
+        "anchor_page_id": "40022",
+        "rationale": "Selected top Athena result because no KB metadata was available."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1"
+        ]
+      },
+      "id": "827c3d33-d34a-4b50-8b0e-08de4aa8c393",
+      "timestamp": 1790765499.8822951
+    },
+    {
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "5554eefc-2727-4760-999c-89120506082e",
+        "filtered_page_ids": [
+          "40015"
+        ],
+        "anchor_page_id": "40015",
+        "rationale": "Selected top Athena result because no KB metadata was available."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@2",
+        "outputFor": [
+          "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@2"
+        ]
+      },
+      "id": "8a611cc3-e925-4ff0-8e9f-486c79427e75",
+      "timestamp": 1790765499.882729
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Anchor identification completed successfully for all branches. artifact_count=2 branch_count=2 success_count=2 failure_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [
+                "40022"
+              ],
+              "anchor_page_id": "40022",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [
+                "40015"
+              ],
+              "anchor_page_id": "40015",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1"
+      },
+      "id": "b9f1e3e2-8681-44fa-9531-7e9dc7793f69",
+      "timestamp": 1790765499.883639
+    },
+    {
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "82042b94-ce92-4b9e-888c-436cd8ba7997",
+        "rule_based_expansion": [],
+        "candidate_labels": {},
+        "llm_selected_page_ids": [],
+        "rationale": "Skipped relation expansion because fallback anchor metadata is unavailable."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1"
+        ]
+      },
+      "id": "759a90c5-8160-4dba-8087-1b6af2ec71e7",
+      "timestamp": 1790765499.884703
+    },
+    {
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "5554eefc-2727-4760-999c-89120506082e",
+        "rule_based_expansion": [],
+        "candidate_labels": {},
+        "llm_selected_page_ids": [],
+        "rationale": "Skipped relation expansion because fallback anchor metadata is unavailable."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@2",
+        "outputFor": [
+          "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@2"
+        ]
+      },
+      "id": "eedba163-8615-4ba8-9aa1-d06337ec8547",
+      "timestamp": 1790765499.884973
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Relation expansion completed successfully for all branches. artifact_count=2 branch_count=2 success_count=2 failure_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [
+                "40022"
+              ],
+              "anchor_page_id": "40022",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [
+                "40015"
+              ],
+              "anchor_page_id": "40015",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1"
+      },
+      "id": "e93dd542-b519-4470-a456-48df1e431e51",
+      "timestamp": 1790765499.8854332
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Page retrieval complete. anchor_count=2 expanded_count=0 dropped_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [
+                "40022"
+              ],
+              "anchor_page_id": "40022",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [
+                "40015"
+              ],
+              "anchor_page_id": "40015",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "40022",
+              "40015"
+            ],
+            "expanded_page_ids": []
+          },
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/fetch_page_workflow@1"
+      },
+      "id": "ff101938-5f59-46b8-abaf-3afe88ef5e71",
+      "timestamp": 1790765500.17555
+    },
+    {
+      "modelVersion": "gemini-2.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"applicability_reason\": \"The context directly addresses the process for handling support needs disclosed by a third party when the customer is not present, which aligns with an operational scenario.\",\n  \"context_applicability\": 1,\n  \"context_relevance\": 1,\n  \"context_sufficiency\": 1,\n  \"relevance_reason\": \"The query asks how to verify a third party and the process to follow when a third party calls about a support need and the customer is not present. Anchor pages 40022 and 40015 directly address this scenario, stating that 'no verification is required' for the third party in this specific context and outlining the process.\",\n  \"sufficiency_reason\": \"The provided context explicitly states that 'no verification required' for the third party in this scenario (page 40015) and directs to specific processes and tools ('Third Party Discloses Customer Vulnerability and Customer Is Not Present' and selecting 'Notified by a Third Party' on MCP), providing a complete answer to the query.\"\n}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 675,
+        "promptTokenCount": 2312,
+        "thoughtsTokenCount": 445,
+        "totalTokenCount": 2987
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "validation_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "7044b662-c851-4dd0-b884-f83758fb53c1",
+      "timestamp": 1790765500.180299
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Validation complete. confidence=HIGH anchor_count=2 expanded_count=0 content_length=7344"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [
+                "40022"
+              ],
+              "anchor_page_id": "40022",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [
+                "40015"
+              ],
+              "anchor_page_id": "40015",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "40022",
+              "40015"
+            ],
+            "expanded_page_ids": []
+          },
+          "context_relevance": 1.0,
+          "context_applicability": 1.0,
+          "context_sufficiency": 1.0,
+          "relevance_reason": "The query asks how to verify a third party and the process to follow when a third party calls about a support need and the customer is not present. Anchor pages 40022 and 40015 directly address this scenario, stating that 'no verification is required' for the third party in this specific context and outlining the process.",
+          "applicability_reason": "The context directly addresses the process for handling support needs disclosed by a third party when the customer is not present, which aligns with an operational scenario.",
+          "sufficiency_reason": "The provided context explicitly states that 'no verification required' for the third party in this scenario (page 40015) and directs to specific processes and tools ('Third Party Discloses Customer Vulnerability and Customer Is Not Present' and selecting 'Notified by a Third Party' on MCP), providing a complete answer to the query.",
+          "confidence": "HIGH",
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/validation_workflow@1"
+      },
+      "id": "683a294d-1ded-46f4-b4f2-2b50937d26a8",
+      "timestamp": 1790765504.6072042
+    },
+    {
+      "modelVersion": "gemini-2.5-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"page_ids\": [\n    \"40022\",\n    \"40015\"\n  ],\n  \"summary\": \"When a third party discloses a customer's support need and the customer is not present, no verification of the third party is required to add the support need. The process involves adding the support need, following the guidance in the 'When a Carer or Family Member Shares a Customer\u2019s Vulnerability \u2013 Customer Not Present' section on the Third-Party Consent for Customer Vulnerability Support Needs page, and selecting 'Notified by a Third Party' on the Multi-channel Processes (MCP) system.\"\n}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 773,
+        "promptTokenCount": 2350,
+        "thoughtsTokenCount": 634,
+        "totalTokenCount": 3123
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "general_synthesizer_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/synthesis_workflow@1/general_synthesizer_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/synthesis_workflow@1/general_synthesizer_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "10662e26-860e-4392-9b8c-b49c2d649dba",
+      "timestamp": 1790765504.60955
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Synthesis complete. question_type=general confidence=HIGH anchor_count=2 expanded_count=0 output_guardrail=disabled"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-aab84f08-4c93-4fe5-9a70-9d4c3ce35ca8",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "A third party has called up and the customer isnt present. They have told us about a support need. How do I verify the third party and what process do I need to follow?",
+          "business_area": "/Customer_Vulnerability_Hub_2/",
+          "query_type": "complex",
+          "rewritten_query": [
+            "third party verification process",
+            "customer absent third party support protocol"
+          ],
+          "search_branches": {
+            "82042b94-ce92-4b9e-888c-436cd8ba7997": {
+              "sub_query": "third party verification process",
+              "filtered_page_ids": [
+                "40022"
+              ],
+              "anchor_page_id": "40022",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            },
+            "5554eefc-2727-4760-999c-89120506082e": {
+              "sub_query": "customer absent third party support protocol",
+              "filtered_page_ids": [
+                "40015"
+              ],
+              "anchor_page_id": "40015",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "40022",
+              "40015"
+            ],
+            "expanded_page_ids": []
+          },
+          "context_relevance": 1.0,
+          "context_applicability": 1.0,
+          "context_sufficiency": 1.0,
+          "relevance_reason": "The query asks how to verify a third party and the process to follow when a third party calls about a support need and the customer is not present. Anchor pages 40022 and 40015 directly address this scenario, stating that 'no verification is required' for the third party in this specific context and outlining the process.",
+          "applicability_reason": "The context directly addresses the process for handling support needs disclosed by a third party when the customer is not present, which aligns with an operational scenario.",
+          "sufficiency_reason": "The provided context explicitly states that 'no verification required' for the third party in this scenario (page 40015) and directs to specific processes and tools ('Third Party Discloses Customer Vulnerability and Customer Is Not Present' and selecting 'Notified by a Third Party' on MCP), providing a complete answer to the query.",
+          "confidence": "HIGH",
+          "user_warnings": []
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "question_type": "general",
+        "answer": {
+          "summary": "When a third party discloses a customer's support need and the customer is not present, no verification of the third party is required to add the support need. The process involves adding the support need, following the guidance in the 'When a Carer or Family Member Shares a Customer\u2019s Vulnerability \u2013 Customer Not Present' section on the Third-Party Consent for Customer Vulnerability Support Needs page, and selecting 'Notified by a Third Party' on the Multi-channel Processes (MCP) system.",
+          "page_ids": [
+            "40022",
+            "40015"
+          ]
+        },
+        "confidence": "HIGH",
+        "caveats": [],
+        "user_warnings": [],
+        "evidence": [
+          {
+            "page_id": "40022",
+            "title": "Third-Party Consent for Customer Vulnerability Support Needs",
+            "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Third-Party_Consent_for_Customer_Vulnerability_Support_Needs"
+          },
+          {
+            "page_id": "40015",
+            "title": "Consent Needed for Adding Support Needs",
+            "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Consent_Needed_for_Adding_Support_Needs"
+          }
+        ]
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/synthesis_workflow@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/synthesis_workflow@1",
+          "knowledge_agent_workflow@1"
+        ]
+      },
+      "id": "4dda9e04-7598-4e4f-a9ef-7a82cacb6cc1",
+      "timestamp": 1790765508.075259
+    }
+  ]
+}

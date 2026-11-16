@@ -1,10 +1,4 @@
 """
-Metric packages:
-
-  src/metrics/deepeval/  — our DeepEval wrappers (METRIC_REGISTRY)
-  src/metrics/pegasus/   — Pegasus RAG strategies (Factory + shared runner)
-
-Importing this package registers DeepEval metrics for MetricFactory.
+LLM-as-a-judge: library.py loads metric_library.yaml and validates metrics; judges.py scores them.
+Add, remove or re-map built-in metrics in metric_library.yaml, not here.
 """
-
-import src.metrics.deepeval  # noqa: F401

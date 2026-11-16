@@ -1,0 +1,9 @@
+{
+  "test_case_id": "TC_QT_HOW",
+  "description": "How question: expect ordered steps",
+  "input": {
+    "question": "How do I add a support need?",
+    "question_type": "how"
+  },
+  "expected": {}
+}

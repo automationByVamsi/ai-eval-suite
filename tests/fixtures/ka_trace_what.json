@@ -1,0 +1,714 @@
+{
+ "agentOutput": "{\"question_type\": \"what\", \"answer\": {\"definitions\": [{\"phrase\": \"Minimum Standard Risk\", \"meaning\": \"This is the required verification level for Personal Banking and Fraud Colleagues when adding a support need.\", \"page_id\": \"40015\"}, {\"phrase\": \"Non-verifiable\", \"meaning\": \"This indicates no verification is required when adding a support need if the customer is unable to give consent (e.g., due to reduced mental capacity or exceptional circumstances), or when the customer is not present (e.g., informed by a third party).\", \"page_id\": \"40015\"}, {\"phrase\": \"Customer must be identifiable\", \"meaning\": \"This is a verification requirement for Community Bank Colleagues to add a support need if the customer is present in branch and able to give consent.\", \"page_id\": \"40015\"}, {\"phrase\": \"Verify customer using CVP questions\", \"meaning\": \"This is a verification requirement for Community Bank Colleagues when adding a support need if the customer either phones the branch and gives consent or is phoned by a branch colleague and gives consent.\", \"page_id\": \"40015\"}]}, \"confidence\": \"HIGH\", \"caveats\": [], \"user_warnings\": [], \"evidence\": [{\"page_id\": \"40015\", \"title\": \"Consent Needed for Adding Support Needs\", \"uri_ui\": \"https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Consent_Needed_for_Adding_Support_Needs\"}, {\"page_id\": \"40022\", \"title\": \"Third-Party Consent for Customer Vulnerability Support Needs\", \"uri_ui\": \"https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Third-Party_Consent_for_Customer_Vulnerability_Support_Needs\"}]}",
+ "sessionId": "fixture",
+ "latency_ms": 42000,
+ "raw_events": [
+  {
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "rewritten_query": [],
+     "search_branches": {},
+     "evidence_set": {
+      "anchor_page_ids": [],
+      "expanded_page_ids": []
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/input_normalisation_node@1"
+   },
+   "id": "a1293a38-8623-4e48-a3a0-71275fd0b43e",
+   "timestamp": 1791032624.272728
+  },
+  {
+   "modelVersion": "gemini-2.5-flash",
+   "content": {
+    "parts": [
+     {
+      "text": "{\n  \"query_type\": \"simple\",\n  \"rewritten_query\": [\n    \"required verification add support need\"\n  ]\n}"
+     }
+    ],
+    "role": "model"
+   },
+   "partial": false,
+   "finishReason": "STOP",
+   "usageMetadata": {
+    "cachedContentTokenCount": 0,
+    "candidatesTokenCount": 185,
+    "promptTokenCount": 795,
+    "thoughtsTokenCount": 151,
+    "totalTokenCount": 980
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "query_rewrite_agent",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/search_node@1/query_rewrite_agent@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/search_node@1/query_rewrite_agent@1"
+    ],
+    "messageAsOutput": true
+   },
+   "id": "8f3a69f9-6123-452d-87e4-a4f4c898658f",
+   "timestamp": 1791032624.275734
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Athena search retrieved successfully for all sub-queries. completed=1/1"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [],
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [],
+      "expanded_page_ids": []
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/search_node@1"
+   },
+   "id": "cbc2542f-a476-42e2-8cdf-bb79971cb3ca",
+   "timestamp": 1791032631.0414238
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "KB metadata preload complete. artifact_count=1 page_count=4 cached_page_count=17"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [],
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [],
+      "expanded_page_ids": []
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/fetch_metadata_node@1"
+   },
+   "id": "0fd6c451-81fb-4a1a-adbe-84cc462401d0",
+   "timestamp": 1791032631.736523
+  },
+  {
+   "modelVersion": "gemini-2.5-flash",
+   "content": {
+    "parts": [
+     {
+      "text": "{\n  \"anchor_page_id\": \"40015\",\n  \"rationale\": \"Page 40015, 'Consent Needed for Adding Support Needs', directly addresses the core intent of the query by detailing the 'consent and verification rules required when adding, changing, or deleting customer support needs.' It provides foundational information on identity verification and consent, which are prerequisites to the actual process of adding a support need. Other pages are either too specific (Compromised CVP, Talking ATMs) or focus on the procedural 'how-to' rather than the overarching requirements (How To Add a Support Need in MCP).\"\n}"
+     }
+    ],
+    "role": "model"
+   },
+   "partial": false,
+   "finishReason": "STOP",
+   "usageMetadata": {
+    "cachedContentTokenCount": 0,
+    "candidatesTokenCount": 801,
+    "promptTokenCount": 1319,
+    "thoughtsTokenCount": 667,
+    "totalTokenCount": 2120
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "anchor_page_classifier_agent",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1/anchor_page_classifier_agent@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1/anchor_page_classifier_agent@1"
+    ],
+    "messageAsOutput": true
+   },
+   "id": "40daa180-8a53-40d8-875b-0cb545e12e5d",
+   "timestamp": 1791032631.74367
+  },
+  {
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "output": {
+    "artifact_id": "7c586db3-4751-42f3-8b29-90034e748187",
+    "filtered_page_ids": [
+     "40015",
+     "40035",
+     "40345",
+     "40011"
+    ],
+    "anchor_page_id": "40015",
+    "rationale": "Page 40015, 'Consent Needed for Adding Support Needs', directly addresses the core intent of the query by detailing the 'consent and verification rules required when adding, changing, or deleting customer support needs.' It provides foundational information on identity verification and consent, which are prerequisites to the actual process of adding a support need. Other pages are either too specific (Compromised CVP, Talking ATMs) or focus on the procedural 'how-to' rather than the overarching requirements (How To Add a Support Need in MCP)."
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/anchor_identification_workflow@1/_anchor_branch_worker@1"
+    ]
+   },
+   "id": "d1874455-bf29-48d7-b438-a6ea46c719e8",
+   "timestamp": 1791032637.433774
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Anchor identification completed successfully for all branches. artifact_count=1 branch_count=1 success_count=1 failure_count=0"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [
+        "40015",
+        "40035",
+        "40345",
+        "40011"
+       ],
+       "anchor_page_id": "40015",
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [],
+      "expanded_page_ids": []
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/anchor_identification_workflow@1"
+   },
+   "id": "573b1755-6f25-4507-a0eb-5ff1a18222e7",
+   "timestamp": 1791032637.434305
+  },
+  {
+   "modelVersion": "gemini-2.5-flash",
+   "content": {
+    "parts": [
+     {
+      "text": "{\n  \"expanded_page_ids\": [\n    \"40022\"\n  ],\n  \"rationale\": \"Selected 'page_id_40022' because its summary explicitly mentions 'verification requirements needed before taking actions to record, update, or remove support needs' and its primary intent includes 'Check support need verification requirements', which directly aligns with the query 'required verification add support need'. 'page_id_40021' was excluded as its focus is on recording support needs from written communications, not the general verification process for adding support needs, which is a key part of the query.\"\n}"
+     }
+    ],
+    "role": "model"
+   },
+   "partial": false,
+   "finishReason": "STOP",
+   "usageMetadata": {
+    "cachedContentTokenCount": 0,
+    "candidatesTokenCount": 805,
+    "promptTokenCount": 1192,
+    "thoughtsTokenCount": 670,
+    "totalTokenCount": 1997
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "relation_expansion_classifier_agent",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1/relation_expansion_classifier_agent@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1/relation_expansion_classifier_agent@1"
+    ],
+    "messageAsOutput": true
+   },
+   "id": "8dbb0b39-eaa2-4b86-99ac-ec101052612f",
+   "timestamp": 1791032637.435863
+  },
+  {
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "output": {
+    "artifact_id": "7c586db3-4751-42f3-8b29-90034e748187",
+    "rule_based_expansion": [],
+    "candidate_labels": {
+     "40021": "exception_to",
+     "40022": "exception_to"
+    },
+    "llm_selected_page_ids": [
+     "40022"
+    ],
+    "rationale": "Selected 'page_id_40022' because its summary explicitly mentions 'verification requirements needed before taking actions to record, update, or remove support needs' and its primary intent includes 'Check support need verification requirements', which directly aligns with the query 'required verification add support need'. 'page_id_40021' was excluded as its focus is on recording support needs from written communications, not the general verification process for adding support needs, which is a key part of the query."
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/relation_expansion_workflow@1/_relation_branch_worker@1"
+    ]
+   },
+   "id": "f7ba5c7d-fb88-4288-8d10-1496afbe8364",
+   "timestamp": 1791032642.6042418
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Relation expansion completed successfully for all branches. artifact_count=1 branch_count=1 success_count=1 failure_count=0"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [
+        "40015",
+        "40035",
+        "40345",
+        "40011"
+       ],
+       "anchor_page_id": "40015",
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [
+        [
+         "40022",
+         "exception_to"
+        ]
+       ],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [],
+      "expanded_page_ids": []
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/relation_expansion_workflow@1"
+   },
+   "id": "271888d9-b8a0-450f-b5d5-a81f7eb9919f",
+   "timestamp": 1791032642.6047208
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Page retrieval complete. anchor_count=1 expanded_count=1 dropped_count=0"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [
+        "40015",
+        "40035",
+        "40345",
+        "40011"
+       ],
+       "anchor_page_id": "40015",
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [
+        [
+         "40022",
+         "exception_to"
+        ]
+       ],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [
+       "40015"
+      ],
+      "expanded_page_ids": [
+       "40022"
+      ]
+     },
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/fetch_page_workflow@1"
+   },
+   "id": "bd391360-f93d-4eee-916e-812c93de5c13",
+   "timestamp": 1791032643.194967
+  },
+  {
+   "modelVersion": "gemini-2.5-flash",
+   "content": {
+    "parts": [
+     {
+      "text": "{\n  \"applicability_reason\": \"The content explicitly discusses requirements for recording customer support needs, including verification and consent, directly applicable to business operations for managing customer vulnerability.\",\n  \"context_applicability\": 1.0,\n  \"context_relevance\": 1.0,\n  \"context_sufficiency\": 1.0,\n  \"relevance_reason\": \"The retrieved context directly answers the query by detailing specific verification levels required for adding a support need across various scenarios and roles.\",\n  \"sufficiency_reason\": \"The context provides comprehensive details on verification levels for adding support needs, covering different colleague types, customer presence, consent abilities, and third-party notifications, allowing for a complete answer without guessing.\"\n}"
+     }
+    ],
+    "role": "model"
+   },
+   "partial": false,
+   "finishReason": "STOP",
+   "usageMetadata": {
+    "cachedContentTokenCount": 0,
+    "candidatesTokenCount": 821,
+    "promptTokenCount": 2469,
+    "thoughtsTokenCount": 666,
+    "totalTokenCount": 3290
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "validation_agent",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/validation_workflow@1/validation_agent@1"
+    ],
+    "messageAsOutput": true
+   },
+   "id": "dbf8b7c5-cc5c-44f2-8848-dabb9442ee07",
+   "timestamp": 1791032643.2006688
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Validation complete. confidence=HIGH anchor_count=1 expanded_count=1 content_length=7344"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [
+        "40015",
+        "40035",
+        "40345",
+        "40011"
+       ],
+       "anchor_page_id": "40015",
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [
+        [
+         "40022",
+         "exception_to"
+        ]
+       ],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [
+       "40015"
+      ],
+      "expanded_page_ids": [
+       "40022"
+      ]
+     },
+     "context_relevance": 1.0,
+     "context_applicability": 1.0,
+     "context_sufficiency": 1.0,
+     "relevance_reason": "The retrieved context directly answers the query by detailing specific verification levels required for adding a support need across various scenarios and roles.",
+     "applicability_reason": "The content explicitly discusses requirements for recording customer support needs, including verification and consent, directly applicable to business operations for managing customer vulnerability.",
+     "sufficiency_reason": "The context provides comprehensive details on verification levels for adding support needs, covering different colleague types, customer presence, consent abilities, and third-party notifications, allowing for a complete answer without guessing.",
+     "confidence": "HIGH",
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/validation_workflow@1"
+   },
+   "id": "9770415d-6bd2-416e-a2d5-1c82c5ab936e",
+   "timestamp": 1791032648.5601668
+  },
+  {
+   "modelVersion": "gemini-2.5-flash",
+   "content": {
+    "parts": [
+     {
+      "text": "{\n  \"definitions\": [\n    {\n      \"meaning\": \"This is the required verification level for Personal Banking and Fraud Colleagues when adding a support need.\",\n      \"page_id\": \"40015\",\n      \"phrase\": \"Minimum Standard Risk\"\n    },\n    {\n      \"meaning\": \"This indicates no verification is required when adding a support need if the customer is unable to give consent (e.g., due to reduced mental capacity or exceptional circumstances), or when the customer is not present (e.g., informed by a third party).\",\n      \"page_id\": \"40015\",\n      \"phrase\": \"Non-verifiable\"\n    },\n    {\n      \"meaning\": \"This is a verification requirement for Community Bank Colleagues to add a support need if the customer is present in branch and able to give consent.\",\n      \"page_id\": \"40015\",\n      \"phrase\": \"Customer must be identifiable\"\n    },\n    {\n      \"meaning\": \"This is a verification requirement for Community Bank Colleagues when adding a support need if the customer either phones the branch and gives consent or is phoned by a branch colleague and gives consent.\",\n      \"page_id\": \"40015\",\n      \"phrase\": \"Verify customer using CVP questions\"\n    }\n  ]\n}"
+     }
+    ],
+    "role": "model"
+   },
+   "partial": false,
+   "finishReason": "STOP",
+   "usageMetadata": {
+    "cachedContentTokenCount": 0,
+    "candidatesTokenCount": 4210,
+    "promptTokenCount": 2630,
+    "thoughtsTokenCount": 3914,
+    "totalTokenCount": 6840
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "what_synthesizer_agent",
+   "actions": {
+    "stateDelta": {},
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/synthesis_workflow@1/what_synthesizer_agent@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/synthesis_workflow@1/what_synthesizer_agent@1"
+    ],
+    "messageAsOutput": true
+   },
+   "id": "bcbe356e-f902-4735-aed1-16a77e4d08a6",
+   "timestamp": 1791032648.566528
+  },
+  {
+   "content": {
+    "parts": [
+     {
+      "text": "Synthesis complete. question_type=what confidence=HIGH anchor_count=1 expanded_count=1 output_guardrail=disabled"
+     }
+    ],
+    "role": "user"
+   },
+   "invocationId": "e-6ccac7e8-232d-4830-95c9-686a57a1c441",
+   "author": "knowledge_agent_workflow",
+   "actions": {
+    "stateDelta": {
+     "query": "What level of verification is required when adding, a support need? ",
+     "business_area": "/Customer_Vulnerability_Hub_2/",
+     "question_type": "what",
+     "query_type": "simple",
+     "rewritten_query": [
+      "required verification add support need"
+     ],
+     "search_branches": {
+      "7c586db3-4751-42f3-8b29-90034e748187": {
+       "sub_query": "required verification add support need",
+       "filtered_page_ids": [
+        "40015",
+        "40035",
+        "40345",
+        "40011"
+       ],
+       "anchor_page_id": "40015",
+       "rule_based_expansion": [],
+       "llm_selected_expansion": [
+        [
+         "40022",
+         "exception_to"
+        ]
+       ],
+       "has_missing_candidate_metadata": false
+      }
+     },
+     "evidence_set": {
+      "anchor_page_ids": [
+       "40015"
+      ],
+      "expanded_page_ids": [
+       "40022"
+      ]
+     },
+     "context_relevance": 1.0,
+     "context_applicability": 1.0,
+     "context_sufficiency": 1.0,
+     "relevance_reason": "The retrieved context directly answers the query by detailing specific verification levels required for adding a support need across various scenarios and roles.",
+     "applicability_reason": "The content explicitly discusses requirements for recording customer support needs, including verification and consent, directly applicable to business operations for managing customer vulnerability.",
+     "sufficiency_reason": "The context provides comprehensive details on verification levels for adding support needs, covering different colleague types, customer presence, consent abilities, and third-party notifications, allowing for a complete answer without guessing.",
+     "confidence": "HIGH",
+     "user_warnings": []
+    },
+    "artifactDelta": {},
+    "requestedAuthConfigs": {},
+    "requestedToolConfirmations": {}
+   },
+   "output": {
+    "question_type": "what",
+    "answer": {
+     "definitions": [
+      {
+       "phrase": "Minimum Standard Risk",
+       "meaning": "This is the required verification level for Personal Banking and Fraud Colleagues when adding a support need.",
+       "page_id": "40015"
+      },
+      {
+       "phrase": "Non-verifiable",
+       "meaning": "This indicates no verification is required when adding a support need if the customer is unable to give consent (e.g., due to reduced mental capacity or exceptional circumstances), or when the customer is not present (e.g., informed by a third party).",
+       "page_id": "40015"
+      },
+      {
+       "phrase": "Customer must be identifiable",
+       "meaning": "This is a verification requirement for Community Bank Colleagues to add a support need if the customer is present in branch and able to give consent.",
+       "page_id": "40015"
+      },
+      {
+       "phrase": "Verify customer using CVP questions",
+       "meaning": "This is a verification requirement for Community Bank Colleagues when adding a support need if the customer either phones the branch and gives consent or is phoned by a branch colleague and gives consent.",
+       "page_id": "40015"
+      }
+     ]
+    },
+    "confidence": "HIGH",
+    "caveats": [],
+    "user_warnings": [],
+    "evidence": [
+     {
+      "page_id": "40015",
+      "title": "Consent Needed for Adding Support Needs",
+      "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Consent_Needed_for_Adding_Support_Needs"
+     },
+     {
+      "page_id": "40022",
+      "title": "Third-Party Consent for Customer Vulnerability Support Needs",
+      "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Customer_Vulnerability_Hub_2/Support_Needs/How_To_Process_Support_Needs/Third-Party_Consent_for_Customer_Vulnerability_Support_Needs"
+     }
+    ]
+   },
+   "nodeInfo": {
+    "path": "knowledge_agent_workflow@1/synthesis_workflow@1",
+    "outputFor": [
+     "knowledge_agent_workflow@1/synthesis_workflow@1",
+     "knowledge_agent_workflow@1"
+    ]
+   },
+   "id": "035501bc-ae79-42b8-93c4-8c8f52b62c51",
+   "timestamp": 1791032666.447406
+  }
+ ]
+}

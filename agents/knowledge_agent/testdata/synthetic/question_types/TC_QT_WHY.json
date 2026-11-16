@@ -1,0 +1,9 @@
+{
+  "test_case_id": "TC_QT_WHY",
+  "description": "Why question: expect a reasoned summary",
+  "input": {
+    "question": "Why do we need the customer's consent before adding a support need?",
+    "question_type": "why"
+  },
+  "expected": {}
+}

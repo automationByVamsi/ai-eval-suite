@@ -1,0 +1,621 @@
+{
+  "agentOutput": "{\n  \"page_ids\": [\n    \"32177\"\n  ],\n  \"summary\": \"To support a customer experiencing financial harm from gambling, you can apply the 'Gambling' support need under the 'Controls' category. Additional support needs to consider adding to the customer's account include 'Adapt \u2013 Extra Care / Patience' and 'Life Event - Money Worries'.\"\n}",
+  "sessionId": "9ccf2e29-e720-4662-a7d2-5b9dbbcf1a47",
+  "latency_ms": 18582.7,
+  "raw_events": [
+    {
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "rewritten_query": [],
+          "search_branches": {},
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/input_normalisation_node@1"
+      },
+      "id": "308a7065-6311-4b0c-af3b-3965bb059f37",
+      "timestamp": 1791212580.9552488
+    },
+    {
+      "modelVersion": "gemini-3.7-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\"query_type\":\"simple\",\"rewritten_query\":[\"gambling block account restrictions vulnerable customer support\"]}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 284,
+        "promptTokenCount": 935,
+        "thoughtsTokenCount": 263,
+        "totalTokenCount": 1219
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "query_rewrite_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/search_node@1/query_rewrite_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/search_node@1/query_rewrite_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "50223b24-0547-494c-9dfa-e7c8e1b834a2",
+      "timestamp": 1791212580.957282
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Athena search retrieved successfully for all sub-queries. completed=1/1"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": false
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/search_node@1"
+      },
+      "id": "e3049117-1b65-4183-bded-d31429c9d1d1",
+      "timestamp": 1791212587.444041
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "KB metadata preload complete. artifact_count=1 candidate_count=10 cached_page_count=35"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [],
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/fetch_metadata_node@1"
+      },
+      "id": "e95e1b61-bc6f-435f-8e70-9fe9f9b4e233",
+      "timestamp": 1791212588.214966
+    },
+    {
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1",
+        "filtered_page_ids": [
+          "32177"
+        ],
+        "anchor_page_id": "32177",
+        "rationale": "Selected top Athena result because no KB metadata was available."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/anchor_identification_workflow@1/_anchor_branch_worker@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/anchor_identification_workflow@1/_anchor_branch_worker@1"
+        ]
+      },
+      "id": "208a0591-9835-4fa4-a044-f441a4a01605",
+      "timestamp": 1791212588.215632
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Anchor identification completed successfully for all branches. artifact_count=1 branch_count=1 success_count=1 failure_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [
+                "32177"
+              ],
+              "anchor_page_id": "32177",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/anchor_identification_workflow@1"
+      },
+      "id": "947cee5a-d0de-4a37-9700-48211fc582b0",
+      "timestamp": 1791212588.215915
+    },
+    {
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "artifact_id": "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1",
+        "rule_based_expansion": [],
+        "candidate_labels": {},
+        "llm_selected_page_ids": [],
+        "rationale": "Skipped relation expansion because fallback anchor metadata is unavailable."
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/relation_expansion_workflow@1/_relation_branch_worker@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/relation_expansion_workflow@1/_relation_branch_worker@1"
+        ]
+      },
+      "id": "44c5fbd3-eab6-408e-aa98-0308f196e8b6",
+      "timestamp": 1791212588.2165198
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Relation expansion completed successfully for all branches. artifact_count=1 branch_count=1 success_count=1 failure_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [
+                "32177"
+              ],
+              "anchor_page_id": "32177",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/relation_expansion_workflow@1"
+      },
+      "id": "d0d9e411-5345-44fd-ad87-0ee3992eef2d",
+      "timestamp": 1791212588.216748
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Page retrieval complete. anchor_count=1 expanded_count=0 dropped_count=0"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [
+                "32177"
+              ],
+              "anchor_page_id": "32177",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "32177"
+            ],
+            "expanded_page_ids": []
+          },
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/fetch_page_workflow@1"
+      },
+      "id": "626121f9-b08d-41af-8809-17ba6c6d8824",
+      "timestamp": 1791212588.5397189
+    },
+    {
+      "modelVersion": "gemini-3.7-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"applicability_reason\": \"The context provides direct operational guidance for frontline colleagues handling vulnerable customer support needs across banking channels.\",\n  \"context_applicability\": 1.0,\n  \"context_relevance\": 1.0,\n  \"context_sufficiency\": 1.0,\n  \"relevance_reason\": \"The context directly identifies the specific Support Need categories to apply for a customer struggling with gambling spend.\",\n  \"sufficiency_reason\": \"The context comprehensively lists the primary Support Need (Controls - Gambling) and additional needs (Adapt \\u2013 Extra Care / Patience, Life Event - Money Worries) to record on the account.\"\n}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 528,
+        "promptTokenCount": 2066,
+        "thoughtsTokenCount": 382,
+        "totalTokenCount": 2594
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "validation_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/validation_workflow@1/validation_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/validation_workflow@1/validation_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "fecf80ce-043f-4924-9a6d-fe37d4730922",
+      "timestamp": 1791212588.5440152
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Validation complete. confidence=HIGH anchor_count=1 expanded_count=0 content_length=4820"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [
+                "32177"
+              ],
+              "anchor_page_id": "32177",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "32177"
+            ],
+            "expanded_page_ids": []
+          },
+          "context_relevance": 1.0,
+          "context_applicability": 1.0,
+          "context_sufficiency": 1.0,
+          "relevance_reason": "The context directly identifies the specific Support Need categories to apply for a customer struggling with gambling spend.",
+          "applicability_reason": "The context provides direct operational guidance for frontline colleagues handling vulnerable customer support needs across banking channels.",
+          "sufficiency_reason": "The context comprehensively lists the primary Support Need (Controls - Gambling) and additional needs (Adapt \u2013 Extra Care / Patience, Life Event - Money Worries) to record on the account.",
+          "confidence": "HIGH",
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/validation_workflow@1"
+      },
+      "id": "16ce98ed-e2ef-4092-9b3b-119f507c6df4",
+      "timestamp": 1791212594.244357
+    },
+    {
+      "modelVersion": "gemini-3.7-flash",
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"page_ids\": [\n    \"32177\"\n  ],\n  \"summary\": \"To support a customer experiencing financial harm from gambling, you can apply the 'Gambling' support need under the 'Controls' category. Additional support needs to consider adding to the customer's account include 'Adapt \u2013 Extra Care / Patience' and 'Life Event - Money Worries'.\"\n}"
+          }
+        ],
+        "role": "model"
+      },
+      "partial": false,
+      "finishReason": "STOP",
+      "usageMetadata": {
+        "cachedContentTokenCount": 0,
+        "candidatesTokenCount": 255,
+        "promptTokenCount": 1989,
+        "thoughtsTokenCount": 169,
+        "totalTokenCount": 2244
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "general_synthesizer_agent",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/synthesis_workflow@1/general_synthesizer_agent@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/synthesis_workflow@1/general_synthesizer_agent@1"
+        ],
+        "messageAsOutput": true
+      },
+      "id": "e2a9ef60-e59b-471d-96c4-93e63c7864a0",
+      "timestamp": 1791212594.245985
+    },
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Synthesis complete. question_type=general confidence=HIGH anchor_count=1 expanded_count=0 output_guardrail=disabled"
+          }
+        ],
+        "role": "user"
+      },
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "answer_pipeline",
+      "actions": {
+        "stateDelta": {
+          "query": "My customer keeps losing all their money in casinos, they have said they need help. What needs can I put on the customers account to help them?",
+          "response_type": "answer",
+          "query_type": "simple",
+          "rewritten_query": [
+            "gambling block account restrictions vulnerable customer support"
+          ],
+          "search_branches": {
+            "fe7e4ab5-8e48-453c-91fb-76ab404cc6b1": {
+              "sub_query": "gambling block account restrictions vulnerable customer support",
+              "filtered_page_ids": [
+                "32177"
+              ],
+              "anchor_page_id": "32177",
+              "rule_based_expansion": [],
+              "llm_selected_expansion": [],
+              "has_missing_candidate_metadata": true
+            }
+          },
+          "evidence_set": {
+            "anchor_page_ids": [
+              "32177"
+            ],
+            "expanded_page_ids": []
+          },
+          "context_relevance": 1.0,
+          "context_applicability": 1.0,
+          "context_sufficiency": 1.0,
+          "relevance_reason": "The context directly identifies the specific Support Need categories to apply for a customer struggling with gambling spend.",
+          "applicability_reason": "The context provides direct operational guidance for frontline colleagues handling vulnerable customer support needs across banking channels.",
+          "sufficiency_reason": "The context comprehensively lists the primary Support Need (Controls - Gambling) and additional needs (Adapt \u2013 Extra Care / Patience, Life Event - Money Worries) to record on the account.",
+          "confidence": "HIGH",
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ]
+        },
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "question_type": "general",
+        "answer": {
+          "summary": "To support a customer experiencing financial harm from gambling, you can apply the 'Gambling' support need under the 'Controls' category. Additional support needs to consider adding to the customer's account include 'Adapt \u2013 Extra Care / Patience' and 'Life Event - Money Worries'.",
+          "page_ids": [
+            "32177"
+          ]
+        },
+        "confidence": "HIGH",
+        "caveats": [],
+        "user_warnings": [
+          "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+        ],
+        "evidence": [
+          {
+            "page_id": "32177",
+            "title": "Controls - Support Guidance - AOC, ABM, BBFA Pro, BBFA Tel, DBC, LR, SBC and SC",
+            "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Business_Banking/Vulnerability_and_Bereavement/Support_Needs/Controls_-_Support_Guidance_-_AOC%2C_ABM%2C_BBFA_Pro%2C_BBFA_Tel%2C_DBC%2C_LR%2C_SBC_and_SC"
+          }
+        ]
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/synthesis_workflow@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1/synthesis_workflow@1",
+          "knowledge_agent_workflow@1/dispatcher@1/answer_pipeline@1"
+        ]
+      },
+      "id": "60323a38-7078-40a5-8630-efcd5e9b07a0",
+      "timestamp": 1791212599.504375
+    },
+    {
+      "invocationId": "e-9db9388c-584d-43ea-89aa-f8bd40c33c3f",
+      "author": "knowledge_agent_workflow",
+      "actions": {
+        "stateDelta": {},
+        "artifactDelta": {},
+        "requestedAuthConfigs": {},
+        "requestedToolConfirmations": {}
+      },
+      "output": {
+        "response_type": "answer",
+        "answer": {
+          "question_type": "general",
+          "answer": {
+            "summary": "To support a customer experiencing financial harm from gambling, you can apply the 'Gambling' support need under the 'Controls' category. Additional support needs to consider adding to the customer's account include 'Adapt \u2013 Extra Care / Patience' and 'Life Event - Money Worries'.",
+            "page_ids": [
+              "32177"
+            ]
+          },
+          "confidence": "HIGH",
+          "caveats": [],
+          "user_warnings": [
+            "No business area was provided, so the search covered the whole knowledge base and results may be less precise."
+          ],
+          "evidence": [
+            {
+              "page_id": "32177",
+              "title": "Controls - Support Guidance - AOC, ABM, BBFA Pro, BBFA Tel, DBC, LR, SBC and SC",
+              "uri_ui": "https://lloyds-banking-test.eu1prod.expert.nicecxone.com/Business_Banking/Vulnerability_and_Bereavement/Support_Needs/Controls_-_Support_Guidance_-_AOC%2C_ABM%2C_BBFA_Pro%2C_BBFA_Tel%2C_DBC%2C_LR%2C_SBC_and_SC"
+            }
+          ]
+        }
+      },
+      "nodeInfo": {
+        "path": "knowledge_agent_workflow@1/dispatcher@1",
+        "outputFor": [
+          "knowledge_agent_workflow@1/dispatcher@1",
+          "knowledge_agent_workflow@1"
+        ]
+      },
+      "id": "95216fb7-7a22-4ab8-b78e-dd3fa7bad9fb",
+      "timestamp": 1791212599.5048718
+    }
+  ]
+}

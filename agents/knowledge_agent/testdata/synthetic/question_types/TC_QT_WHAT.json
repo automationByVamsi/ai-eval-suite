@@ -1,0 +1,9 @@
+{
+  "test_case_id": "TC_QT_WHAT",
+  "description": "What question: expect definitions of the key terms",
+  "input": {
+    "question": "What level of verification is required when adding a support need?",
+    "question_type": "what"
+  },
+  "expected": {}
+}

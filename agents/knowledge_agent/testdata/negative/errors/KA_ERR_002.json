@@ -1,0 +1,16 @@
+{
+  "test_case_id": "KA_ERR_002",
+  "description": "Invalid input: a question type the agent doesn't accept (how / what / why / yes_no only)",
+  "input": {
+    "question": "How do I add a support need?",
+    "question_type": "when"
+  },
+  "expected": {
+    "expected_error": [
+      "InvalidInputError"
+    ]
+  },
+  "metadata": {
+    "origin": "KA I/O design: error messages"
+  }
+}

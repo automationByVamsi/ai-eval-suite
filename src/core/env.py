@@ -1,9 +1,6 @@
-"""
-Load gitignored `.env` and expand `${VAR}` / `${VAR:-default}` in config values.
+"""Load env files and fill `${VAR}` placeholders in YAML.
 
-First file wins for a given key (later files do not override), except CORTEX_*
-from env/.env.factfind.api which always win — so office setups match the
-working factfind repo even if root .env has a stale client id.
+Precedence: shell variables, then env/.env.<agent>, then env/.env. Importing this loads env/.env and TLS settings.
 """
 
 from __future__ import annotations
@@ -11,113 +8,66 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
-_ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
-_DOTENV_LOADED = False
+from dotenv import dotenv_values
 
-# Factfind CORTEX file first — root .env often has a stale/wrong CLIENT_ID.
-_DEFAULT_ENV_CANDIDATES = (
-    Path("env/.env.factfind.api"),
-    Path(".env.factfind.api"),
-    Path(".env"),
-    Path("src/.env"),
-)
+from src.core import paths, tls
+from src.core.exceptions import ConfigError
 
-_CORTEX_KEYS = frozenset(
-    {
-        "CORTEX_HOST",
-        "CORTEX_BASE_URL",
-        "CORTEX_CLIENT_ID",
-        "CORTEX_CLIENT_SECRET",
-        "CORTEX_API_KEY",
-        "CORTEX_MODEL",
-        "CORTEX_PATH",
-        "PEGASUS_CORTEX_MODEL",
-    }
-)
+# Taken before any env file is read, so shell variables always win.
+_SHELL_VARS = set(os.environ)
 
-# Working factfind/ai-evals + older local names → current ai-eval-suite names.
-_ENV_ALIASES: tuple[tuple[str, str], ...] = (
-    ("FACTFIND_ADK_BASE_URL", "ADK_BASE_HOST"),
-    ("FACTFIND_ADK_APP_NAME", "ADK_APP_NAME"),
-    ("FACTFIND_ADK_USER_ID", "ADK_USER_ID"),
-    ("KNOWLEDGE_ADK_BASE_URL", "KNOWLEDGE_BASE_URL_LOCAL"),
-    ("KNOWLEDGE_ADK_BASE_PATH", "KNOWLEDGE_BASE_PATH_LOCAL"),
-    ("KNOWLEDGE_ADK_APP_NAME", "KNOWLEDGE_APP_NAME_LOCAL"),
-    ("KNOWLEDGE_ADK_USER_ID", "KNOWLEDGE_USER_ID_LOCAL"),
-)
+# ${NAME} or ${NAME:-default}
+_PLACEHOLDER = re.compile(r"\$\{(\w+)(?::-([^}]*))?\}")
 
 
-def _load_env_file(env_path: Path, *, override_keys: Iterable[str] | None = None) -> None:
-    """Load KEY=VALUE lines from one env file into `os.environ`."""
-    allow_override = set(override_keys or ())
-    for raw in env_path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        key = key.strip()
-        value = value.strip().strip("'").strip('"')
-        if not key:
-            continue
-        if key in allow_override or key not in os.environ:
+def load_env_file(path: Path) -> bool:
+    """Copy one env file into os.environ, leaving shell variables alone. Returns False if the file is missing."""
+    if not path.is_file():
+        return False
+    for key, value in dotenv_values(path).items():
+        if value is not None and value.lstrip().startswith("#"):
+            # python-dotenv keeps `KEY=   # comment` as the value; treat it as empty.
+            value = ""
+        if key not in _SHELL_VARS and value is not None:
             os.environ[key] = value
+    return True
 
 
-def _apply_env_aliases() -> None:
-    """Copy legacy / working-repo keys into the names agents.yaml expects."""
-    for dest, src in _ENV_ALIASES:
-        if dest not in os.environ and src in os.environ and os.environ[src].strip():
-            os.environ[dest] = os.environ[src].strip()
+def load_shared_env() -> None:
+    """Load env/.env, or the old root .env when env/.env doesn't exist."""
+    if not load_env_file(paths.ENV_DIR / ".env"):
+        load_env_file(paths.ROOT / ".env")
 
 
-def load_dotenv(path: str | Path | None = None) -> None:
-    """Load KEY=VALUE lines into os.environ."""
-    global _DOTENV_LOADED
-    if _DOTENV_LOADED:
-        return
-    _DOTENV_LOADED = True
-
-    if path is not None:
-        candidates = [Path(path)]
-    else:
-        candidates = list(_DEFAULT_ENV_CANDIDATES)
-
-    for env_path in candidates:
-        if not env_path.is_file():
-            continue
-        # Always let the working factfind file win for CORTEX credentials.
-        if env_path.name == ".env.factfind.api":
-            _load_env_file(env_path, override_keys=_CORTEX_KEYS)
-        else:
-            _load_env_file(env_path)
-
-    _apply_env_aliases()
+def load_agent_env(agent_name: str) -> None:
+    """Load env/.env.<agent> if present, overriding env/.env.
+    A sub-agent like a/b loads env/.env.a, then env/.env.a.b."""
+    parts = agent_name.split("/")
+    for depth in range(1, len(parts) + 1):
+        load_env_file(paths.ENV_DIR / f".env.{'.'.join(parts[:depth])}")
 
 
-def expand_env_string(value: str) -> str:
-    """Replace `${VAR}` and `${VAR:-default}` using os.environ."""
-
-    def _repl(match: re.Match[str]) -> str:
-        """Replace one `${VAR}` match using the environment or default."""
-        var_name = match.group(1)
-        default = match.group(2)
-        if var_name in os.environ:
-            return os.environ[var_name]
-        if default is not None:
-            return default
-        return ""
-
-    return _ENV_PATTERN.sub(_repl, value)
+def expand(value: Any) -> Any:
+    """Fill ${VAR} / ${VAR:-default} in every string of a nested YAML structure.
+    The default applies when VAR is unset or empty; unset with no default becomes ""."""
+    if isinstance(value, str):
+        return _PLACEHOLDER.sub(lambda m: os.environ.get(m.group(1)) or m.group(2) or "", value)
+    if isinstance(value, list):
+        return [expand(v) for v in value]
+    if isinstance(value, dict):
+        return {k: expand(v) for k, v in value.items()}
+    return value
 
 
-def expand_env(data: Any) -> Any:
-    """Recursively expand env placeholders in strings inside YAML-loaded data."""
-    if isinstance(data, str):
-        return expand_env_string(data)
-    if isinstance(data, list):
-        return [expand_env(item) for item in data]
-    if isinstance(data, dict):
-        return {key: expand_env(value) for key, value in data.items()}
-    return data
+def require(name: str, error: type[Exception] = ConfigError) -> str:
+    """Return a required variable's value; raises `error` (ConfigError by default) if it is not set."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise error(f"{name} is not set — add it to env/.env (see env/.env.example)")
+    return value
+
+
+load_shared_env()
+tls.configure()

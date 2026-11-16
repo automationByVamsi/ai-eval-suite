@@ -1,0 +1,40 @@
+# my_agent: one line on what this agent does.
+# Created by `make new-agent NAME=my_agent`. Fill in the TODOs, add cases under testdata/sanity/, then:
+# make run AGENT=my_agent SUITE=sanity
+
+connection:                   # how to reach the agent (Google ADK); values from env/.env
+  base_url: ${MY_AGENT_BASE_URL:-http://localhost:8080}
+  base_path: ${MY_AGENT_BASE_PATH:-}
+  app_name: ${MY_AGENT_APP_NAME:-my_agent}
+  user_id: ${MY_AGENT_USER_ID:-eval_user}
+  timeout_s: 120
+  retries: 1
+  verify_tls: true            # true | false | /path/to/ca-bundle.pem
+  headers: {}                 # e.g.  x-lbg-origin-client-id: ${CORTEX_CLIENT_ID}
+
+input_field: question         # key in each case's "input" that is sent to the agent
+# message_template: "Please look up {question}"   # optional: wrap the input before sending
+
+# Judges: built-ins from metric_library.yaml by name, or your own rubric under rubrics/ (DeepEval GEval).
+metrics:
+  relevance:   {threshold: 0.7}
+  correctness: {threshold: 0.7}           # skipped without expected.expected_answer
+  # tone:      {rubric: rubrics/tone.md, threshold: 0.8}
+
+# Deterministic checks (optional) go in checks.yaml.
+
+# Suites: which judges and checks (all | none | [groups or names]; default all) run on testdata/<suite name>.
+suites:
+  sanity:
+    metrics: [relevance]
+  # regression:
+  #   metrics: [relevance, correctness]
+  #   checks: [basic, answer]
+  #   targets:                       # pass rates across the run
+  #     correctness: 0.90
+  #     error_rate: 0.05             # ceiling
+
+# With REPS > 1: a case is consistent only if these are the same / pass in every repetition.
+# consistency:
+#   same: evidence_page_ids
+#   all_pass: [correctness]

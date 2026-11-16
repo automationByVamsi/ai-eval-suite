@@ -1,0 +1,8 @@
+# Fields read from each trace (optional): one JMESPath query each, on final, state, nodes, models,
+# messages, timing, trace. Options: see src/fields/extract.py; full example: agents/knowledge_agent/fields.yaml.
+# Without this file judges get question, answer, contexts, expected_answer. Preview: make fields AGENT=my_agent
+
+fields:
+  # answer:          {path: final.answer.summary, required: true}
+  # rewritten_query: {path: state.rewritten_query, join: "\n"}
+  # cited_page_ids:  "final.evidence[].page_id"

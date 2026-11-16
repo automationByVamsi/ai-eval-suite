@@ -1,0 +1,111 @@
+# Knowledge Agent: generate synthetic test cases from Athena pages (paths relative to this folder).
+# make sources AGENT=knowledge_agent [GROUP=..] [IDS=..], then make goldens AGENT=knowledge_agent [STYLES=..]
+# The generator model is the CORTEX model in .env.
+
+# 1. SOURCE: where the pages come from (other types: files, json_records)
+source:
+  type: athena_mcp
+  ids_file: page_ids.json            # page ids by domain (matched to ../domains.yaml); GROUP= / IDS= pick
+
+# 2. GENERATOR
+include_expected_answer: true        # also generate the reference answer (for correctness)
+per_source: 1                        # cases per page per style
+instructions: instructions.md        # rules every style follows
+
+styles:                              # one file per question style in styles/; STYLES= picks some
+  # SIMPLE: one ask, one topic, the page's main subject, no "and/if/when" (the agent's query rewrite keeps
+  # it as one search). rounds: 0 = no DeepEval evolution, which would add conditions and make it complex.
+  # Written to testdata/synthetic/simple/ (suite synthetic_simple).
+  how:                               # steps
+    file: styles/how.md
+    question_type: how
+    evolutions: {rounds: 0}
+    output: &simple_output           # the source page is the expected anchor (anchor_hit, search recall/ndcg)
+      case: {expected: {expected_anchor_page_ids: ["{source.id}"]}, metadata: {complexity: simple}}
+  what:    {file: styles/what.md,    question_type: what,   evolutions: {rounds: 0}, output: *simple_output}
+  why:     {file: styles/why.md,     question_type: why,    evolutions: {rounds: 0}, output: *simple_output}
+  yes_no:  {file: styles/yes_no.md,  question_type: yes_no, evolutions: {rounds: 0}, output: *simple_output}
+  general: {file: styles/general.md, evolutions: {rounds: 0}, output: *simple_output}   # no question_type
+
+  # COMPLEX (one page): a live case with conditions / exceptions / two linked asks, which the agent
+  # classifies as complex and splits into sub-queries. Sent as "how" (most real complex questions are
+  # "customer is ..., what do I do?"). One round of evolution adds realistic constraints.
+  # Written to testdata/synthetic/complex/ (suite synthetic_complex).
+  complex:
+    file: styles/complex.md
+    question_type: how
+    evolutions: {rounds: 1, CONSTRAINED: 0.35, HYPOTHETICAL: 0.25, REASONING: 0.25, CONCRETIZING: 0.15}
+    output:
+      folder: testdata/synthetic/complex/{domain_folder}
+      id: "KA_CPX_{domain}_{n:03}"
+      case: {expected: {expected_anchor_page_ids: ["{source.id}"]}, metadata: {complexity: complex}}
+
+  # Special sets: capped, spread across domains, written to their own suites.
+  privacy:                           # made-up customer details in the question
+    file: styles/privacy.md
+    max_cases: 15
+    output:
+      folder: testdata/privacy/{domain_folder}
+      id: "KA_PII_{domain}_{n:03}"
+      case: {expected: {contains_pii: true}, metadata: {origin: SYNTHETIC_PII}}
+  should_decline:                    # in-domain: about an invented product / code / form (exists nowhere)
+    file: styles/should_decline.md
+    max_cases: 15
+    output:
+      folder: testdata/negative/decline/{domain_folder}
+      id: "KA_DEC_{domain}_{n:03}"
+      case:                          # the agent must refuse with one of these errors
+        expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}
+        metadata: {origin: SYNTHETIC_DECLINE}
+  out_of_scope:                      # out-of-domain: nothing to do with banking (recipes, sport, poems ...)
+    file: styles/out_of_scope.md
+    max_cases: 10
+    output:
+      folder: testdata/negative/out_of_scope
+      id: "KA_OOS_{n:03}"
+      case:                          # the agent must decline: no answer from general knowledge
+        expected: {should_decline: true, expected_error: [InsufficientContextError, GuardrailError], source_page_id: ""}
+        metadata: {origin: SYNTHETIC_OUT_OF_SCOPE}
+
+evolutions:                          # how questions are varied; weights must add up to 1.0
+  rounds: 1
+  REASONING: 0.30
+  CONCRETIZING: 0.25
+  CONSTRAINED: 0.25
+  HYPOTHETICAL: 0.10
+  COMPARATIVE: 0.05
+  IN_BREADTH: 0.05
+
+quality_filter:                      # regenerate questions the critic scores below min_quality
+  min_quality: 0.5
+  retries: 3
+
+# 3. OUTPUT: one generated test case. Placeholders: {generated.*} {source.*} {style} {question_type} {group}
+# {domain_name} {domain_path} {domain} {domain_folder} {run.*} {agent.*} {id} {n:03} (n counts within the folder).
+output:                              # every style; a style's own output: overrides parts of it
+  folder: testdata/synthetic/simple/{domain_folder}
+  id: "KA_SYN_{domain}_{n:03}"
+  case:
+    test_case_id: "{id}"
+    description: "Synthesized {style} case from Athena page {source.id} ({source.title})"
+    input:
+      question: "{generated.input}"
+      question_type: "{question_type}"      # typed styles only
+      business_area: "{domain_path}"        # e.g. Customer_Vulnerability_Hub
+    expected:
+      expected_answer: "{generated.expected_output}"
+      source_page_id: "{source.id}"                   # source_page_found: the page is in the evidence
+    metadata:
+      origin: SYNTHETIC_PAGE
+      approval_status: UNREVIEWED
+      generation_scope: SINGLE_PAGE
+      style: "{style}"
+      question_type: "{question_type}"
+      domain: "{domain}"
+      business_area_name: "{domain_name}"
+      group: "{group}"
+      source_page_title: "{source.title}"
+      source_revision: "{source.metadata.revision}"
+      generation_run_id: "{run.id}"
+      generated_at: "{run.generated_at}"
+      generator_model: "{run.model}"

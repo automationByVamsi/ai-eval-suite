@@ -1,0 +1,190 @@
+"""Spreadsheet importer: .xlsx/.csv reading, the Knowledge Agent CJM golden mapping, and its checks."""
+
+import json
+import zipfile
+from xml.sax.saxutils import escape
+
+import pytest
+
+from src.core.agent_config import load_agent
+from src.core.exceptions import ConfigError
+from src.importers.cases import import_cases
+from src.importers.spreadsheet import read_rows, sheet_names
+from src.runners.test_cases import load_cases
+
+HEADERS = ["Test ID", "Workstream", "Query Type", "User Query", "Question Type", "Expected Golden Answer",
+           "Expected - Anchor Page", "Expected Relational Page", "Page Ids"]
+
+# Rows shaped like the CJM golden sheet (cut down).
+ROWS = [
+    [28, "Brand Change", "Simple", "What are the benefits of the Halifax brand change?", "Why",
+     "Customers will benefit from access to a broader range of products.",
+     "Brand Transformation - Changing Our Brand", "NA", 43428],
+    [30, "CVH", "Simple", "Hows does a customer remove consent for a support need?", "How",
+     "Check which support needs they want removed.", "Consent Needed for Adding Support Needs (27429)",  # id in title
+     "Card not Present Fraud (3012); Fraud Claim - Debit (3026); Fraud Investigation - Declining a Fraud Claim (3032)",
+     "Anchor: 27429  Relational: 3012; 3026; 3032"],                                          # labelled ids
+    [36, "CVH", "Simple", "Do I need to follow the TEXAS model when I record a support need received in writing?",
+     "Yes/No", "", "Recording a Clear Support Need in Written Communication", "", ""],
+    [44, "CVH", "Complex", "I have a 14 year old customer who manages their account. Can I add a support need?",
+     "How", "Adding a Support Need for Customers Under 16\n13 to 16-year-olds can give consent.",
+     "Consent Needed for Support Needs\nHow to Add a support need in MCP", "", "40015\n40345"],
+    [45, "Black horse", "Simple", "", "How", "", "", "", ""],          # no question: skipped
+]
+
+
+def write_xlsx(path, sheets):
+    """A minimal real .xlsx: {sheet name: [header row, data rows...]}. Text goes in sharedStrings."""
+    shared: list[str] = []
+
+    def cell(ref, value):
+        if value == "":
+            return ""
+        if isinstance(value, (int, float)):
+            return f'<c r="{ref}"><v>{value}</v></c>'
+        shared.append(str(value))
+        return f'<c r="{ref}" t="s"><v>{len(shared) - 1}</v></c>'
+
+    sheet_xml = []
+    for rows in sheets.values():
+        body = "".join(
+            f'<row r="{r}">' + "".join(cell(f"{chr(65 + c)}{r}", v) for c, v in enumerate(row)) + "</row>"
+            for r, row in enumerate(rows, start=1))
+        sheet_xml.append('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+                         f"<sheetData>{body}</sheetData></worksheet>")
+    ns_r = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    workbook = ('<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+                f'xmlns:r="{ns_r}"><sheets>' + "".join(
+                    f'<sheet name="{escape(name)}" sheetId="{i}" r:id="rId{i}"/>'
+                    for i, name in enumerate(sheets, start=1)) + "</sheets></workbook>")
+    rels = ('<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + "".join(
+        f'<Relationship Id="rId{i}" Type="{ns_r}/worksheet" Target="worksheets/sheet{i}.xml"/>'
+        for i in range(1, len(sheets) + 1)) + "</Relationships>")
+    strings = ('<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+               "".join(f"<si><t>{escape(s)}</t></si>" for s in shared) + "</sst>")
+    with zipfile.ZipFile(path, "w") as book:
+        book.writestr("xl/workbook.xml", workbook)
+        book.writestr("xl/_rels/workbook.xml.rels", rels)
+        book.writestr("xl/sharedStrings.xml", strings)
+        for i, xml in enumerate(sheet_xml, start=1):
+            book.writestr(f"xl/worksheets/sheet{i}.xml", xml)
+    return path
+
+
+@pytest.fixture
+def golden_xlsx(tmp_path):
+    """A golden .xlsx built from HEADERS and ROWS, plus an extra sheet."""
+    return write_xlsx(tmp_path / "KA golden.xlsx", {"Sheet1": [HEADERS, *ROWS], "Misaligned Anchor Pages": [["x"]]})
+
+
+def test_xlsx_rows_keep_line_breaks_and_whole_numbers(golden_xlsx):
+    assert sheet_names(golden_xlsx) == ["Sheet1", "Misaligned Anchor Pages"]
+    rows = read_rows(golden_xlsx, sheet="sheet1")
+    assert rows[0]["_row"] == 2 and rows[0]["Test ID"] == 28 and rows[0]["Page Ids"] == 43428
+    assert rows[3]["Expected - Anchor Page"] == "Consent Needed for Support Needs\nHow to Add a support need in MCP"
+    with pytest.raises(ConfigError, match="no sheet 'Nope'"):
+        read_rows(golden_xlsx, sheet="Nope")
+
+
+def test_cjm_golden_import(ka_copy, golden_xlsx):
+    summary = import_cases("knowledge_agent", str(golden_xlsx))
+    assert summary["written"] == {"new": 4, "updated": 0, "unchanged": 0}
+    assert summary["skipped"] == ["row 6: no question"]
+
+    folder = ka_copy / "testdata/golden/customer_vulnerability_hub"                 # "CVH" in the sheet
+    case = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044.json").read_text())
+    assert case["test_case_id"] == "KA_GLD_CUSTOMER_VULNERABILITY_HUB_044"
+    assert case["input"] == {"question": ROWS[3][3], "question_type": "how",       # question_type is sent
+                             "business_area": "Customer_Vulnerability_Hub"}
+    assert case["expected"]["expected_anchor_page_titles"] == ["Consent Needed for Support Needs",
+                                                               "How to Add a support need in MCP"]
+    assert case["expected"]["expected_anchor_page_ids"] == ["40015", "40345"]      # page ids are text
+    assert case["metadata"]["domain"] == "CUSTOMER_VULNERABILITY_HUB"
+    assert case["expected"]["expected_query_type"] == "complex"
+    assert case["metadata"]["source"] == {"file": "KA golden.xlsx", "sheet": "Sheet1", "row": 5, "test_id": 44}
+
+    consent = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_030.json").read_text())["expected"]
+    assert consent["expected_anchor_page_ids"] == ["27429"]                         # no "Anchor:" word
+    assert consent["expected_related_page_ids"] == ["3012", "3026", "3032"]          # relational ids kept apart
+    assert consent["expected_anchor_page_titles"] == ["Consent Needed for Adding Support Needs"]   # "(27429)" gone
+    assert consent["expected_related_page_titles"] == ["Card not Present Fraud", "Fraud Claim - Debit",
+                                                       "Fraud Investigation - Declining a Fraud Claim"]
+
+    brand = json.loads((ka_copy / "testdata/golden/brand_change/KA_GLD_BRAND_CHANGE_028.json").read_text())
+    assert "expected_related_page_titles" not in brand["expected"]                  # NA -> left out
+    assert brand["expected"]["expected_anchor_page_ids"] == ["43428"]
+    texas = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_036.json").read_text())
+    assert "expected_answer" not in texas["expected"]                               # correctness will SKIP
+    assert texas["input"]["question_type"] == "yes_no"
+    assert summary["empty"] == {"no expected_answer: correctness judge will be skipped":
+                                ["KA_GLD_CUSTOMER_VULNERABILITY_HUB_036"]}
+
+    agent = load_agent("knowledge_agent")                                           # the runner can load them
+    assert len(load_cases(agent, agent.suite("golden"))) == 4
+
+
+def test_labelled_cell_parts():
+    from src.importers.cases import _labelled
+    labels = {"Anchor": "a", "Relational": "r"}
+    assert _labelled("Anchor: 26942  Relational: 8412; 7053", labels) == {"a": "26942", "r": "8412; 7053"}
+    assert _labelled("anchor 26939\nrelational:8356", labels) == {"a": "26939", "r": "8356"}
+    assert _labelled("Relational: 1; 2", labels) == {"a": "", "r": "1; 2"}
+    assert _labelled("40015\n40345", labels) == {"a": "40015\n40345", "r": ""}     # no labels -> anchor ids
+    assert _labelled(43428, labels) == {"a": "43428", "r": ""}
+    assert _labelled("", labels) == {"a": "", "r": ""}
+
+
+def test_reimport_is_idempotent_and_reports_stale_files(ka_copy, golden_xlsx):
+    import_cases("knowledge_agent", str(golden_xlsx))
+    stale = "testdata/golden/customer_vulnerability_hub/KA_GLD_CUSTOMER_VULNERABILITY_HUB_999.json"
+    (ka_copy / stale).write_text("{}")
+    summary = import_cases("knowledge_agent", str(golden_xlsx))
+    assert summary["written"] == {"new": 0, "updated": 0, "unchanged": 4}
+    assert summary["stale"] == [stale]                                               # listed, not deleted
+
+
+def test_dry_run_writes_nothing(ka_copy, golden_xlsx):
+    summary = import_cases("knowledge_agent", str(golden_xlsx), dry_run=True)
+    assert summary["written"]["new"] == 4
+    assert not (ka_copy / "testdata/golden").exists()
+
+
+def test_problems_stop_the_import_with_a_clear_message(ka_copy, tmp_path):
+    renamed = write_xlsx(tmp_path / "a.xlsx", {"Sheet1": [["Test ID", "Question"], [1, "q"]]})
+    with pytest.raises(ConfigError, match=r"columns not found: .*User Query"):
+        import_cases("knowledge_agent", str(renamed))
+
+    dupes = write_xlsx(tmp_path / "b.xlsx", {"Sheet1": [HEADERS, ROWS[1], ROWS[1]]})
+    with pytest.raises(ConfigError, match="Duplicate test case ids.*Nothing written"):
+        import_cases("knowledge_agent", str(dupes))
+    assert not (ka_copy / "testdata/golden").exists()
+
+
+def test_csv_and_unknown_domains(ka_copy, tmp_path):
+    csv_file = tmp_path / "golden.csv"
+    csv_file.write_text(",".join(HEADERS) + "\n7,PCA,Simple,What is PCA?,What,An answer.,Some Page,,\n"
+                        "8,,Simple,What is a support need?,What,An answer.,Some Page,,\n")
+    summary = import_cases("knowledge_agent", str(csv_file))
+    assert (ka_copy / "testdata/golden/pca/KA_GLD_PCA_007.json").is_file()
+    no_area = json.loads((ka_copy / "testdata/golden/unassigned/KA_GLD_UNASSIGNED_008.json").read_text())
+    assert no_area["input"] == {"question": "What is a support need?", "question_type": "what"}   # none sent
+    assert any("domain 'PCA' is not in domains.yaml" in w for w in summary["warnings"])
+
+
+def test_question_types_the_agent_does_not_accept_are_left_out(ka_copy, tmp_path):
+    csv_file = tmp_path / "golden.csv"
+    csv_file.write_text(",".join(HEADERS) + "\n"
+                        "1,CVH,Simple,Why do we record support needs?,Explanation,An answer.,Some Page,,\n"
+                        "2,CVH,Simple,How do I add a support need?,Procedural,An answer.,Some Page,,\n"
+                        "3,CVH,Simple,Can a third party add one?,Yes/No,An answer.,Some Page,,\n")
+    summary = import_cases("knowledge_agent", str(csv_file))
+    folder = ka_copy / "testdata/golden/customer_vulnerability_hub"
+    explanation = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_001.json").read_text())
+    assert explanation["input"] == {"question": "Why do we record support needs?",       # sent as plain text
+                                    "business_area": "Customer_Vulnerability_Hub"}
+    assert explanation["metadata"]["question_type_in_sheet"] == "explanation"             # still traceable
+    yes_no = json.loads((folder / "KA_GLD_CUSTOMER_VULNERABILITY_HUB_003.json").read_text())
+    assert yes_no["input"]["question_type"] == "yes_no"                                   # accepted: sent
+    assert summary["warnings"] == {
+        "question_type 'explanation' is not one of how, what, why, yes_no: left out": 1,
+        "question_type 'procedural' is not one of how, what, why, yes_no: left out": 1}

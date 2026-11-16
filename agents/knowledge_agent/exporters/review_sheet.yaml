@@ -1,0 +1,32 @@
+# Knowledge Agent: what the SME review sheet shows (the reverse of importers/: a run -> Excel).
+# make review-sheet AGENT=knowledge_agent SUITE=golden [RUN=..]
+#
+# columns: {group band: {column heading: value}}, left to right in this order.
+# A value is one of:
+#   case.question | case.answer | case.expected_answer    the test case and the agent's answer
+#   input.<key>                                           a key of the case's input (e.g. input.business_area)
+#   <field>                                               a field from ../fields.yaml (e.g. anchor_pages)
+#   [first, second]                                       the first one that isn't empty
+#   {value: <one of the above>, colours: {HIGH: green, LOW: red}}   colour the cell by its value
+# Lists show one item per line; pages show as "id | title | link".
+#
+# Always added by the framework, so don't list them: Case ID (first), Run (with REPS > 1), one score
+# column per LLM judge, Deterministic checks, Case result, SME verdict, SME notes, Agent output (raw).
+# `make calibrate` reads the judge and SME columns back, which is why they aren't configurable.
+
+columns:
+  Test case:
+    Query type: [input.question_type, question_type]
+    Business area: [input.business_area, business_area]
+    Query: case.question
+  Agent answer:
+    Agent answer: case.answer                   # or, when the agent errored, the error it returned
+    Caveats / warnings: [caveats_and_warnings, disclosures]   # disclosures: runs saved before the new field
+    Confidence: {value: confidence, colours: {HIGH: green, LOW: red}}
+    Expected answer: case.expected_answer
+  Pages:
+    Anchor pages: anchor_pages
+    Supporting pages (relation expansion): related_pages
+    All evidence pages used: evidence_pages
+    Pages cited in the answer: cited_pages
+    Pages search found: search_candidates

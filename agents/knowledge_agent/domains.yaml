@@ -1,0 +1,29 @@
+# Knowledge Agent business areas in scope, used by `make import-cases` and `make goldens`.
+# Format: official name: [other spellings to accept]. Quote aliases YAML would read as true/false or numbers.
+# The agent gets the name with spaces as underscores (Customer_Vulnerability_Hub) unless `path:` is set.
+
+Knowledge Manager Guidance: []
+Blackhorse: [Black horse]
+Brand Change: []
+Business Banking: [BB]
+Codes: []
+Commercial Banking Online: [CBO]
+Community Bank: [CB]
+Complaint Managers: []
+Contact Lists: []
+Customer Financial Assistance (CFA): [CFA]                 # agent value: Customer_Financial_Assistance_(CFA) — confirm
+Customer Self-Service Online and App: [CSS]               # agent value: Customer_Self-Service_Online_and_App — confirm
+Customer Vulnerability Hub: [CVH]
+Customer Vulnerability Hub 2: [CVH2, CVH 2]
+D2C Investment Operations: [D2C]
+Fraud: []
+General Insurance: [GI]
+Homes Servicing: []
+Lex Autolease: [Lex]
+MOT Operations: [MOT]
+Personal Banking: [PB]
+Recoveries Commercial Bank: [RCB]
+Reference: []
+Secured Underwriting: []
+UK Private Banking: [UKPB]
+Unsecured Underwriting: []

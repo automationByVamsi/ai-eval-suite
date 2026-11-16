@@ -1,0 +1,23 @@
+"""
+Optional custom parser: rename to parser.py only for logic fields.yaml and agent.yaml checks can't express.
+Standard fields (question, answer, contexts, expected_answer) already exist; trace values belong in fields.yaml.
+Trace helpers (state, find_event, event_json, tool_calls) are in src/utils/adk_trace.py.
+"""
+
+from src.core.results import check  # noqa: F401 — used by the commented examples below
+from src.utils.adk_trace import state, tool_calls  # noqa: F401 — more helpers in src/utils/adk_trace.py
+
+
+def parse(trace, case):
+    """Return extra fields from the trace (may override the standard ones)."""
+    return {
+        # "rewritten_query": state(trace, "rewritten_query", ""),
+        # "tools_called": [c["name"] for c in tool_calls(trace)],
+    }
+
+
+def checks(fields, case):
+    """Return a list of check(...) results specific to this agent."""
+    return [
+        # check("mentions_customer", "customer" in fields["answer"].lower(), "no mention of the customer"),
+    ]

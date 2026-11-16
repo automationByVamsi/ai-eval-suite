@@ -1,19 +1,58 @@
 [project]
-name = "ai-eval-framework"
-version = "0.1.0"
-description = "Agent-agnostic evaluation framework for AI agents (deterministic checks + DeepEval/CORTEX LLM-judge scoring)"
+name = "ai-eval-suite"
+version = "2.0.0"
+description = "Evaluate AI agents: call the agent, save the trace, run checks + LLM judges (Pegasus/DeepEval), compare builds."
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2.7",
-    "pyyaml>=6.0",
-    "deepeval>=1.5",
+    "deepeval>=3.0",
+    "httpx>=0.27",
+    "jmespath>=1.0",
     "pandas>=2.0",
-    "pytest>=8.0",
-    "streamlit>=1.59",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "streamlit>=1.40",
 ]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+# Pegasus: the bank's internal metrics package, from SAR (Artifactory). `make setup` installs it using
+# the SAR token in env/.env (SAR_TOKEN_NAME / SAR_TOKEN_PASS_CODE); without one it carries on and
+# Pegasus metrics run on DeepEval. Kept in its own group so people without SAR access can still
+# install everything else.
+pegasus = ["lbg-pegasus>=2.2.0"]
+# CorteX DevKit (`import cortex` + the `cx` CLI): sign in to CORTEX with SSO instead of an API key.
+# Installed by `make setup` the same way as Pegasus; only needed when CORTEX_AUTH=devkit.
+devkit = ["cortex-devkit"]
 
 [tool.uv]
 package = false
+# Use the operating system's certificates, so uv trusts the LBG internal CA chain (CorteX DevKit guide).
+native-tls = true
+
+# Where lbg-pegasus comes from (from the Pegasus installation guide, "uv option"). `explicit = true`:
+# only lbg-pegasus is looked up here — every other package still comes from the normal index.
+[[tool.uv.index]]
+name = "lbg-pegasus"
+url = "https://artefacts.lloydsbanking.cloud/repository/innersource-anlaip_pegas-python/simple/"
+explicit = true
+
+# Where cortex-devkit comes from (CorteX DevKit guide, "Configure your project"). Explicit, like above.
+[[tool.uv.index]]
+name = "innersource-gentex"
+url = "https://artefacts.lloydsbanking.cloud/repository/innersource-anlaip_gentex-python/simple/"
+explicit = true
+
+[tool.uv.sources]
+lbg-pegasus = { index = "lbg-pegasus" }
+cortex-devkit = { index = "innersource-gentex" }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP"]

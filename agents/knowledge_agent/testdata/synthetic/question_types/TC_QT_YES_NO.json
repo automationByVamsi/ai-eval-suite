@@ -1,0 +1,9 @@
+{
+  "test_case_id": "TC_QT_YES_NO",
+  "description": "Yes/no question: expect a clear yes or no, then the explanation",
+  "input": {
+    "question": "Can a third party tell us about a support need when the customer isn't present?",
+    "question_type": "yes_no"
+  },
+  "expected": {}
+}

@@ -1,0 +1,65 @@
+# Knowledge Agent: deterministic checks on the fields in fields.yaml, in groups. Suites pick them in agent.yaml.
+# Types: see the top of src/fields/checks.py. "basic" is built in. A check whose expected value a case lacks
+# is SKIPPED.
+checks:
+  answer:                     # what the caller receives is safe to show
+    citations_in_evidence_set:  {type: subset, field: cited_page_ids, of: [anchor_page_ids, expanded_page_ids]}
+    page_link_for_every_source: {type: same_count, fields: [evidence_page_ids, evidence_links]}
+    source_with_every_answer:   {type: present, field: evidence_page_ids}   # MVP: a knowledge source for every answer
+
+  retrieval:                  # golden cases: the expected pages were found (by id or title)
+    # Diagnostic: does not fail the case (the run's anchor_hit target still gates).
+    anchor_hit:
+      type: any_in
+      diagnostic: true
+      compare:
+        - {field: anchor_page_ids, expected: expected_anchor_page_ids}
+        - {field: anchor_titles,   expected: expected_anchor_page_titles}
+    search_recall_at_5:       # every expected anchor page is in the top 5 search results
+      type: recall
+      k: 5
+      threshold: 1.0
+      diagnostic: true
+      compare:
+        - {field: search_ranked, expected: expected_anchor_page_ids}
+    search_ndcg_at_5:         # ... and near the top: 1.0 = first, 0.63 = second, 0.5 = third
+      type: ndcg
+      k: 5
+      threshold: 0.7
+      diagnostic: true
+      compare:
+        - {field: search_ranked, expected: expected_anchor_page_ids}
+    expansion_recall:         # expected related pages were added by relation expansion
+      type: recall
+      threshold: 0.7
+      diagnostic: true
+      compare:
+        - {field: expanded_page_ids, expected: expected_related_page_ids}
+        - {field: expanded_titles,   expected: expected_related_page_titles}
+    source_page_found:        # synthetic cases: the source page is in the evidence
+      type: any_in
+      diagnostic: true
+      field: evidence_page_ids
+      expected: source_page_id
+
+  expected_errors:            # cases where the agent must refuse with expected.expected_error
+    returned_expected_error:
+      type: contains
+      field: agent_error
+      expected: expected_error
+
+  disclosure:                 # a MEDIUM / LOW confidence answer carries a caveat or warning
+    caveat_when_not_high:   {type: present, field: disclosures, when: {field: confidence, in: [MEDIUM, LOW]}}
+    warning_on_process_failure:   # MVP: a user warning when a stage fell back (anchor = top Athena result,
+      type: present               # not the agent's choice). Diagnostic until the agent team confirms which
+      field: user_warnings        # failures must raise a warning.
+      diagnostic: true
+      when: {field: anchor_fallback, present: true}
+
+  explainability:             # MVP: the agent can show how an answer was derived (in its trace)
+    reasoning_exposed:          # sub-queries searched, why each anchor page was chosen, why the evidence is enough
+      {type: present, fields: [branch_sub_queries, anchor_rationales, sufficiency_reason]}
+
+  performance:                # MVP: respond within 60 s (a warning above it); 90 s is the hard cap
+    within_60s: {type: range, field: latency_ms, min: 0, max: 60000, diagnostic: true, banner: true}  # orange
+    within_90s: {type: range, field: latency_ms, min: 0, max: 90000, banner: true}                    # red

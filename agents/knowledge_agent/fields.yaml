@@ -1,0 +1,115 @@
+# Knowledge Agent: fields read from each trace, as JMESPath queries (options: src/fields/extract.py).
+# Roots: final, state, nodes, models, messages, timing, trace.
+# Preview: make fields AGENT=knowledge_agent CASE=TC_002 (if the trace format changes, fix the empty fields).
+
+fields:
+  # --- Final output (what the caller receives) ---------------------------------------------
+  # The whole answer as a colleague sees it, whatever its shape (question_type): the yes/no verdict,
+  # summary / explanation, each step, each definition as "phrase: meaning". Used by the judges, the
+  # dashboard, the HTML report and the review sheet. Page ids are left out (the evidence shows them).
+  answer:
+    path: >-
+      [final.answer.answer && join('', ['Answer: ', final.answer.answer]),
+       final.answer.summary, final.answer.explanation,
+       final.answer.steps[?description].join('', ['- ', description]),
+       final.answer.definitions[?meaning].join('', ['- ', phrase || term || '', ': ', meaning])][]
+    join: "\n\n"
+    required: true
+  yes_no_verdict:    final.answer.answer                 # yes | no (yes_no answers only)
+  agent_response:    final                               # whole final output (for response_alignment)
+  cited_page_ids:    {path: [final.answer.page_ids, "final.answer.steps[].page_id",
+                             "final.answer.definitions[].page_id"], unique: true}
+  question_type:     final.question_type
+  confidence:        final.confidence
+  caveats:           final.caveats
+  user_warnings:     final.user_warnings
+  disclosures:       {path: [final.caveats, final.user_warnings]}     # caveats, or else user warnings
+  caveats_and_warnings: "[final.caveats, final.user_warnings][]"     # both, one list (review sheet)
+  evidence_page_ids: "final.evidence[].page_id"
+  evidence_titles:   "final.evidence[].title"
+  evidence_links:    "final.evidence[].uri_ui"
+  # The error text when the agent refuses, wherever it is; empty when the agent answered.
+  agent_error:       {path: [trace.agent_error, final.error_type, final.error.error_type, final.error.type, final.error,
+                             "trace.raw_events[?errorMessage].[errorCode, errorMessage][]"], join: " "}
+
+  # --- 1. Input normalisation -----------------------------------------------------------------
+  agent_query:       state.query
+  business_area:     state.business_area
+
+  # --- 2. Query rewrite -----------------------------------------------------------------------
+  query_type:        state.query_type                    # simple | complex
+  rewritten_queries: state.rewritten_query               # list of sub-queries
+  rewritten_query:   {path: state.rewritten_query, join: "\n"}   # same, one per line (for judges)
+
+  # --- 3. Athena search: one branch per sub-query ------------------------------------------------
+  branch_sub_queries: "state.search_branches.*.sub_query"
+  branch_count:       {path: "length(state.search_branches.*.sub_query)", default: 0}
+  search_candidates:  {path: "state.search_branches.*.filtered_page_ids[]", unique: true}
+  # One ranked list per sub-query, best match first.
+  search_ranked:      "state.search_branches.*.filtered_page_ids"
+  metadata_missing:   "state.search_branches.*.has_missing_candidate_metadata"   # one per branch
+
+  # --- 4. Anchor selection ----------------------------------------------------------------------
+  branch_anchor_ids:  "state.search_branches.*.anchor_page_id"
+  anchor_page_ids:    state.evidence_set.anchor_page_ids
+  anchor_titles:      {path: final.evidence, where: {page_id: anchor_page_ids}, pick: title}
+  anchor_rationales:  "nodes._anchor_branch_worker[*].rationale"
+  anchor_fallback:    "nodes._anchor_branch_worker[?contains(rationale, 'top Athena result')].rationale"   # not empty = fell back
+
+  # --- 5. Relation expansion --------------------------------------------------------------------
+  expanded_page_ids:    state.evidence_set.expanded_page_ids
+  expanded_titles:      {path: final.evidence, where: {page_id: expanded_page_ids}, pick: title}
+  expansion_labels:     "state.search_branches.*.llm_selected_expansion[][1]"
+  rule_based_expansion: "state.search_branches.*.rule_based_expansion[]"
+  expansion_candidates: "nodes._relation_branch_worker[*].candidate_labels"
+  expansion_rationales: "nodes._relation_branch_worker[*].rationale"
+  expansion_skipped:    "nodes._relation_branch_worker[?contains(rationale, 'Skipped relation expansion')].rationale"
+
+  # --- 6. Status messages the workflow writes ---------------------------------------------------
+  page_retrieval_message: "messages[?contains(@, 'Page retrieval complete')] | [-1]"   # ... dropped_count=N
+  validation_message:     "messages[?contains(@, 'Validation complete')] | [-1]"       # ... content_length=N
+  synthesis_message:      "messages[?contains(@, 'Synthesis complete')] | [-1]"        # ... output_guardrail=X
+
+  # --- 7. Validation (the agent's own scores: diagnostics, not judges) --------------------------
+  relevance_score:      state.context_relevance
+  applicability_score:  state.context_applicability
+  sufficiency_score:    state.context_sufficiency
+  relevance_reason:     state.relevance_reason
+  applicability_reason: state.applicability_reason
+  sufficiency_reason:   state.sufficiency_reason
+
+  # --- 8. Synthesis -----------------------------------------------------------------------------
+  synthesizer_page_ids: "models.general_synthesizer_agent[*].page_ids | [0]"
+
+  # --- Timing -----------------------------------------------------------------------------------
+  latency_ms:          trace.latency_ms
+  # Every step's seconds, at every level (a wrapper such as `dispatcher` and the steps inside it).
+  # If the agent renames its steps, the names below go empty: find the new names here and update them.
+  step_seconds:        timing
+  # The pipeline steps, in order: the "Stage timings" chart on the dashboard and in the HTML report.
+  stage_seconds: >-
+    timing.{input_normalisation: input_normalisation_node, search: search_node,
+            fetch_metadata: fetch_metadata_node, anchor_identification: anchor_identification_workflow,
+            relation_expansion: relation_expansion_workflow, fetch_pages: fetch_page_workflow,
+            validation: validation_workflow, synthesis: synthesis_workflow}
+  # Seconds per phase: retrieval (search -> fetch pages), validation, generation (synthesis).
+  # Empty, not 0, when the trace has none of the phase's steps (so a renamed step can't look like 0 s).
+  retrieval_seconds: >-
+    [timing.search_node, timing.fetch_metadata_node, timing.anchor_identification_workflow,
+     timing.relation_expansion_workflow, timing.fetch_page_workflow][] | [0] && sum(@)
+  validation_seconds:  timing.validation_workflow
+  generation_seconds:  timing.synthesis_workflow
+
+  # --- Pages with title and link (for exporters/review_sheet.yaml) ------------------------------
+  anchor_pages:  {path: final.evidence, where: {page_id: anchor_page_ids}}
+  related_pages: {path: final.evidence, where: {page_id: expanded_page_ids}}   # added by relation expansion
+  cited_pages:   {path: final.evidence, where: {page_id: cited_page_ids}}      # cited in the answer
+  evidence_pages: final.evidence                                                # every page used
+
+  # --- Looked up outside the trace (lookups.py) -------------------------------------------------
+  # Page text from Athena, only when a suite needs it; cached in outputs/lookups/ (OFFLINE=1 reuses it).
+  contexts:            {lookup: get_page_content_from_athena, ids: evidence_page_ids}
+  anchor_page_content: {lookup: get_page_content_from_athena, ids: anchor_page_ids, join: "\n\n"}
+
+  # --- Not in the trace yet ---------------------------------------------------------------------
+  # decision / suggested_next_step:  FINISH | FAIL and the retry hint from the validation router

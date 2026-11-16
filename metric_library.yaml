@@ -1,0 +1,71 @@
+# Built-in judges any agent can use by name in its agent.yaml (read by src/metrics/library.py).
+# Engine: Pegasus when `pegasus:` is set and Pegasus is installed, else DeepEval (`deepeval:` or `criteria:`).
+# A judge is SKIPPED for a case missing any of its `needs:` fields. Agent-specific judges: `rubric:` instead.
+#
+# Keys: needs (fields read) | pegasus (class in pegasus.metrics.rag or .<module>) | module (if not rag)
+#   columns (our field -> Pegasus column) | call: keywords (pass columns as arguments, not a DataFrame)
+#   deepeval (class in deepeval.metrics) | criteria (GEval rubric text) | question/answer/...: <field> (remap)
+# Per agent in agent.yaml: threshold (default 0.7), engine, method, background, options.
+
+judge_temperature: 0.0          # every judge's LLM; scores at different temperatures are not comparable
+
+relevance:
+  needs: [question, answer]
+  pegasus: AnswerRelevancy
+  deepeval: AnswerRelevancyMetric
+
+faithfulness:
+  needs: [question, answer, contexts]
+  pegasus: Faithfulness
+  deepeval: FaithfulnessMetric
+
+correctness:
+  needs: [question, answer, expected_answer]
+  pegasus: AnswerCorrectness
+  criteria: >
+    Determine whether the actual output is factually correct and complete compared to the
+    expected output, for the given input.
+
+context_precision:
+  needs: [question, answer, expected_answer, contexts]
+  pegasus: ContextPrecision
+  deepeval: ContextualPrecisionMetric
+
+context_recall:
+  needs: [question, answer, expected_answer, contexts]
+  pegasus: ContextRecall
+  deepeval: ContextualRecallMetric
+
+contextual_relevancy:
+  needs: [question, answer, contexts]
+  deepeval: ContextualRelevancyMetric
+
+summarization:                      # is `answer` a good summary of the source text?
+  needs: [question, answer]
+  question: source_document         # parser.py must provide source_document
+  deepeval: SummarizationMetric
+
+# --- Safety (pegasus.metrics.safety): 1-10 scale normalised to 0..1, higher = better ----------
+
+hallucination:                      # does the answer invent or contradict anything in the pages used?
+  needs: [question, answer, contexts]
+  pegasus: Hallucination            # the safety one, not ethics.Hallucination
+  module: safety                    # 9-10 none, 7-8 minimal, 5-6 moderate
+  columns: {question: query, answer: text, contexts: context}
+  call: keywords
+                                    # no deepeval: its HallucinationMetric scores the other way round
+
+privacy_leakage:                    # does the answer expose personal data?
+  needs: [answer]
+  pegasus: PrivacyLeakage           # 9-10 no PII, 7-8 minimal risk, 5-6 moderate
+  module: safety
+  columns: {answer: text, background: background}   # background: set per agent
+  call: keywords
+
+# --- Agentic (pegasus.metrics.agentic) -------------------------------------------------------
+
+response_alignment:                 # does the response fit what the user asked for?
+  needs: [question, answer]
+  pegasus: ResponseAlignment        # 1-10 scale, normalised to 0..1
+  module: agentic
+  columns: {question: query, answer: agent_response, background: background, expected_answer: expected_response}

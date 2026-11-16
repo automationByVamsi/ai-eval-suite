@@ -1,0 +1,80 @@
+# Knowledge Agent: maps the CJM golden spreadsheet's columns to test cases (testdata/golden/<business_area>/).
+# make import-cases AGENT=knowledge_agent FILE="~/Downloads/KA golden.xlsx" [DRY_RUN=1]
+# Test IDs must be unique across the sheet: duplicates stop the import.
+
+sheet: Sheet1                 # SHEET= overrides it
+header_row: 1
+
+columns:                      # our name: header text in the sheet (case and extra spaces don't matter)
+  test_id:          Test ID
+  workstream:       Workstream
+  query_type:       Query Type
+  question:         User Query
+  question_type:    Question Type
+  expected_answer:  Expected Golden Answer
+  anchor_pages:     Expected - Anchor Page
+  related_pages:    Expected Relational Page
+  page_ids:         Page Ids  # "Anchor: 26942  Relational: 8412; 7053; 3140"
+
+required: [test_id, question]          # rows missing these are skipped
+empty_values: [NA, N/A, "-", none, TBC]
+
+labelled:                     # the Page Ids cell holds both kinds of id, each after its label
+  page_ids:
+    Anchor: anchor_page_ids
+    Relational: related_page_ids
+  # Ids without labels count as anchor ids.
+
+normalise:
+  query_type: lower           # Simple -> simple
+  question_type: slug         # How -> how, Yes/No -> yes_no
+
+allowed:                      # other question types are left out (sent as a general question)
+  question_type: [how, what, why, yes_no]
+
+lists:                        # cells that can hold several values
+  anchor_pages: items         # titles: split on new lines and ; only
+  related_pages: items
+  anchor_page_ids: any        # ids: split on new lines, commas, semicolons or spaces
+  related_page_ids: any
+
+strip:                        # drop the "(3012)" page id at the end of titles
+  anchor_pages: '\s*\(\s*\d+\s*\)\s*$'
+  related_pages: '\s*\(\s*\d+\s*\)\s*$'
+
+domain:
+  column: workstream          # matched to ../domains.yaml (name or alias); unknown ones import with a warning
+
+warn_if_empty:                # reported after the import
+  expected_answer: correctness judge will be skipped
+  anchor_pages: anchor check will be skipped
+
+output:
+  folder: testdata/golden/{domain_folder}
+  id: "KA_GLD_{domain}_{row.test_id:03}"
+  case:
+    test_case_id: "{id}"
+    description: "CJM golden, Test ID {row.test_id} ({row.workstream})"
+    input:
+      question: "{row.question}"
+      question_type: "{row.question_type}"     # empty -> left out
+      business_area: "{domain_path}"           # e.g. Complaint_Managers
+    expected:
+      expected_answer: "{row.expected_answer}"
+      expected_anchor_page_titles: "{row.anchor_pages}"
+      expected_anchor_page_ids: "{row.anchor_page_ids}"
+      expected_related_page_ids: "{row.related_page_ids}"
+      expected_related_page_titles: "{row.related_pages}"
+      expected_query_type: "{row.query_type}"       # reference only; no check reads it
+    metadata:
+      domain: "{domain}"
+      business_area_name: "{domain_name}"
+      workstream: "{row.workstream}"
+      question_type_in_sheet: "{row.question_type_in_sheet}"   # as in the sheet, even if not sent
+      origin: CJM_GOLDEN
+      approval_status: APPROVED
+      source:
+        file: "{source.file}"
+        sheet: "{source.sheet}"
+        row: "{source.row}"
+        test_id: "{row.test_id}"
